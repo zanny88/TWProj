@@ -1,0 +1,137 @@
+<%- include('partials/header'); %>
+<h1>ToDo Page</h1>
+<style>
+    #todoDiv:hover {
+        background: gray;
+    }
+    .popup {
+        position: fixed;
+        z-index: 3;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(
+            0,
+            0,
+            0,
+            0.4
+        );
+        display: none;
+    }
+    .popup-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #888888;
+        width: fit-content;
+        font-weight: bolder;
+    }
+    .popup-content button {
+        display: block;
+        margin: 0 auto;
+    }
+    .show {
+        display: block;
+    }
+    .btn-close:hover {
+        background-color: red;
+    }
+    .btn-clos:hover #todoDiv {
+        pointer-events: none;
+    }
+    #myimage {
+        width: 20px;
+        height: 20px;
+    }
+    
+</style>
+<div id="myPopup" class="popup">
+    <div class="popup-content">
+        <h5 id="todoTitle"></h5>
+        <div class="container" id="tasksDiv"></div>
+        <form action="/addTask" method="post">
+            <input type="hidden" name="todoid" id="iddiv" />
+            <button type="submit" aria-label="Add Task" id="addTaskB">Add Task</button>
+        </form>
+        <p>
+            <small class="text-muted" id="by-where-when"></small>
+        </p>
+        <p>
+            <small class="text-muted" id="tags"></small>
+        </p>
+        <button id="closePopup">
+            Close
+        </button>
+    </div>
+</div>
+<div class="container col-lg-4 col-md-4 col-sm-12" style="position: relative; margin-left: auto; margin-right: auto;" id="todoContainer">
+    <% todos.forEach(todo => { %>
+        <div class="row" id="todoDiv" style="cursor: pointer; z-index: 1; position: relative;" data-heading="<%= todo.heading %>" data-completed="<%= JSON.stringify(todo.completed) %>" data-id="<%= todo._id %>" data-tasks = "<%= JSON.stringify(todo.tasks) %>" data-author = "<%= todo.author %>" data-place = "<%= todo.place %>" data-date = "<%= todo.date %>" data-tags ="<%= JSON.stringify(todo.tags) %>">
+            <% if(todo.heading.length > 20){ %>
+                <%= todo.heading.substring(0,20) %>...
+            <% }else { %>
+                <%= todo.heading.substring(0,20) %>
+            <% } %>
+            <form action = "/Todos/delete/<%= todo._id %>" style="z-index: 2; position: absolute; right: 0%; width: 40px;" method="post">
+                <button type="submit" class="btn-close" aria-label="Close"></button>
+            </form>
+        </div>
+    <% }); %>
+    <div class="row" style="position: relative;" id="deleteAllB" hidden>
+        <form action="/Todos/delete/all" method="post" style="position: relative;">
+            <button type="submit" aria-label="deleteAll" style="position: absolute; margin-left: auto; margin-right: auto;">Delete All</button>
+        </form>
+    </div>
+</div>
+<script>
+    const todoDivs = document.querySelectorAll(".row[id^='todoDiv']");
+    const closeBtns = document.querySelectorAll(".btn-close");
+
+    if(document.getElementById("todoContainer").childElementCount > 1){
+        document.getElementById("deleteAllB").hidden = false;
+    }
+
+    closeBtns.forEach(btn => {
+        btn.addEventListener("click",function (event){
+            event.stopPropagation();
+        });
+    });
+
+    todoDivs.forEach(todo => {
+        todo.addEventListener("click",function(){
+            document.getElementById("iddiv").setAttribute("value",this.dataset.id);
+            const tasks  = JSON.parse(this.dataset.tasks);
+            const completed = JSON.parse(this.dataset.completed);
+            const author = this.dataset.author;
+            const place = this.dataset.place;
+            const date = new Date(this.dataset.date);
+            const tags = JSON.parse(this.dataset.tags);
+
+            const tasksDiv = document.getElementById("tasksDiv");
+            tasksDiv.innerHTML = "";
+
+            document.getElementById("todoTitle").innerHTML = this.dataset.heading;
+            for(let i=0;i<tasks.length;i++){
+                tasksDiv.innerHTML += `
+                    <div style="display: flex; justify-content: space-between;">
+                        <div id="taskDiv${i}">${tasks[i]}</div>
+                        <form action="/todo/${this.dataset.id}/tasks/${i}/completed" method="POST"><input type="image" id="myimage" src="https://tse2.mm.bing.net/th?id=OIP.aSmj2ltOeyP06ui_D9CclgHaHa&pid=Api&P=0&h=180"/></form>
+                        <form action="/todo/${this.dataset.id}/tasks/${i}/delete/" method="POST" style="width: 40px;"><button type="submit" class="btn-close" aria-label="close"></button></form>
+                    </div>
+                `;
+                if(completed[i] == true){
+                    document.getElementById(`taskDiv${i}`).style.background = "green";
+                }
+            }
+            document.getElementById('by-where-when').innerHTML = "Written by " + author + " in " + place + " on " + date.toDateString();
+            document.getElementById('tags').innerHTML = "Tags: " + tags.map(tag => "#" + tag).join(' - ');
+            document.getElementById('myPopup').classList.add('show');
+        });
+    });
+    document.getElementById("closePopup").addEventListener("click",function (){
+        document.getElementById("myPopup").classList.remove("show");
+    });
+</script>
+<%- include('partials/footer'); -%>

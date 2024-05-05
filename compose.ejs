@@ -1,0 +1,99 @@
+<%- include('partials/header'); -%>
+    <header>
+        <h1 id="compose_header">Compose</h1>
+    </header>
+    <form method="post" action="/compose" id="form-compose">
+        <input type="hidden" name="todoid" id="iddiv" value=""/>
+        <div id="row" style="text-align: center;">
+            <label for="noteB">Note:</label>
+            <input type="radio" id="noteB" name="typeNote" value="note" checked/>
+            <label for="todoB">ToDo:</label>
+            <input type="radio" id="todoB" name="typeNote" value="todo"/>
+        </div>
+        <div class="row" style="position: relative; justify-content: center; align-items: center;">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+                <div class="form-floating">
+                    <input type="text" name="title" class="form-control" id="notetitle"/>
+                    <label for="notetitle" id="titleLabel">Title</label>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="position: relative; justify-content: center; align-items: center;">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+                <div class="form-floating">
+                    <textarea name="post" class="form-control" placeholder="Write note here" id="textArea" style="height: 100px;" wrap="off"></textarea>
+                    <label for="textArea">Note</label>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="position: relative; align-items: center; justify-content: center;">
+            <div class="col-lg-4 col-md-4 col-sm-4">
+                <div class="form-floating">
+                    <textarea name="tags" class="form-control" placeholder="Write tags" id="tagsArea"></textarea>
+                    <label for="tagsArea">Tags</label>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="position: relative; justify-content: center; align-items: center;">
+            <div class="col-lg-2 col-md-2 col-sm-4">
+                <div class="form-floating">
+                    <input type="text" name="author" class="form-control" id="authorArea"/>
+                    <label for="authorArea">Author</label>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-2 col-sm-4">
+                <div class="form-floating">
+                    <input type="text" name="place" class="form-control" id="placeArea"/>
+                    <label for="placeArea">Place</label>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="position: relative; justify-content: center; align-items: center;">
+            <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
+                <button type="submit" id="publishB">Publish</button>
+            </div>
+        </div>
+    </form>
+    <script>
+        const todoB = document.getElementById("todoB");
+        const noteB = document.getElementById("noteB");
+
+        const getCookie = (name) => {
+            const value = "; " + document.cookie;
+            const parts = value.split("; " + name + "=");
+            if (parts.length === 2) return  parts.pop().split(";").shift();
+        }
+        const deleteCookie = (name) => {
+            document.cookie = name + '=; mag-age=0;';
+        }
+        const parseCookie = (cookie) => {
+            const decodedCookie = decodeURIComponent(cookie);
+            return  JSON.parse(decodedCookie);
+        }
+
+        let dataCookie = getCookie('data');
+        deleteCookie('data');
+
+        if(dataCookie){
+            const todo = parseCookie(dataCookie);
+            todoB.checked = true;
+            document.getElementById('iddiv').setAttribute("value",todo._id);
+            document.getElementById("textArea").nextElementSibling.innerHTML = "To do list, put only one task for line";
+            document.getElementById("notetitle").value = todo.heading;
+            document.getElementById("textArea").innerHTML = todo.tasks.join("\n");
+            document.getElementById("tagsArea").innerHTML = todo.tags.join(",");
+            document.getElementById("authorArea").value = todo.author;
+            document.getElementById("placeArea").value = todo.place;
+        }else{
+            console.log("Errore cookie");
+        }
+        
+        todoB.addEventListener("click",function(){
+            document.getElementById("textArea").nextElementSibling.innerHTML = "To do list, put only one task for line";
+        });
+        noteB.addEventListener("click",function(){
+            document.getElementById("textArea").nextElementSibling.innerHTML = "Note";
+        });
+    </script>
+<%- include('partials/footer'); -%>
+

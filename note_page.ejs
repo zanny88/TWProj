@@ -1,0 +1,20 @@
+<%- include('partials/header'); -%>
+<h1>Note Page</h1>
+<div class="row row-cols-1 row-cols-md-3 g-4" style="width: 100vw; margin-left: 1px;">
+    <% notes.forEach(note => { %>
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><%= note.heading %></h5>
+                    <p><%= note.content.substring(0,100) %>.....</p>
+                </div>
+                <div class="card-footer">
+                    <small class="text-body-secondary">Written by <%= note.author %> in <%= note.place %> on <%= note.date.toDateString() %></small>
+                    <small class="text-body-secondary">Tags: <%= note.tags.join(' - ') %></small>
+                </div>
+                <button type="button" class="btn btn-outline-info"><a href="/notes/<%= note.heading %>">Read more</a></button>
+            </div>
+        </div>
+    <% }); %>
+</div>
+<%- include('partials/footer'); -%>
