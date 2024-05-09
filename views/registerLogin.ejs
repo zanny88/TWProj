@@ -1,0 +1,67 @@
+<%- include('partials/header'); -%>
+<div class="container" style="text-align: center; margin-top: 10px;">
+    <h5 id="title">Login form</h5>
+    <form method="post" action="/user/login" id="mainForm">
+        <div class="row" style="position: relative; justify-content: center; align-items: center;">
+            <div class="col-lg-4 col-md-4 col-sm-12">
+                <div class="form-floating">
+                    <input type="text" id="username" name="username" class="form-control" required/>
+                    <label for="username">Username: </label>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="position: relative; justify-content: center; align-items: center;">
+            <div class="col-lg-4 col-md-4 col-sm-12">
+                <div class="form-floating">
+                    <input type="password" id="password" name="password" class="form-control" required/>
+                    <label for="password">Password: </label>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="position: relative; justify-content: center; align-items: center; margin-top: 10px;">
+            <div class="col-lg-2 col-md-2 col-sm-4">
+                <button type="submit" class="btn btn-outline-info" id="mainButton">Login</button>
+            </div>
+        </div>
+    </form>
+    <div class="row" style="position: relative; justify-content: center; align-items: center;">
+        <div class="col-lg-4 col-md-4 col-sm-12">
+            <p id="bottomText"><b>Non hai un account? <a href="/user/register">Registrati</a></b></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const title = document.getElementById("title");
+    const mainForm = document.getElementById("mainForm");
+    const mainButton = document.getElementById("mainButton");
+    const bottomText = document.getElementById("bottomText");
+
+    const getCookie = (name) => {
+        const value = "; " + document.cookie;
+        const parts = value.split("; " + name + "=");
+        if (parts.length === 2) return  parts.pop().split(";").shift();
+    }
+    const deleteCookie = (name) => {
+        document.cookie = name + '=; max-age=0;';
+    }
+    const parseCookie = (cookie) => {
+        const decodedCookie = decodeURIComponent(cookie);
+        return  JSON.parse(decodedCookie);
+    }
+
+    let dataCookie = getCookie('flag');
+    deleteCookie('flag');
+
+    if(dataCookie){
+        const register = parseCookie(dataCookie);
+        if(register){
+            title.innerHTML = "Register form";
+            mainForm.action = "/user/register";
+            mainButton.innerHTML = "Register";
+            bottomText.innerHTML = "<b>Hai già un account? <a href='/user/login'>Accedi</a></b>";
+        }
+    }
+</script>
+
+<%- include('partials/footer'); -%>

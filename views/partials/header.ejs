@@ -18,7 +18,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navMenu">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Show
@@ -49,6 +49,9 @@
                         <div class="list-group position-absolute w-100" style="z-index: 1050;" id ="resultList"></div>
                     </form>
                 </ul>
+                <form action="/user/logout" method="post">
+                    <button type="submit" class="btn btn-outline-info">Logout</button>
+                </form>
             </div>
         </div>
     </nav>

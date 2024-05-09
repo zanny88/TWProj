@@ -64,7 +64,7 @@
             if (parts.length === 2) return  parts.pop().split(";").shift();
         }
         const deleteCookie = (name) => {
-            document.cookie = name + '=; mag-age=0;';
+            document.cookie = name + '=; max-age=0;';
         }
         const parseCookie = (cookie) => {
             const decodedCookie = decodeURIComponent(cookie);

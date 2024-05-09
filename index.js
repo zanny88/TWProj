@@ -18,6 +18,7 @@ const mongoDBUri = "mongodb+srv://marcostignani9:qpalzmQP8@clusternote.yd03buh.m
 mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const noteSchema = new mongoose.Schema ({
+    user: [String],
     heading: String,
     content: String,
     author: String,
@@ -28,6 +29,7 @@ const noteSchema = new mongoose.Schema ({
 });
 
 const todoSchema = new mongoose.Schema({
+    user: [String],
     heading: String,
     tasks: [String],
     author: String,
@@ -38,33 +40,103 @@ const todoSchema = new mongoose.Schema({
     el_type: {type: String, default: "Todo"}
 });
 
+const userSchema = new mongoose.Schema({/*!!!!!!!!!!!!!!!!!*/
+    name: String,
+    passw: String,
+});
+
 const Note = mongoose.model("Note",noteSchema);
 const Todo = mongoose.model("Todo",todoSchema);
+const User = mongoose.model("User",userSchema);/*!!!!!!!!!!!*/
+var currentUser = null;
 
+app.post("/timer/save", (req,res) => {
+    console.log("timer salvato");
+});
+
+app.get("/pomodoro",(req,res) => {
+    res.render("pomodoro");
+});
 
 app.get("/",async (req,res) => {
-    const note = await Note.find({}).limit(3);
-    const todo = await Todo.find({}).limit(3);
-    res.render("home",{notes: note, todos: todo});
+    if(currentUser == null){
+        res.render("registerLogin");
+    }else{
+        const note = await Note.find({user: [currentUser.name, currentUser.passw]}).limit(3);
+        const todo = await Todo.find({user: [currentUser.name, currentUser.passw]}).limit(3);
+        res.render("home",{notes: note, todos: todo});
+    }
 });
 
 app.get("/showNotes",async (req,res) => {
-    const notes = await Note.find({});
+    const notes = await Note.find({user: [currentUser.name, currentUser.passw]});
     res.render("note_page",{notes});
 });
 
 app.get("/showTodos",async (req,res) => {
-    const todos = await Todo.find({});
+    const todos = await Todo.find({user: [currentUser.name, currentUser.passw]});
     res.render("todo_page",{todos});
 });
 
 app.get("/compose",(req,res) => {
     res.render("compose",{todo: null});
 });
+/*--------------------------------------------*/
+app.get("/user/login",(req,res) => {
+    res.cookie('flag',JSON.stringify(false));
+    res.render("registerLogin");
+});
 
+app.get("/user/register",(req,res) => {
+    res.cookie('flag',JSON.stringify(true));
+    res.render("registerLogin");
+});
+
+app.post("/user/logout",(req,res) => {
+    currentUser = null;
+    res.redirect("/");
+});
+
+app.post("/user/:regType",async (req,res) => {
+    var newUser = null;
+    var user = null;
+    var x = null;
+    if(req.params.regType == "login"){
+        try{
+            user = await User.findOne({name: req.body.username, passw: req.body.password});
+            if(!user){
+                res.redirect("/user/login");
+            }else{
+                currentUser = user;
+                res.redirect("/");
+            }
+        }catch(error){
+            res.status(500).send("Error login");
+        }
+    }else{
+        x = await User.findOne({name: req.body.username});
+        if(x){
+            res.render("registerLogin");
+        }else{
+            var newUser = new User({
+                name: req.body.username,
+                passw: req.body.password
+            });
+            try{
+                newUser.save();
+                currentUser = newUser;
+                res.redirect("/");
+            }catch(error){
+                res.status(500).send("Error saving new user");
+            }
+        }
+    }
+});
+/*------------------------------------------------------*/
 app.post("/compose", async (req,res) => {
     if(req.body.typeNote == "note"){
         var newNote = new Note({
+            user: [currentUser.name, currentUser.passw],
             heading: req.body.title,
             content: req.body.post,
             author: req.body.author,
@@ -92,8 +164,6 @@ app.post("/compose", async (req,res) => {
                     newComp.push(newTasks.indexOf(todo.tasks[index]));
                 }
             });
-            console.log("Vecchie pos completed todo: " + oldComp);
-            console.log("Nuove pos completed todo: " + newComp);
             todo.tasks = newTasks;
             todo.author = req.body.author;
             todo.completed = [];
@@ -106,6 +176,7 @@ app.post("/compose", async (req,res) => {
             flag = true;
         }else{
             newTodo = new Todo({
+                user: [currentUser.name, currentUser.passw],
                 heading: req.body.title,
                 tasks: req.body.post.split("\n").map(task => task.trim()),
                 author: req.body.author,
@@ -150,7 +221,7 @@ app.post("/addTask",async (req,res) => {
 app.get("/notes/:noteName",async (req,res) => {
     try{
         const noteName = decodeURIComponent(req.params.noteName);
-        const note = await Note.findOne({ heading: new RegExp('^' + _.escapeRegExp(noteName) + '$', 'i')});
+        const note = await Note.findOne({ user: [currentUser.name, currentUser.passw], heading: new RegExp('^' + _.escapeRegExp(noteName) + '$', 'i')});
         if(note){
             res.render("note",{
                 id: note._id,
@@ -179,8 +250,8 @@ app.get('/search',async (req,res) => {
         const filter = req.query.f;
         var searchResults = [];
         if(filter == "tag"){
-            const allNote = await Note.find({});
-            const allTodo = await Todo.find({});
+            const allNote = await Note.find({user: [currentUser.name, currentUser.passw]});
+            const allTodo = await Todo.find({user: [currentUser.name, currentUser.passw]});
             const allElement = allNote.concat(allTodo);
             allElement.forEach(item => {
                 if(item.tags.includes(query)){
@@ -190,9 +261,11 @@ app.get('/search',async (req,res) => {
         }else{
 
             const searchResultsNote = await Note.find({
+                user: [currentUser.name, currentUser.passw],
                 [filter]: {$regex: new RegExp(query,'i')} 
             }).limit(3);
             const searchResultsTodo = await Todo.find({
+                user: [currentUser.name, currentUser.passw],
                 [filter]: {$regex: new RegExp(query,'i')}
             }).limit(3);
 
