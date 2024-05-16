@@ -31,6 +31,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/compose">Add</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pomodoro">Tomato Timer</a>
+                    </li>
                     <form class="d-flex position-relative" role="search" id="searchForm">
                         <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput" autocomplete="off"/>
                         <div class="nav-item dropdown">
@@ -43,17 +46,59 @@
                                 <li><input type="radio" name="filterB" value="place"/>Luogo</li>
                                 <li><input type="radio" name="filterB" value="date"/>Data</li>
                                 <li><input type="radio" name="filterB" value="tag"/>Tag</li>
+                                <li><input type="checkbox" name="friendSearch" value="friend"/>Friends</li>
                             </ul> 
                         </div>
                         <button class="btn btn-otuline-success" type="submit">Search</button>
                         <div class="list-group position-absolute w-100" style="z-index: 1050;" id ="resultList"></div>
                     </form>
                 </ul>
+                <form action="/user/inbox" method="get">
+                    <input type="image" id="inbox_img" src="" style="height: 40px; width: 40px;" hidden/>
+                </form>
+                <form action="/user/addFriend" method="get">
+                    <input type="image" src="https://www.shutterstock.com/image-vector/add-friend-icon-600nw-509934085.jpg" style="height: 50px; width: 50px;"/>
+                </form>
                 <form action="/user/logout" method="post">
                     <button type="submit" class="btn btn-outline-info">Logout</button>
                 </form>
             </div>
         </div>
     </nav>
+    <script>
+        var inboxInterval;
+        const getCookie = (name) => {
+            const value = "; " + document.cookie;
+            const parts = value.split("; " + name + "=");
+            if (parts.length === 2) return  parts.pop().split(";").shift();
+        }
+        const deleteCookie = (name) => {
+            document.cookie = name + '=; max-age=0;';
+        }
+        const parseCookie = (cookie) => {
+            const decodedCookie = decodeURIComponent(cookie);
+            return  JSON.parse(decodedCookie);
+        }
+        inboxInterval = setInterval(() => {
+            $.ajax({
+                url: "/inbox/check",
+                type: "GET",
+                data: {},
+                success: function(data){
+                    if(data != ""){
+                        document.getElementById("inbox_img").setAttribute("src",data);
+                        document.getElementById("inbox_img").hidden = false;
+                    }
+                },
+                error: function(error){
+                    console.log(error);
+                    clearInterval(inboxInterval);
+                }
+            });
+        },1000);//intervallo per controllare periodicamente il valore del cookie inbox
+
+        
+
+    </script>
     <!--<script src='https://code.jquery.com/jquery-1.12.4.min.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.min.js'></script>-->

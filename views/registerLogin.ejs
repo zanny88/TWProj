@@ -37,7 +37,7 @@
     const mainButton = document.getElementById("mainButton");
     const bottomText = document.getElementById("bottomText");
 
-    const getCookie = (name) => {
+    /*const getCookie = (name) => {
         const value = "; " + document.cookie;
         const parts = value.split("; " + name + "=");
         if (parts.length === 2) return  parts.pop().split(";").shift();
@@ -48,13 +48,13 @@
     const parseCookie = (cookie) => {
         const decodedCookie = decodeURIComponent(cookie);
         return  JSON.parse(decodedCookie);
-    }
+    }*/
 
-    let dataCookie = getCookie('flag');
+    let dataCookieFlag = getCookie('flag');
     deleteCookie('flag');
 
-    if(dataCookie){
-        const register = parseCookie(dataCookie);
+    if(dataCookieFlag){
+        const register = parseCookie(dataCookieFlag);
         if(register){
             title.innerHTML = "Register form";
             mainForm.action = "/user/register";

@@ -7,25 +7,27 @@
             e.preventDefault();
             var searchText = document.getElementById("searchInput").value;
             var li_value = $('input[type=radio]:checked')[0].attributes.value.textContent;
+            var friendSearch = $('input[type=checkbox]')[0].checked;
             if(searchText.length >= 4){
-                search(searchText,li_value);
+                search(searchText,li_value,friendSearch);
             }
         });
         $('#searchForm').on('input',function(){
             var searchText = document.getElementById("searchInput").value;
             var li_value = $('input[type=radio]:checked')[0].attributes.value.textContent;
+            var friendSearch = $('input[type=checkbox]')[0].checked;
             if(searchText.length >= 4){
-                search(searchText,li_value);
+                search(searchText,li_value,friendSearch);
             }else{
                 $('#resultList').empty().hide();
             }
         });
 
-        function search(searchText,filter){
+        function search(searchText,filter,friendSearch){
             $.ajax({
                url: '/search',
                type: "GET",
-               data: {query: searchText, f: filter},
+               data: {query: searchText, f: filter, fs: friendSearch},
                success: function(data){
                     $('#resultList').empty();
                     if(data.length > 0){

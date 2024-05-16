@@ -3,7 +3,8 @@ const app = express();
 const mongoose = require("mongoose");
 const path = require('path');
 const _ = require("lodash");
-const cors = require('cors')
+const cors = require('cors');
+const { clear } = require("console");
 app.use(cors());
 // Set the view engine to EJS
 app.set("view engine", "ejs");
@@ -18,7 +19,8 @@ const mongoDBUri = "mongodb+srv://marcostignani9:qpalzmQP8@clusternote.yd03buh.m
 mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const noteSchema = new mongoose.Schema ({
-    user: [String],
+    user: String,
+    public: Boolean,
     heading: String,
     content: String,
     author: String,
@@ -29,7 +31,8 @@ const noteSchema = new mongoose.Schema ({
 });
 
 const todoSchema = new mongoose.Schema({
-    user: [String],
+    user: String,
+    public: Boolean,
     heading: String,
     tasks: [String],
     author: String,
@@ -40,59 +43,254 @@ const todoSchema = new mongoose.Schema({
     el_type: {type: String, default: "Todo"}
 });
 
+const sessionSchema = new mongoose.Schema({
+    user: String,
+    startSession: {type: Date, default: Date(new Date().getTime())},
+    replayable: {type: Boolean, default: false},
+    studyTime: Number,
+    pauseTime: Number,
+    cicles: Number,
+    inactiveTime: {type: Number, default: 0},
+    state: {type: String, default: "Study"}
+});
+
 const userSchema = new mongoose.Schema({/*!!!!!!!!!!!!!!!!!*/
     name: String,
     passw: String,
+    friends: {type: [String], default: []},
+    inbox: {type: [String], default: []}
 });
 
 const Note = mongoose.model("Note",noteSchema);
 const Todo = mongoose.model("Todo",todoSchema);
 const User = mongoose.model("User",userSchema);/*!!!!!!!!!!!*/
+const Session = mongoose.model("Session",sessionSchema);
 var currentUser = null;
+var progress = null;
+var pTime = null;
+var empty_inbox = "https://cdn2.iconfinder.com/data/icons/sharp-email-vol-2/32/2_inbox_email-01-128.png";
+var new_message = "https://cdn2.iconfinder.com/data/icons/sharp-email-vol-2/32/2_inbox_email-20-128.png";
 
-app.post("/timer/save", (req,res) => {
-    console.log("timer salvato");
+function loggedIn(){
+    return currentUser != null;
+}
+
+function checkInbox(){
+    if(currentUser.inbox.length > 0){
+        return new_message;
+    }else{
+        return empty_inbox;
+    }
+}
+
+app.get("/timer/save", (req,res) => {
+    var arrayInfo = req.query.timerInfo;
+
+    var newSession = new Session({
+        user: currentUser.name,
+        studyTime: arrayInfo[0],
+        pauseTime: arrayInfo[1],
+        cicles: arrayInfo[2]
+    });
+
+    try{
+        newSession.save();
+        res.json(newSession._id);
+    }catch(error){
+        res.status(500).send("Error saving timer");
+    }
+    res.send(undefined);
 });
 
-app.get("/pomodoro",(req,res) => {
-    res.render("pomodoro");
+app.get("/timer/update",async (req,res) => {
+    var id = req.query.sID;
+    
+    var session = Session.findById(id);
+    if(!id){//reset e restart after stop
+        if(progress){
+            clearInterval(progress);
+            progress = null;
+            session.inactiveTime += ((new Date(new Date().getTime())) - pTime);
+            pTime = null;
+            await session.save();
+        }
+    }else{
+        if(!pTime){
+            pTime = new Date(new Date().getTime());
+        }
+        progress = setInterval(async () => {//del after 30 min stop
+            let checkTime = new Date(new Date().getTime());
+            if(checkTime - pTime >= (30*60*1000)){
+                session.inactiveTime += (30*60*1000);
+                await session.save();
+                clearInterval(progress);
+                progress = null;
+                res.json(true);
+            }
+        },1000);
+    }
+});
+
+app.get("/pomodoro",async (req,res) => {
+    if(loggedIn()){
+        if(progress){
+            clearInterval(progress);
+            progress = null;
+        }
+        var sessions = await Session.find({});
+        var session = sessions.pop(sessions.length-1);
+        if(((session.studyTime + session.pauseTime)*session.cicles)*60*1000 - session.inactiveTime < (30*60*1000)){
+            session = "";
+        }
+
+        res.cookie('data',JSON.stringify(session));
+        res.render("pomodoro");
+    }else{
+        res.redirect("/user/login");
+    }
+});
+
+app.get("/inbox/check",(req,res) => {
+    if(loggedIn()){
+        const inbox_img = checkInbox();
+        //res.cookie('inbox',JSON.stringify(inbox_img));
+        res.json(inbox_img);
+    }else{
+        res.json("");
+    }
 });
 
 app.get("/",async (req,res) => {
-    if(currentUser == null){
-        res.render("registerLogin");
+    if(!loggedIn()){
+        res.redirect("/user/login");
     }else{
-        const note = await Note.find({user: [currentUser.name, currentUser.passw]}).limit(3);
-        const todo = await Todo.find({user: [currentUser.name, currentUser.passw]}).limit(3);
+        if(progress){
+            clearInterval(progress);
+            progress = null;
+        }
+        const note = await Note.find({user: currentUser.name}).limit(3);
+        const todo = await Todo.find({user: currentUser.name}).limit(3);
         res.render("home",{notes: note, todos: todo});
     }
 });
 
 app.get("/showNotes",async (req,res) => {
-    const notes = await Note.find({user: [currentUser.name, currentUser.passw]});
-    res.render("note_page",{notes});
+    if(loggedIn()){
+        if(progress){
+            clearInterval(progress);
+            progress = null;
+        }
+        const notes = await Note.find({user: currentUser.name});
+        res.render("note_page",{notes});
+    }else{
+        res.redirect("/user/login");
+    }
 });
 
 app.get("/showTodos",async (req,res) => {
-    const todos = await Todo.find({user: [currentUser.name, currentUser.passw]});
-    res.render("todo_page",{todos});
+    if(loggedIn()){
+        if(progress){
+            clearInterval(progress);
+            progress = null;
+        }
+        const todos = await Todo.find({user: currentUser.name});
+        res.render("todo_page",{todos});
+    }else{
+        res.redirect("/user/login");
+    }
 });
 
 app.get("/compose",(req,res) => {
-    res.render("compose",{todo: null});
+    if(loggedIn()){
+        if(progress){
+            clearInterval(progress);
+            progress = null;
+        }
+        res.render("compose",{todo: null});
+    }else{
+        res.redirect("/user/login");
+    }
 });
 /*--------------------------------------------*/
+
+app.post("/user/friend/:friendName/:action",async (req,res) => {
+    const friendN = req.params.friendName;
+    currentUser.inbox = currentUser.inbox.filter(item => item !== friendN);
+
+    if(req.params.action == "accept"){
+        try{
+            var friend = await User.findOne({name: friendN});
+
+            friend.friends.push(currentUser.name);
+            currentUser.friends.push(friendN);
+
+            friend.save();
+            currentUser.save();
+
+            res.redirect("/user/inbox");
+        }catch(error){
+            res.status(500).send("error fetching friend");
+        }
+    }else{
+        currentUser.save();
+        res.redirect("/user/inbox");
+    }
+});
+
+app.get("/user/addFriend", (req,res) => {
+    if(loggedIn()){
+        res.render("friendPage");
+    }
+});
+
+app.get('/user/inbox',(req,res) => {
+    const msgs = currentUser.inbox;
+
+    res.render("inboxPage",{m: msgs});
+});
+
+app.post("/user/addFriend", async (req,res) => {
+    var friendName = req.body.friendUsername;
+    if(!currentUser.friends.includes(friendName)){
+        try{
+            var friend = await User.findOne({name: friendName});
+            if(!friend){
+                res.render("friendPage");
+            }else{
+                friend.inbox.push(currentUser.name);
+                friend.save();
+
+                res.redirect("/");
+            }
+        }catch(error){
+            res.status(500).send("Error saving friend");
+        }
+    }
+});
+
 app.get("/user/login",(req,res) => {
+    if(progress){
+        clearInterval(progress);
+        progress = null;
+    }
     res.cookie('flag',JSON.stringify(false));
     res.render("registerLogin");
 });
 
 app.get("/user/register",(req,res) => {
+    if(progress){
+        clearInterval(progress);
+        progress = null;
+    }
     res.cookie('flag',JSON.stringify(true));
     res.render("registerLogin");
 });
 
 app.post("/user/logout",(req,res) => {
+    if(progress){
+        clearInterval(progress);
+        progress = null;
+    }
     currentUser = null;
     res.redirect("/");
 });
@@ -103,7 +301,7 @@ app.post("/user/:regType",async (req,res) => {
     var x = null;
     if(req.params.regType == "login"){
         try{
-            user = await User.findOne({name: req.body.username, passw: req.body.password});
+            user = await User.findOne({name: req.body.username});
             if(!user){
                 res.redirect("/user/login");
             }else{
@@ -136,10 +334,11 @@ app.post("/user/:regType",async (req,res) => {
 app.post("/compose", async (req,res) => {
     if(req.body.typeNote == "note"){
         var newNote = new Note({
-            user: [currentUser.name, currentUser.passw],
+            user: currentUser.name,
+            public: req.body.publicCheck != undefined ? true : false,
             heading: req.body.title,
             content: req.body.post,
-            author: req.body.author,
+            author: currentUser.name,
             place: req.body.place,
             tags: req.body.tags.split(',').map(tag => tag.trim())
         });
@@ -165,7 +364,6 @@ app.post("/compose", async (req,res) => {
                 }
             });
             todo.tasks = newTasks;
-            todo.author = req.body.author;
             todo.completed = [];
             for(let i=0;i<todo.tasks.length;i++){
                 todo.completed.push(newComp.includes(i));
@@ -176,17 +374,16 @@ app.post("/compose", async (req,res) => {
             flag = true;
         }else{
             newTodo = new Todo({
-                user: [currentUser.name, currentUser.passw],
+                user: currentUser.name,
+                public: req.body.publicCheck != undefined ? true : false,
                 heading: req.body.title,
                 tasks: req.body.post.split("\n").map(task => task.trim()),
-                author: req.body.author,
+                author: currentUser.name,
                 completed: Array(req.body.post.split("\n").length).fill(false),
                 place: req.body.place,
                 tags: req.body.tags.split(",").map(tag => tag.trim())
             });
-            if(newTodo.tasks[0] == ""){
-                newTodo.tasks = [];
-            }
+            newTodo.tasks = newTodo.tasks.filter(item => item !== "");
         }
     }
     try{
@@ -219,6 +416,10 @@ app.post("/addTask",async (req,res) => {
 });
 
 app.get("/notes/:noteName",async (req,res) => {
+    if(progress){
+        clearInterval(progress);
+        progress = null;
+    }
     try{
         const noteName = decodeURIComponent(req.params.noteName);
         const note = await Note.findOne({ user: [currentUser.name, currentUser.passw], heading: new RegExp('^' + _.escapeRegExp(noteName) + '$', 'i')});
@@ -241,6 +442,46 @@ app.get("/notes/:noteName",async (req,res) => {
     }
 });
 
+var searchResults;
+
+async function realFunc(u,filter,query){
+    if(filter == "tag"){
+        const allNote = await Note.find({user: u});
+        const allTodo = await Todo.find({user: u});
+        const allElement = allNote.concat(allTodo);
+        allElement.forEach(item => {
+            if(item.tags.includes(query)){
+                searchResults.push(item);
+            }
+        });
+    }else{
+        searchResultsNote = await Note.find({
+            user: u,
+            [filter]: {$regex: new RegExp(query,'i')} 
+        });
+        searchResultsTodo = await Todo.find({
+            user: u,
+            [filter]: {$regex: new RegExp(query,'i')}
+        });
+        
+
+        searchResults.concat(searchResultsNote.concat(searchResultsTodo));
+    }
+}
+
+async function asyncFunc(user,filter,query){
+    return new Promise(resolve => {
+        realFunc(user,filter,query);
+        resolve();
+    });
+}
+
+async function processUsers(users,filter,query){
+    for(const user of users){
+        await asyncFunc(user,filter,query);
+    }
+}
+
 app.get('/search',async (req,res) => {
     if(!req.query.query){
         return res.status(400).send("Query parameter is required");
@@ -248,30 +489,53 @@ app.get('/search',async (req,res) => {
     try{
         const query = req.query.query;
         const filter = req.query.f;
-        var searchResults = [];
-        if(filter == "tag"){
-            const allNote = await Note.find({user: [currentUser.name, currentUser.passw]});
-            const allTodo = await Todo.find({user: [currentUser.name, currentUser.passw]});
-            const allElement = allNote.concat(allTodo);
-            allElement.forEach(item => {
-                if(item.tags.includes(query)){
-                    searchResults.push(item);
-                }
-            });
+        const friendSearch = req.query.fs;
+        /*var searchResultsNote;
+        var searchResultsTodo;*/
+        searchResults = [];
+        var users;
+        if(friendSearch == true){
+            users = currentUser.friends;
         }else{
-
-            const searchResultsNote = await Note.find({
-                user: [currentUser.name, currentUser.passw],
-                [filter]: {$regex: new RegExp(query,'i')} 
-            }).limit(3);
-            const searchResultsTodo = await Todo.find({
-                user: [currentUser.name, currentUser.passw],
-                [filter]: {$regex: new RegExp(query,'i')}
-            }).limit(3);
-
-            searchResults = searchResultsNote.concat(searchResultsTodo);
+            users = [currentUser.name];
         }
+
+        processUsers(users,filter,query);
+
+        /*users.forEach(async (searchUser) =>{
+            if(filter == "tag"){
+                const allNote = await Note.find({user: searchUser});
+                const allTodo = await Todo.find({user: searchUser});
+                const allElement = allNote.concat(allTodo);
+                allElement.forEach(item => {
+                    if(item.tags.includes(query)){
+                        searchResults.push(item);
+                    }
+                });
+            }else{
+                searchResultsNote = await Note.find({
+                    user: searchUser,
+                    [filter]: {$regex: new RegExp(query,'i')} 
+                });
+                searchResultsTodo = await Todo.find({
+                    user: searchUser,
+                    [filter]: {$regex: new RegExp(query,'i')}
+                });
+                
+    
+                searchResults.concat(searchResultsNote.concat(searchResultsTodo));
+            }
+        });*/
+
         res.json(searchResults);
+        
+        /*var searchInterval = setInterval(() => {
+            if(searchResultsNote != undefined && searchResultsTodo != undefined){
+                clearInterval(searchInterval);
+                
+            }
+        },1000);*/
+        
     }catch(error){
         console.log('Search error: ',error);
         res.status(500).send('Error performing search');

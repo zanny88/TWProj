@@ -1,0 +1,36 @@
+<%- include('partials/header'); -%>
+
+<div class="container" style="margin-top: 10px;">
+    <h5 id="title">Inbox</h5>
+    <% m.forEach(msg => { %>
+        <div class="row" style="display: flex; justify-content: center; align-items: center;">
+            <div class="col-lg-4 col-md-4 col-sm-12">
+                <%= msg %>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-12 d-flex justify-content-around">
+                <form action="/user/friend/<%= msg %>/accept" method="POST">
+                    <input type="image" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-207NdgmKFJ5yHezF2-uEP0vsIuTDK9XPow&s" style="height: 40px; width: 40px;"/>
+                </form>
+                <form action="/user/friend/<%= msg %>/deny" method="POST">
+                    <button type="submit" class="btn-close"></button>
+                </form>
+            </div>
+        </div>
+    <% }); %>
+</div>
+
+
+<!--<div class="container" style="margin-top: 10px;">
+    <h5 id="title">Inbox</h5>
+    <% m.forEach(msg => { %>
+        <div class="row" style="display: flex; justify-content: center; align-items: center;">
+            <div class="col-lg-4 col-md-4 col-sm-12">
+                <%= msg %>
+            </div>
+            <form action="/user/friend/<%= msg %>/accept" mathod="POST"><input type="image" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-207NdgmKFJ5yHezF2-uEP0vsIuTDK9XPow&s" style="height: 40px; width: 40px;"/></form>
+            <form action="/user/friend/<%= msg %>/deny" method="POST"><button type="submit" class="btn-close"></button></form>
+        </div>
+    <% }); %>
+</div>-->
+
+<%- include('partials/footer'); -%>
