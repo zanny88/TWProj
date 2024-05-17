@@ -24,7 +24,7 @@
     <h5 style="margin-bottom: 40px;">Latest To-Do</h5>
     <div class="container" style="height: 50vh; justify-content: center; align-items: center;">
         <% todos.forEach(todo => { %>
-            <div class="row" id="todoDiv" style="cursor: pointer; position: relative; justify-content: center;">
+            <div class="row" id="todoDiv" data-author="<%= todo.author %>" style="cursor: pointer; position: relative; justify-content: center;">
                 <% if(todo.heading.length > 20){ %>
                     <%= todo.heading.substring(0,20) %>...
                 <% } else { %>
@@ -38,7 +38,7 @@
     const todoDivs = document.querySelectorAll(".row[id^='todoDiv']");
     todoDivs.forEach(todoDiv => {
         todoDiv.addEventListener('click',function(){
-            document.location = document.location.href += "showTodos";
+            document.location = document.location.href += `${this.dataset.author}/showTodos`;
         });
     });
 </script>

@@ -36,9 +36,9 @@
                             var encodedTitle = encodeURIComponent(el.heading);
                             var link;
                             if(el.el_type == "notes"){
-                                link = `<a class="list-group-item list-group-item-action" style="position: absolute; top: calc(100% + (45px + ${i}px));" href="/${el.el_type}/${encodedTitle}">${el.heading}</a>`;
+                                link = `<a class="list-group-item list-group-item-action" style="position: absolute; top: calc(100% + (45px + ${i}px));" href="/${el.el_type}/${el.author}/${encodedTitle}">${el.heading}</a>`;
                             }else{
-                                link = `<a class="list-group-item list-group-item-action" style="position: absolute; top: calc(100% + (45px + ${i}px));" href="/showTodos">${el.heading}</a>`;
+                                link = `<a class="list-group-item list-group-item-action" style="position: absolute; top: calc(100% + (45px + ${i}px));" href="/${el.author}/showTodos">${el.heading}</a>`;
                             }
                             $('#resultList').append(link);
                             i += 42;

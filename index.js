@@ -68,6 +68,7 @@ const Session = mongoose.model("Session",sessionSchema);
 var currentUser = null;
 var progress = null;
 var pTime = null;
+var friendSearch = false;
 var empty_inbox = "https://cdn2.iconfinder.com/data/icons/sharp-email-vol-2/32/2_inbox_email-01-128.png";
 var new_message = "https://cdn2.iconfinder.com/data/icons/sharp-email-vol-2/32/2_inbox_email-20-128.png";
 
@@ -187,13 +188,24 @@ app.get("/showNotes",async (req,res) => {
     }
 });
 
-app.get("/showTodos",async (req,res) => {
+app.get("/:author/showTodos",async (req,res) => {
     if(loggedIn()){
         if(progress){
             clearInterval(progress);
             progress = null;
         }
-        const todos = await Todo.find({user: currentUser.name});
+        const tmp = await Todo.find({user: req.params.author});
+        var todos = [];
+        tmp.forEach(t => {
+            if(friendSearch){
+                if(t.public){
+                    todos.push(t);
+                }
+            }else{
+                todos.push(t);
+            }
+        })
+
         res.render("todo_page",{todos});
     }else{
         res.redirect("/user/login");
@@ -415,14 +427,14 @@ app.post("/addTask",async (req,res) => {
     }
 });
 
-app.get("/notes/:noteName",async (req,res) => {
+app.get("/notes/:author/:noteName",async (req,res) => {
     if(progress){
         clearInterval(progress);
         progress = null;
     }
     try{
         const noteName = decodeURIComponent(req.params.noteName);
-        const note = await Note.findOne({ user: [currentUser.name, currentUser.passw], heading: new RegExp('^' + _.escapeRegExp(noteName) + '$', 'i')});
+        const note = await Note.findOne({ user: req.params.author, heading: new RegExp('^' + _.escapeRegExp(noteName) + '$', 'i')});
         if(note){
             res.render("note",{
                 id: note._id,
@@ -442,44 +454,44 @@ app.get("/notes/:noteName",async (req,res) => {
     }
 });
 
-var searchResults;
-
 async function realFunc(u,filter,query){
+    let results = [];
     if(filter == "tag"){
         const allNote = await Note.find({user: u});
         const allTodo = await Todo.find({user: u});
         const allElement = allNote.concat(allTodo);
         allElement.forEach(item => {
-            if(item.tags.includes(query)){
-                searchResults.push(item);
+            if(item.tags.includes(query) && item.public){
+                results.push(item);
             }
         });
     }else{
-        searchResultsNote = await Note.find({
+        const searchResultsNote = await Note.find({
             user: u,
             [filter]: {$regex: new RegExp(query,'i')} 
         });
-        searchResultsTodo = await Todo.find({
+        const searchResultsTodo = await Todo.find({
             user: u,
             [filter]: {$regex: new RegExp(query,'i')}
         });
-        
-
-        searchResults.concat(searchResultsNote.concat(searchResultsTodo));
+        searchResultsNote.concat(searchResultsTodo).forEach(item => {
+            if(item.public){
+                results.push(item);
+            }
+        });
     }
+    return results;
 }
 
 async function asyncFunc(user,filter,query){
-    return new Promise(resolve => {
-        realFunc(user,filter,query);
-        resolve();
-    });
+    const results = await realFunc(user,filter,query);
+    return results;
 }
 
 async function processUsers(users,filter,query){
-    for(const user of users){
-        await asyncFunc(user,filter,query);
-    }
+    const promises = users.map(user => asyncFunc(user,filter,query));
+    const results = await Promise.all(promises);
+    return results.flat();
 }
 
 app.get('/search',async (req,res) => {
@@ -489,52 +501,17 @@ app.get('/search',async (req,res) => {
     try{
         const query = req.query.query;
         const filter = req.query.f;
-        const friendSearch = req.query.fs;
-        /*var searchResultsNote;
-        var searchResultsTodo;*/
-        searchResults = [];
+        friendSearch = req.query.fs;
         var users;
-        if(friendSearch == true){
+        if(friendSearch == 'true'){
             users = currentUser.friends;
         }else{
             users = [currentUser.name];
         }
 
-        processUsers(users,filter,query);
-
-        /*users.forEach(async (searchUser) =>{
-            if(filter == "tag"){
-                const allNote = await Note.find({user: searchUser});
-                const allTodo = await Todo.find({user: searchUser});
-                const allElement = allNote.concat(allTodo);
-                allElement.forEach(item => {
-                    if(item.tags.includes(query)){
-                        searchResults.push(item);
-                    }
-                });
-            }else{
-                searchResultsNote = await Note.find({
-                    user: searchUser,
-                    [filter]: {$regex: new RegExp(query,'i')} 
-                });
-                searchResultsTodo = await Todo.find({
-                    user: searchUser,
-                    [filter]: {$regex: new RegExp(query,'i')}
-                });
-                
-    
-                searchResults.concat(searchResultsNote.concat(searchResultsTodo));
-            }
-        });*/
+        const searchResults = await processUsers(users,filter,query);
 
         res.json(searchResults);
-        
-        /*var searchInterval = setInterval(() => {
-            if(searchResultsNote != undefined && searchResultsTodo != undefined){
-                clearInterval(searchInterval);
-                
-            }
-        },1000);*/
         
     }catch(error){
         console.log('Search error: ',error);
@@ -578,7 +555,7 @@ app.post("/todo/:id/tasks/:task/delete", async (req,res) => {
         r.completed.splice(req.params.task,1);
 
         await Todo.findOneAndUpdate({_id: req.params.id},{tasks: r.tasks, completed: r.completed});
-        res.redirect("/showTodos");
+        res.redirect(`/${r.author}/showTodos`);
     }catch(error){
         console.log(error);
         res.status(500).send("Error fetching Todo");
@@ -594,7 +571,7 @@ app.post("/todo/:id/tasks/:task/completed", async (req,res) => {
         var comp = r.completed;
         comp[req.params.task] = true;
         await Todo.findByIdAndUpdate({_id: req.params.id},{completed: comp});
-        res.redirect("/showTodos");
+        res.redirect(`/${r.author}/showTodos`);
     }catch(error){
         console.log(error);
         res.status(500).send("Error fetching Todo");
