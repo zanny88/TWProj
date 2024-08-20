@@ -5,16 +5,18 @@ import Compose from "./components/Compose.vue";
 import TodoPage from "./components/TodoPage.vue";
 import Note from "./components/Note.vue";
 import RegLog from "./components/registerLogin.vue";
+import Pomodoro from "./components/Pomodoro.vue";
 
 const router = createRouter({
     history: createWebHashHistory(),
     routes: [
-        {path: '/', component: Home},
-        {path: '/create', component: Compose},
-        {path: '/showNote', component: NotePage},
-        {path: '/showTodo', component: TodoPage},
-        {path: '/note/:id', component: Note, props: true},
-        {path: '/login',component: RegLog}
+        { path: '/', component: Home },
+        { path: '/create', component: Compose },
+        { path: '/showNote', component: NotePage },
+        { path: '/showTodo', component: TodoPage },
+        { path: '/note/:id', component: Note, props: true },
+        { path: '/login', component: RegLog },
+        { path: '/pomodoro', component: Pomodoro }
     ]
 });
 
