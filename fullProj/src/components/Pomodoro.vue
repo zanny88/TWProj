@@ -18,20 +18,15 @@
                                     hours</span>
                             </div>
                             <div class="col-6">
-                                <input type="number" class="form-control" id="avail-min" v-model="availM" min="0" max="60"><span>
+                                <input type="number" class="form-control" id="avail-min" v-model="availM" min="0" max="59"><span>
                                     minutes</span>
                             </div>
                         </span>
                     </div>
-                    <div id="suggestions-box" class="mt-1 mb-1 d-flex flex-column align-items-center ">
-                        <label for="suggestions" class="text-align-center">SUGGESTIONS</label>
+                    <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex; " v-show="boxShouldBeDisplayed()">
+                        <label for="suggestions">SUGGESTIONS</label>
                         <div id="suggestions">
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn">2&times;(15+5)</button>
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn">2&times;(15+5)</button>
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn">2&times;(15+5)</button>
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn">2&times;(15+5)</button>
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn">2&times;(15+5)</button>
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn">2&times;(15+5)</button>
+                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
                         </div>
                     </div>
                     <div class="form-group row">
@@ -107,9 +102,42 @@ let availM = ref(0);
 
 var loggedIn = inject("loggedIn");//variabile globale ref creata in main.js per controllare se l'utente è loggato o meno
     
+let suggestionsStructsArray = [];
 let studying = false;
 let resting = false;
 let interval;
+const defaultCycles = [
+    {
+        fullDuration: 20,
+        studyDuration: 15,
+        restDuration: 5
+    },
+    {
+        fullDuration: 30,
+        studyDuration: 25,
+        restDuration: 5
+    },
+    {
+        fullDuration: 35,
+        studyDuration: 30,
+        restDuration: 5
+    },
+    {
+        fullDuration: 45,
+        studyDuration: 35,
+        restDuration: 10
+    },
+    {
+        fullDuration: 50,
+        studyDuration: 40,
+        restDuration: 10
+    },
+    {
+        fullDuration: 60,
+        studyDuration: 45,
+        restDuration: 15
+    }
+];
 
 function get_ready_to_rest() {
     document.getElementById("tomato-eye-l").style.display = "none";
@@ -203,18 +231,18 @@ function handleSubmit(){
     }, 1000);
 }
 
-/*
-onMounted(() => {
-    document.getElementById("tomato-eye-l").style.display = "none";
-    document.getElementById("tomato-eye-r").style.display = "none";
-    document.getElementById("closed-tomato-eye-l").style.display = "none";
-    document.getElementById("closed-tomato-eye-r").style.display = "none";
-    document.getElementById("tomato-table").style.display = "none";
-    document.getElementById("tomato-book").style.display = "none";
-    document.getElementById("tomato-book-cover").style.display = "none";
-    document.getElementById("tomato-bed").style.display = "none";
-});
-*/
+onMounted(()=>{
+    const buttons = [...document.querySelectorAll("#suggestions>button")];
+    let i = -1;
+    for (const btn of buttons){
+        suggestionsStructsArray.push({});
+        i++;
+        suggestionsStructsArray[i].button = btn;
+        suggestionsStructsArray[i].studyDuration = defaultCycles[i].studyDuration;
+        suggestionsStructsArray[i].restDuration = defaultCycles[i].restDuration;
+        suggestionsStructsArray[i].cyclesNum = 0;
+    }
+})
 
 onUnmounted(() => {
     clearInterval(interval);
@@ -224,47 +252,33 @@ let availTime = computed(() => {
     return availH.value*60 + availM.value;
 });
 
-const defaultCycles = [
-    {
-        fullDuration: 20,
-        studyDuration: 15,
-        restDuration: 5
-    },
-    {
-        fullDuration: 30,
-        studyDuration: 25,
-        restDuration: 5
-    },
-    {
-        fullDuration: 35,
-        studyDuration: 30,
-        restDuration: 5
-    },
-    {
-        fullDuration: 45,
-        studyDuration: 35,
-        restDuration: 10
-    },
-    {
-        fullDuration: 50,
-        studyDuration: 40,
-        restDuration: 10
-    },
-    {
-        fullDuration: 60,
-        studyDuration: 45,
-        restDuration: 15
-    }
-];
-
 watch(availTime, (newAvailTime, oldAvailTime) => {
-    for (const defCycle of defaultCycles){
-        //console.log(`Cycles of ${defCycle.fullDuration} mins: ${calcNumOfCycles(newAvailTime, defCycle.fullDuration)}`);
+    for (let i = 0; i < suggestionsStructsArray.length; i++){
+        const suggestionStruct = suggestionsStructsArray[i];
+        const numOfCycles = calcNumOfCycles(newAvailTime, suggestionStruct.studyDuration + suggestionStruct.restDuration);
+        suggestionStruct.button.innerHTML = `${numOfCycles}&times;(${suggestionStruct.studyDuration}+${suggestionStruct.restDuration})`;
+        suggestionStruct.cyclesNum = numOfCycles;
     }
 });
 
 function calcNumOfCycles(totMin, minsPerCycle){
     return Math.floor(totMin / minsPerCycle);
+}
+
+function setDisplayed(studyTime, restTime, cyclesNum){
+    document.getElementById("study-time").value = studyTime;
+    document.getElementById("rest-time").value = restTime;
+    document.getElementById("cycles-num").value = cyclesNum;
+}
+
+function buttonShouldBeDisplayed(index){
+    if(!suggestionsStructsArray[index] || suggestionsStructsArray[index].cyclesNum == 0)
+        return false;
+    return true;
+}
+
+function boxShouldBeDisplayed(){
+    return suggestionsStructsArray.some((elem) => elem.cyclesNum > 0);
 }
 
 </script>
@@ -312,6 +326,7 @@ main {
 .suggestion-btn{
     font-size: 0.75em;
     font-family: "Source Code Pro", sans-serif;
+    width: 103px; /* TODO fai meglio */
 }
 
 .form-control + span {
