@@ -71,52 +71,69 @@
     //funzione per cercare la parte della nota, se presente, dove si è indicato di voler creare un to-do con il simbolo [todo]
     //calcola l'indice di inizio e fine della zona del to-do ed estrae la sottostringa dal corpo della nota
     //la sottostringa del to-do non viene tolta dal corpo della nota
-    function check_for_todo(text){
-        var result = null;
-        if(text.toLowerCase().includes("[todo]")){
-            const firstTodoIndex = text.indexOf("[todo]");
-            const secondTodoIndex = text.indexOf("[todo]", firstTodoIndex + 1);
+    function check_for_todo(text) {
+        var results = [];
+        var startIndex = 0;
 
-            if (firstTodoIndex !== -1 && secondTodoIndex !== -1) {
-                const startIndex = firstTodoIndex + "[todo]".length;
-                const endIndex = secondTodoIndex;
+        text = text.toLowerCase();  // Converti tutto il testo in minuscolo per cercare in modo case-insensitive.
 
-                result = text.substring(startIndex, endIndex).trim();
+        while (true) {
+            // Trova il primo indice di "[todo]" a partire da startIndex.
+            const firstTodoIndex = text.indexOf("[todo]", startIndex);
+
+            if (firstTodoIndex === -1) {
+                break;  // Esce dal ciclo se non ci sono più "[todo]" nel testo.
+            }
+
+            // Trova il secondo indice di "[todo]" dopo il primo.
+            const secondTodoIndex = text.indexOf("[todo]", firstTodoIndex + "[todo]".length);
+
+            if (secondTodoIndex !== -1) {
+                // Estrae la sottostringa tra il primo e il secondo "[todo]".
+                const extractedText = text.substring(firstTodoIndex + "[todo]".length, secondTodoIndex).trim();
+                console.log("extract text for todo: ",extractedText);
+                results.push(extractedText);  // Aggiunge la sottostringa alla lista dei risultati.
+                startIndex = secondTodoIndex + "[todo]".length;  // Aggiorna startIndex per cercare la prossima occorrenza.
             } else {
-                console.log("Non è stato possibile trovare entrambi i tag [todo].");
+                break;  // Esce dal ciclo se non c'è un secondo "[todo]".
             }
         }
-        return result;
+
+        return results.length > 0 ? results : null;
     }
 
     //funzione per la creazione del payload per la richiesta di creazione del to-do trovato all'interno della nota
     function create_todo_obj(data){
-        var addTodo = null;
+        var addTodos = [];
         if(data){
-            var tasks = data.split("\n").map(task => task.trim()).filter(item => item != "");
-            addTodo = {
-                ID: null,
-                parent_id: null,
-                heading: tasks.shift(),
-                content: tasks.join("\n"),
-                tags: tags.value,
-                place: place.value,
-                public: publicCheck.value,
-                post_type: 1,
-                todo_children: false
+            for(let t of data){
+                var tasks = t.split("\n").map(task => task.trim()).filter(item => item != "");
+                var x = {
+                    ID: null,
+                    parent_id: null,
+                    heading: tasks.shift(),
+                    content: tasks.join("\n"),
+                    tags: tags.value,
+                    place: place.value,
+                    public: publicCheck.value,
+                    post_type: 1,
+                    todo_children: false
+                }
+                addTodos.push(x);
             }
         }
-        return addTodo;
+        return addTodos;
     }
 
     //funzione di submit per il salvataggio del post
     async function submit(){
-        var todo_data = null;
-        var todo_obj = null;
+        var todos_data = null;
+        var todo_objs = null;
+        console.log(`tipo post in gestione: ${typeI.value}`);
         //se si vuole salvare una nota viene cercato il simbolo [todo]
         if(typeI.value == 0){//!!!NOTA!!! --> modificare per avere un array di più to-do obj
-            todo_data = check_for_todo(post.value);
-            todo_obj = create_todo_obj(todo_data);
+            todos_data = check_for_todo(post.value);
+            todo_objs = create_todo_obj(todos_data);
         }
         //payload per il salvataggio del post di base 
         const newPost = {
@@ -128,46 +145,55 @@
             place: place.value,
             public: publicCheck.value,
             post_type: typeI.value,
-            todo_children: todo_obj != null
+            todo_children: todo_objs.length > 0
         };
+        console.log(`Main post obj:\n${newPost}`);
         var res = await axios.post(`${api_url}compose`,newPost);
+        console.log("prima richiesta riuscita");
 
         var promises = [];
         //getione creazione to-do trovato dentro al corpo di una nota 
-        if(todo_obj != null){
+        if(todo_objs.length > 0){
             //se si stava creando una nuova nota allora il server restituirà il messaggio per l'aggiunta di un to-do
             if(res.data.message == "Add todo children"){
+
                 console.log("Aggiungo il todo creato nella nota che ha id: ",res.data.id);
-                todo_obj.parent_id = res.data.id;//viene aggiunto l'ID della nota "padre"
-                console.log(todo_obj);
-                res = await axios.post(`${api_url}compose`,todo_obj);
+                for(let t of todo_objs){
+                    t.parent_id = res.data.id;  //viene aggiunto l'ID della nota "padre"
+                    console.log(t);
+                    promises.push(await axios.post(`${api_url}compose`,t));
+                }
+                var r = await Promise.all(promises);
+                
             }else if(res.data.message == "Modify todo children"){
                 //se si stava modificando una nota il server restiuirà il messaggio per la modifica dei to-do con la lista degli ID
                 //la parte commentata è la gestione del caso in cui durante la modifica della nota venga cancellato un to-do
                 //in questo caso vengono cancellati tutti i to-do creati in origine dalla nota e poi vengono salvati quelli ancora presenti
-                /*if(res.data.t_child.length < arrTodo.length){
-                    var i = 0;
-                    for(child in res.data.t_child){
+                console.log(todo_objs.length);
+                console.log(res.data.t_child.length);
+                if(res.data.t_child.length > todo_objs.length){
+                    console.log("TODO ELIMINATO DALLA NOTA");
+                    for(let child of res.data.t_child){
                         promises.push(await axios.post(`${api_url}todos/delete`,{ID: child}));
                     }
                     await Promise.all(promises);
                     promises = [];
-                    for(child in res.data.t_child){
-                        arrTodo[i].parent_id = res.data.parent_id;
-                        promises.push(await axios.post(`${api_url}compose`,arrTodo[i]));
-                        i += 1;
+                    for(let t of todo_objs){
+                        t.parent_id = res.data.parent_id;
+                        promises.push(await axios.post(`${api_url}compose`,t));
                     }
                     await Promise.all(promises);
-                }*/
-                console.log("aggiungo l'ID del to-do da modificare al'oggetto");
-                console.log(`lista degli ID dei to-do figli della nota da modificare: ${res.data.t_child}`);
-                //se invece vengono solo modificati i to-do allora si invia una richiesta di modifica del to-do, questo avviene grazie al salvataggio dell'ID del to-do nel payload
-                //queseta operazione viene svolta con un ciclo perchè l'idea era quella di poter creare più to-do dentro ad una nota ma per ora il tutto è stato testato con un solo to-do
-                for(child in res.data.t_child){
-                    todo_obj.ID = child;
-                    promises.push(await axios.post(`${api_url}compose`,todo_obj));
+                }else{
+                    console.log("aggiungo l'ID del to-do da modificare al'oggetto");
+                    console.log(`lista degli ID dei to-do figli della nota da modificare: ${res.data.t_child}`);
+                    //se invece vengono solo modificati i to-do allora si invia una richiesta di modifica del to-do, questo avviene grazie al salvataggio dell'ID del to-do nel payload
+                    //queseta operazione viene svolta con un ciclo perchè l'idea era quella di poter creare più to-do dentro ad una nota ma per ora il tutto è stato testato con un solo to-do
+                    for(let i=0;i<res.data.t_child.length;i++){
+                        todo_objs[i].ID = res.data.t_child[i];
+                        promises.push(await axios.post(`${api_url}compose`,todo_objs[i]));
+                    }
+                    var r = await Promise.all(promises);
                 }
-                var r = await Promise.all(promises);
             }
         }
         router.push({path: "/"});
@@ -180,14 +206,14 @@
             tags.value = sent_to_modify.value.tags.join(",");
             place.value = sent_to_modify.value.place;
             publicCheck.value = sent_to_modify.value.public;
-            typeI = 1;
+            typeI.value = 1;
         }else{
             title.value = sent_to_modify.value.heading;
             post.value = sent_to_modify.value.content;
             tags.value = sent_to_modify.value.tags.join(",");
             place.value = sent_to_modify.value.place;
             publicCheck.value = sent_to_modify.value.public;
-            typeI = 0;
+            typeI.value = 0;
         }
        
     }
