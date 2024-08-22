@@ -5,6 +5,8 @@ const cors = require("cors");
 const path = require("path");
 const { type } = require("os");
 const bodyParser = require("body-parser");
+const { rmSync } = require("fs");
+const { ConnectionClosedEvent } = require("mongodb");
 
 app.use(cors());
 app.set("view engine");
@@ -147,10 +149,8 @@ app.post("/compose",async (req,res) => {
         //con le opportune differenze per la gestione dei campi per i to-do
         //ovvero separazione dei task e la gestione dei task completati
         if(ID != null){
-            console.log(`modifico il to-do con ID: ${ID}`);
             try{
                 var todo = await Todo.findOne({_id: ID});
-                console.log(`to-do trovato: ${todo}`);
 
                 todo.heading = heading;
                 var newTasks = content.split("\n").map(task => task.trim()).filter(item => item != "");
@@ -201,7 +201,7 @@ app.post("/compose",async (req,res) => {
                 //nel caso della modifica di una nota nella risposta da parte del server viene inviata anche la lista degli ID dei to-do creati dentro alla nota
                 //insieme anche all'ID della nota appena modificata
                 //!!!NOTA!!! --> NON FUNZIONA
-                if(savedDocument.t_child.length > 0){
+                if(savedDocument.todo_children.length > 0){
                     res.json({
                         message: "Modify todo children",
                         t_child: savedDocument.todo_children,
@@ -213,7 +213,7 @@ app.post("/compose",async (req,res) => {
             }
             //se la richiesta era per la creazione di una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
             //servirà durante la creazione dei to-do (se presenti)
-            if(todo_children){
+            if(todo_children && !savedDocument.todo_children.length){
                 res.json({
                     message: "Add todo children",
                     id: savedDocument._id
@@ -223,6 +223,7 @@ app.post("/compose",async (req,res) => {
             //uguale divisione per creazione e modifica
             if(ID != null){
                 savedDocument = await todo.save();
+                res.send({message: "OK"});
             }else{
                 savedDocument = await newTodo.save();
                 //se il nuovo to-do è stato creato a partire da una nota viene salvato all'interno del to-do l'ID del padre
@@ -291,6 +292,13 @@ app.post("/:blogType/delete",async (req,res) => {
         if(req.params.blogType == "Notes"){
             r = await Note.findByIdAndDelete(ID);
         }else{
+            var t = await Todo.findOne({_id: ID});
+            if(t.parent_id){
+                console.log("cancello id todo da lista figli del padre");
+                var n = await Note.findOne({_id: t.parent_id});
+                n.todo_children = n.todo_children.filter(child => child != ID);
+                await n.save();
+            }
             r = await Todo.findByIdAndDelete(ID);
         }
         if(!r){
