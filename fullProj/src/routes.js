@@ -16,8 +16,8 @@ const router = createRouter({
         { path: '/showTodo', component: TodoPage },
         { path: '/note/:id', component: Note, props: true },
         { path: '/login', component: RegLog },
+        { path: '/pomodoro/:study/:rest/:cycles', component: Pomodoro, props: true },
         { path: '/pomodoro', component: Pomodoro }
     ]
 });
-
 export default router;

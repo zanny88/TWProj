@@ -23,23 +23,27 @@
                             </div>
                         </span>
                     </div>
-                    <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex; " v-show="boxShouldBeDisplayed()">
-                        <label for="suggestions">SUGGESTIONS</label>
-                        <div id="suggestions">
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
+                    <div id="expand-container">
+                        <div id="expand-contract" class="collapsed">
+                            <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex; ">
+                                <label for="suggestions">SUGGESTIONS</label>
+                                <div id="suggestions">
+                                    <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="study-time" class="col-sm-5 col-form-label text-md-end">STUDY</label>
                         <div class="col-sm-6">
-                            <input type="number" class="form-control" id="study-time" required min="1" value="30"><span>
+                            <input type="number" class="form-control" id="study-time" required min="0" value="30"><span>
                                 minutes</span>
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="rest-time" class="col-sm-5 col-form-label text-md-end">REST</label>
                         <div class="col-sm-6">
-                            <input type="number" class="form-control" id="rest-time" required min="1" value="5"><span>
+                            <input type="number" class="form-control" id="rest-time" required min="0" value="5"><span>
                                 minutes</span>
                         </div>
                     </div>
@@ -54,6 +58,13 @@
                 <!--
                 <button type="button" class="badge badge-pill" id="reset-btn">RESET</button>
                 -->
+               
+                <div class="row col-8 mt-1 mb-1">
+                    <button class="btn badge badge-pill col-4 control-btn" id="skip-next-btn" disabled>Skip</button>
+                    <button class="btn badge badge-pill col-4 control-btn" id="skip-cycle-btn" disabled>Skip cycle</button>
+                    <button class="btn badge badge-pill col-4 control-btn" id="restart-btn" disabled>Restart cycle</button>
+                </div>
+
                 <div id="clock" class="blob">
                     <div class="timer" id="timer-display">00:00</div>
                 </div>
@@ -93,6 +104,8 @@
 import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
+
+const props = defineProps(['study', 'rest', 'cycles']);
 
 const api_url = "http://localhost:3000/";
 const router = useRouter();
@@ -161,10 +174,52 @@ function get_ready_to_study() {
     document.getElementById("tomato-bed").style.display = "none";
 }
 
+function disable_form_inputs(){
+    const input_list = document.querySelectorAll("#times-form input");
+    const suggestions_box = document.getElementById("suggestions-box");
+    const suggestions = document.getElementById("suggestions");
+    for(const el of input_list){
+        el.disabled = true;
+    }
+}
+
+function enable_form_inputs(){
+    const input_list = document.querySelectorAll("#times-form input");
+    for(const el of input_list){
+        el.disabled = false;
+    }
+    if(suggestions && !(suggestions.disabled)){
+        const suggestions_list = document.querySelectorAll("suggestions > button");
+        for(const btn of suggestions_list){
+            btn.disabled = false;
+        }
+    }
+}
+
+function toggleControlButtons(enableSubmit){
+    const submit_btn = document.getElementById("start-btn");
+    const skip_next_btn = document.getElementById("skip-next-btn");
+    const restart_btn = document.getElementById("restart-btn");
+    const skip_cycle_btn = document.getElementById("skip-cycle-btn");
+    submit_btn.disabled = !enableSubmit;
+    skip_next_btn.disabled = enableSubmit;
+    restart_btn.disabled = enableSubmit;
+    skip_cycle_btn.disabled = enableSubmit;
+}
+
 function handleSubmit(){
     const submit_btn = document.getElementById("start-btn");
+    const skip_next_btn = document.getElementById("skip-next-btn");
+    const restart_btn = document.getElementById("restart-btn");
+    const skip_cycle_btn = document.getElementById("skip-cycle-btn");
+    const expand_contract = document.getElementById("expand-contract");
+
     submit_btn.textContent = "STUDYING...";
-    submit_btn.disabled = true;
+    toggleControlButtons(false);
+    disable_form_inputs();
+    if (expand_contract.classList.contains("expanded"))
+        expandContract();
+
     studying = true;
 
     // Convert the inserted study time into an integer, base 10
@@ -183,7 +238,7 @@ function handleSubmit(){
     get_ready_to_study();
     document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_sec}s linear forwards`;
 
-    let end_time = Date.now() + study_time_min * 60000;
+    let end_time = Date.now() + study_time_sec * 1000;
 
     // Interval to deal with the passage of time
     interval = setInterval(function () {
@@ -215,7 +270,8 @@ function handleSubmit(){
                     clearInterval(interval);
                     submit_btn.textContent = "START STUDYING";
                     document.getElementById("tomato").style.filter = "brightness(100%)";
-                    submit_btn.disabled = false;
+                    toggleControlButtons(true);
+                    enable_form_inputs();
                     document.getElementById('timer-display').textContent = "00:00";
                 }
             }
@@ -242,6 +298,14 @@ onMounted(()=>{
         suggestionsStructsArray[i].restDuration = defaultCycles[i].restDuration;
         suggestionsStructsArray[i].cyclesNum = 0;
     }
+    
+    if (props.study && props.rest && props.cycles)
+        setDisplayed(parseInt(props.study), parseInt(props.rest), parseInt(props.cycles));
+    else 
+        setDisplayed(30, 5, 5);
+    document.getElementById('timer-display').textContent = "00:00";
+    enable_form_inputs();
+    
 })
 
 onUnmounted(() => {
@@ -259,6 +323,8 @@ watch(availTime, (newAvailTime, oldAvailTime) => {
         suggestionStruct.button.innerHTML = `${numOfCycles}&times;(${suggestionStruct.studyDuration}+${suggestionStruct.restDuration})`;
         suggestionStruct.cyclesNum = numOfCycles;
     }
+
+    if((oldAvailTime == 0 && newAvailTime > 0) || (oldAvailTime > 0 && newAvailTime == 0)) expandContract();
 });
 
 function calcNumOfCycles(totMin, minsPerCycle){
@@ -279,6 +345,12 @@ function buttonShouldBeDisplayed(index){
 
 function boxShouldBeDisplayed(){
     return suggestionsStructsArray.some((elem) => elem.cyclesNum > 0);
+}
+
+function expandContract() {
+   const el = document.getElementById("expand-contract")
+   el.classList.toggle('expanded')
+   el.classList.toggle('collapsed')
 }
 
 </script>
@@ -329,6 +401,19 @@ main {
     width: 103px; /* TODO fai meglio */
 }
 
+#expand-container {
+    overflow: hidden;
+}
+  
+#expand-contract {
+    margin-top: -100%;
+    transition: 0.2s all;
+}
+  
+#expand-contract.expanded {
+    margin-top: 0;
+}
+
 .form-control + span {
     font-size: 60%;
 }
@@ -354,11 +439,21 @@ main {
 
 #start-btn:disabled {
     background-color: gray;
+    color: white;
+}
+
+.control-btn {
+    background-color: #aaf683;
     color: black;
 }
 
-#reset-btn {
-    background-color: var(--my-black);
+.control-btn:disabled{
+    background-color: black;
+    color: rgb(80, 80, 80);
+}
+
+.control-btn:hover{
+    background-color: #60d394;
 }
 
 #timer-display {
