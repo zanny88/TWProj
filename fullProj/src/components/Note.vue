@@ -17,7 +17,7 @@
                                 <li class="dropdown-item" @click="note_modify(note._id)">Modify note</li>
                             </ul>
                         </div>
-                        <p class="card-text">{{ note.content }}</p>
+                        <p class="card-text" v-html="formatContent(note.content)"></p>
                         <p class="card-text">
                             <small class="text-muted">Written by {{ note.user }} in {{ note.place }} on {{ new Date(note.date).toDateString() }}</small>
                         </p>
@@ -83,6 +83,14 @@
             path: "/create",
             query: {data: JSON.stringify(modify_payload)}
         });
+    }
+
+    function formatContent(content){
+        return content
+            .replace(/#+\s(.*?)(\n|$)/g, '<h1>$1</h1>') // Titoli
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')     // Grassetto
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')         // Corsivo
+            .replace(/\n/g, '<br>');
     }
 
     //appena il componente viene caricato si esegue la funzione per la ricerca dei dati della nota da visualizzare

@@ -1,56 +1,66 @@
 <template>
     <h1>Compose</h1>
-    <form action="">
-        <div id="row" style="text-align: center;">
-            <label for="noteB">Note:</label>
-            <input type="radio" id="noteB" name="typeNote" value="note" checked @click="typeI = 0"/><!--@click indica l'azione da compiere quando il bottone viene cliccato, ovvero cambiare la visualizzazione della label per la textarea del body del post-->
-            <label for="todoB">ToDo:</label>
-            <input type="radio" id="todoB" name="typeNote" value="todo" @click="typeI = 1"/>
-            <label for="publicCheck">Public:</label>
-            <input type="checkbox" id="public" v-model="publicCheck"/>
-        </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="col-lg-4 col-md-4 col-sm-4">
-                <div class="form-floating">
-                    <input type="text" v-model="title" class="form-control" id="notetitle" required/>
-                    <label for="notetitle" id="titleLabel">Title</label>
+    <div class="compose-container">
+        <div class="form-container">
+            <form action="">
+                <div id="row" style="text-align: center;">
+                    <label for="noteB">Note:</label>
+                    <input type="radio" id="noteB" name="typeNote" value="note" checked @click="typeI = 0"/><!--@click indica l'azione da compiere quando il bottone viene cliccato, ovvero cambiare la visualizzazione della label per la textarea del body del post-->
+                    <label for="todoB">ToDo:</label>
+                    <input type="radio" id="todoB" name="typeNote" value="todo" @click="typeI = 1"/>
+                    <label for="publicCheck">Public:</label>
+                    <input type="checkbox" id="public" v-model="publicCheck"/>
                 </div>
-            </div>
-        </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="col-lg-4 col-md-4 col-sm-4">
-                <div class="form-floating">
-                    <textarea v-model="post" class="form-control" placeholder="Write note here" id="textArea" style="height: 100px;" wrap="off" required></textarea>
-                    <label for="textArea">{{ insertType[typeI] }}</label>
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <input type="text" v-model="title" class="form-control" id="notetitle" required/>
+                            <label for="notetitle" id="titleLabel">Title</label>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="row" style="position: relative; align-items: center; justify-content: center;">
-            <div class="col-lg-4 col-md-4 col-sm-4">
-                <div class="form-floating">
-                    <textarea v-model="tags" class="form-control" placeholder="Write tags" id="tagsArea" required></textarea>
-                    <label for="tagsArea">Tags</label>
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <textarea v-model="post" class="form-control" placeholder="Write note here" id="textArea" style="height: 100px; white-space: pre-wrap;" wrap="off" required></textarea>
+                            <label for="textArea">{{ insertType[typeI] }}</label>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="col-lg-4 col-md-4 col-sm-4">
-                <div class="form-floating">
-                    <input type="text" v-model="place" class="form-control" id="placeArea" required/>
-                    <label for="placeArea">Place</label>
+                <div class="row" style="position: relative; align-items: center; justify-content: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <textarea v-model="tags" class="form-control" placeholder="Write tags" id="tagsArea" required></textarea>
+                            <label for="tagsArea">Tags</label>
+                        </div>
+                    </div>
                 </div>
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <input type="text" v-model="place" class="form-control" id="placeArea" required/>
+                            <label for="placeArea">Place</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
+                        <button type="button" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" @click.prevent="submit">Publish</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="preview-container">
+            <h2>Preview</h2>
+            <div v-if="post.value !== ''" v-html="renderedContent" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+
             </div>
         </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
-                <button type="button" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" @click.prevent="submit">Publish</button>
-            </div>
-        </div>
-    </form>
+    </div>
 </template>
 
 <script setup>
-    import {ref,onMounted} from "vue";
+    import {ref,onMounted,computed} from "vue";
     import axios from 'axios';
     import {useRouter,useRoute} from "vue-router";
     const api_url = "http://localhost:3000/";
@@ -68,6 +78,21 @@
     var insertType = ref(["Note","To do list, put only one task for line"]);//array utilizzato per il display delle informazioni del tipo di post che si vuole salvare
     //viene utilizzato ref perchè per accedere agli elementi si utilizza come indice typeI altra variabile ref che può cambiare durante la visualizzazione del componente
 
+    var start_todo_index = 0;
+    var final_todo_index = 0;
+
+    function convertToHTML(data){
+        return data
+            .replace(/#+\s(.*?)(\n|$)/g, '<h1>$1</h1>') // Titoli
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')     // Grassetto
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')         // Corsivo
+            .replace(/\n/g, '<br>');
+    }
+
+    const renderedContent = computed(() => {
+        return convertToHTML(post.value);
+    })
+
     //funzione per cercare la parte della nota, se presente, dove si è indicato di voler creare un to-do con il simbolo [todo]
     //calcola l'indice di inizio e fine della zona del to-do ed estrae la sottostringa dal corpo della nota
     //la sottostringa del to-do non viene tolta dal corpo della nota
@@ -81,7 +106,12 @@
             // Trova il primo indice di "[todo]" a partire da startIndex.
             const firstTodoIndex = text.indexOf("[todo]", startIndex);
 
+            if(!start_todo_index){
+                start_todo_index = firstTodoIndex;
+            }
+
             if (firstTodoIndex === -1) {
+                start_todo_index = 0;
                 break;  // Esce dal ciclo se non ci sono più "[todo]" nel testo.
             }
 
@@ -89,6 +119,7 @@
             const secondTodoIndex = text.indexOf("[todo]", firstTodoIndex + "[todo]".length);
 
             if (secondTodoIndex !== -1) {
+                final_todo_index = secondTodoIndex;
                 // Estrae la sottostringa tra il primo e il secondo "[todo]".
                 const extractedText = text.substring(firstTodoIndex + "[todo]".length, secondTodoIndex).trim();
                 console.log("extract text for todo: ",extractedText);
@@ -140,7 +171,7 @@
             ID: sent_to_modify.value != null ? sent_to_modify.value._id : null,//se si stava modificando un post già esistente viene aggiunto l'ID di questo 
             parent_id: null,
             heading: title.value,
-            content: post.value,
+            content: start_todo_index != final_todo_index ? post.value.slice(0,start_todo_index) + post.value.slice(final_todo_index + 6) : post.value,
             tags: tags.value,
             place: place.value,
             public: publicCheck.value,
@@ -229,3 +260,19 @@
         }
     })
 </script>
+
+<style scoped>
+    .compose-container{
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .form-container, .preview-container{
+        flex: 1;
+        min-width: 300px;
+        margin: 10px;
+    }
+    .preview-container{
+        border-left: 1px solid #ccc;
+        padding: 10px;
+    }
+</style>
