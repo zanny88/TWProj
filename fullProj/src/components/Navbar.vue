@@ -1,24 +1,26 @@
 <template>
-    <div :class="['navbar','navbar-expand-lg', 'navbar-light', 'bg-light',{'disabled-navbar': !val}]"><!--la classe disabled-navbar viene aggiunta in base al valore di nav-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+    <div :class="['navbar','navbar-expand-lg', 'navbar-dark', {'disabled-navbar': !val}]"><!--la classe disabled-navbar viene aggiunta in base al valore di nav-->
         <div class="container-fluid">
-            <router-link class="navbar-brand" to="/">Note</router-link>
+            <div class="container-fluid col-5" id="logo-container">
+                <router-link class="navbar-brand" to="/">
+                  <img src="../assets/slothLogo.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top">
+                  <span id="logoText">SELFIE</span>
+                </router-link>
+              </div>
+            
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navMenu">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Show
-                        </a>
-                        <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
-                            <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
-                            <li><router-link class="dropdown-item" to="/showTodo">To Do</router-link></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Tomato Timer</a>
-                    </li>
+                    <li class="nav-item"><router-link class="nav-link" to="">Calendar</router-link></li>
+                    <li class="nav-item"><router-link class="nav-link" to="/showNote">Notes</router-link></li>
+                    <li class="nav-item"><router-link class="nav-link" to="/showTodo">To&nbsp;Do</router-link></li>
+                    <li class="nav-item"><router-link class="nav-link" to="/pomodoro">Pomodoro</router-link></li>
                     <form class="d-flex position-relative" role="search" id="searchForm">
                         <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput" @input="inputSearch()" v-model="searchString" autocomplete="off"/>
                         <div class="nav-item dropdown">
@@ -97,7 +99,40 @@
     
 </script>
 <style scoped>
+
 /*la classe disabilità la navbar*/
+.navbar{
+    background-color: #dda15e;
+    margin-bottom: 50px;
+}
+.navbar *{
+    font-family: Poppins, sans-serif;
+}
+
+#logoText{
+    margin-left: 0.7em;
+    letter-spacing: 0.3em;
+    font-weight: 800;
+}
+
+@media(width < 576px) {
+    .navbar-brand{
+        margin:auto;
+    }
+}
+
+#logo-container{
+    display: flex;
+    justify-content: center;
+}
+
+@media screen and (min-width: 992px){
+    #logo-container{
+        display: flex;
+        justify-content: start;
+    }
+}
+
 .disabled-navbar{
     pointer-events: none;
     opacity: 0.6;

@@ -1,3 +1,6 @@
+//TODO: bottoni nel coso espandibile se width bassa, testi piccoli hours e minutes se width bassa, tasto reset
+// aggiusta navbar toggler
+
 <template>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -8,61 +11,66 @@
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
 
         <main>
-            <form id="times-form" class="d-flex flex-column align-items-center justify-content-evenly">
-                <div class="col-10 col-md-8">
-                    <div class="form-group row">
-                        <label for="avail-time" class="col-sm-5 col-form-label text-md-end">(OPTIONAL) AVAILABLE TIME</label>
-                        <span id="avail-time" class="row col-6">
-                            <div class="col-6">
-                                <input type="number" class="form-control" id="avail-h" v-model="availH" min="0"><span>
-                                    hours</span>
-                            </div>
-                            <div class="col-6">
-                                <input type="number" class="form-control" id="avail-min" v-model="availM" min="0" max="59"><span>
-                                    minutes</span>
-                            </div>
-                        </span>
-                    </div>
-                    <div id="expand-container">
-                        <div id="expand-contract" class="collapsed">
-                            <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex; ">
-                                <label for="suggestions">SUGGESTIONS</label>
-                                <div id="suggestions">
-                                    <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
+            <form id="avail-time-form" class="d-flex flex-column align-items-center justify-content-evenly container-fluid">
+                    <div class="form-group row" id="avail-time-row">
+                        <label for="avail-h" class="col-md-6 col-form-label text-center text-md-end">(OPTIONAL) AVAILABLE TIME</label>
+                        <div class="col">
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="number" class="form-control" id="avail-h" v-model="availH" min="0"><span>
+                                        hours</span>
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" class="form-control" id="avail-min" v-model="availM" min="0" max="59"><span>
+                                        minutes</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label for="study-time" class="col-sm-5 col-form-label text-md-end">STUDY</label>
-                        <div class="col-sm-6">
-                            <input type="number" class="form-control" id="study-time" required min="0" value="30"><span>
-                                minutes</span>
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="rest-time" class="col-sm-5 col-form-label text-md-end">REST</label>
-                        <div class="col-sm-6">
-                            <input type="number" class="form-control" id="rest-time" required min="0" value="5"><span>
-                                minutes</span>
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="cycles-num" class="col-sm-5 col-form-label text-md-end">CYCLES</label>
-                        <div class="col-sm-6">
-                            <input type="number" class="form-control" id="cycles-num" required min="1" value="5">
+            </form>
+            <div id="expand-container">
+                <div id="expand-collapse" class="collapsed">
+                    <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex; ">
+                        <label for="suggestions">SUGGESTIONS</label>
+                        <div id="suggestions">
+                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
                         </div>
                     </div>
                 </div>
+            </div>
+            <form id="times-form" class="d-flex flex-column align-items-center justify-content-evenly">
+                <div class="container-fluid">
+                    <div class="form-group row">
+                        <label for="study-time" class="col-md-6 col-form-label text-center text-md-end">STUDY</label>
+                        <div class="col-12 col-md-3">
+                            <input type="number" class="form-control text-center text-md-start" id="study-time" required min="0" value="30"><span>
+                                minutes</span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="rest-time" class="col-md-6 col-form-label text-center text-md-end">REST</label>
+                        <div class="col-12 col-md-3">
+                            <input type="number" class="form-control text-center text-md-start" id="rest-time" required min="0" value="5"><span>
+                                minutes</span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="cycles-num" class="col-md-6 col-form-label text-center text-md-end">CYCLES</label>
+                        <div class="col-12 col-md-3">
+                            <input type="number" class="form-control text-center text-md-start" id="cycles-num" required min="1" value="5">
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" @click.prevent="handleSubmit" class="badge badge-pill mt-2" id="start-btn">START STUDYING</button>
                 <!--
                 <button type="button" class="badge badge-pill" id="reset-btn">RESET</button>
                 -->
                
                 <div class="row col-8 mt-1 mb-1">
-                    <button class="btn badge badge-pill col-4 control-btn" id="skip-next-btn" disabled>Skip</button>
-                    <button class="btn badge badge-pill col-4 control-btn" id="skip-cycle-btn" disabled>Skip cycle</button>
-                    <button class="btn badge badge-pill col-4 control-btn" id="restart-btn" disabled>Restart cycle</button>
+                    <button class="btn badge badge-pill col-4 control-btn" id="skip-next-btn" disabled @click.prevent="handleSkip">Skip</button>
+                    <button class="btn badge badge-pill col-4 control-btn" id="skip-cycle-btn" disabled @click.prevent="handleSkipCycle">Skip cycle</button>
+                    <button class="btn badge badge-pill col-4 control-btn" id="restart-btn" disabled @click.prevent="handleRestart">Restart cycle</button>
                 </div>
 
                 <div id="clock" class="blob">
@@ -102,23 +110,23 @@
 
 <script setup>
 import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
-import axios from "axios";
 import { useRouter } from "vue-router";
 
 const props = defineProps(['study', 'rest', 'cycles']);
 
-const api_url = "http://localhost:3000/";
-const router = useRouter();
-
 let availH = ref(0);
 let availM = ref(0);
-
-var loggedIn = inject("loggedIn");//variabile globale ref creata in main.js per controllare se l'utente è loggato o meno
     
-let suggestionsStructsArray = [];
+let suggestionsStructsArray = []; // Array of objects; each objects represents a suggestion given based on the provided available time
 let studying = false;
 let resting = false;
-let interval;
+let interval; // Used for the interval-based function to update the timer while studying/resting
+let end_time; // End time for the currently active study/rest session
+let study_time_min; // Provided study session length in minutes
+let rest_time_min; // Provided rest session length in minutes
+let cycles_num = 0; // Provided amount of cycles (study session followed by rest session) to go through
+
+// Used to provide suggestions based on the available time
 const defaultCycles = [
     {
         fullDuration: 20,
@@ -152,141 +160,8 @@ const defaultCycles = [
     }
 ];
 
-function get_ready_to_rest() {
-    document.getElementById("tomato-eye-l").style.display = "none";
-    document.getElementById("tomato-eye-r").style.display = "none";
-    document.getElementById("closed-tomato-eye-l").style.display = "block";
-    document.getElementById("closed-tomato-eye-r").style.display = "block";
-    document.getElementById("tomato-table").style.display = "none";
-    document.getElementById("tomato-book").style.display = "none";
-    document.getElementById("tomato-book-cover").style.display = "none";
-    document.getElementById("tomato-bed").style.display = "block";
-}
-
-function get_ready_to_study() {
-    document.getElementById("closed-tomato-eye-l").style.display = "none";
-    document.getElementById("closed-tomato-eye-r").style.display = "none";
-    document.getElementById("tomato-eye-l").style.display = "block";
-    document.getElementById("tomato-eye-r").style.display = "block";
-    document.getElementById("tomato-table").style.display = "block";
-    document.getElementById("tomato-book").style.display = "block";
-    document.getElementById("tomato-book-cover").style.display = "block";
-    document.getElementById("tomato-bed").style.display = "none";
-}
-
-function disable_form_inputs(){
-    const input_list = document.querySelectorAll("#times-form input");
-    const suggestions_box = document.getElementById("suggestions-box");
-    const suggestions = document.getElementById("suggestions");
-    for(const el of input_list){
-        el.disabled = true;
-    }
-}
-
-function enable_form_inputs(){
-    const input_list = document.querySelectorAll("#times-form input");
-    for(const el of input_list){
-        el.disabled = false;
-    }
-    if(suggestions && !(suggestions.disabled)){
-        const suggestions_list = document.querySelectorAll("suggestions > button");
-        for(const btn of suggestions_list){
-            btn.disabled = false;
-        }
-    }
-}
-
-function toggleControlButtons(enableSubmit){
-    const submit_btn = document.getElementById("start-btn");
-    const skip_next_btn = document.getElementById("skip-next-btn");
-    const restart_btn = document.getElementById("restart-btn");
-    const skip_cycle_btn = document.getElementById("skip-cycle-btn");
-    submit_btn.disabled = !enableSubmit;
-    skip_next_btn.disabled = enableSubmit;
-    restart_btn.disabled = enableSubmit;
-    skip_cycle_btn.disabled = enableSubmit;
-}
-
-function handleSubmit(){
-    const submit_btn = document.getElementById("start-btn");
-    const skip_next_btn = document.getElementById("skip-next-btn");
-    const restart_btn = document.getElementById("restart-btn");
-    const skip_cycle_btn = document.getElementById("skip-cycle-btn");
-    const expand_contract = document.getElementById("expand-contract");
-
-    submit_btn.textContent = "STUDYING...";
-    toggleControlButtons(false);
-    disable_form_inputs();
-    if (expand_contract.classList.contains("expanded"))
-        expandContract();
-
-    studying = true;
-
-    // Convert the inserted study time into an integer, base 10
-    const study_time_min = parseInt(document.getElementById('study-time').value, 10);
-
-    // Convert the inserted rest time into an integer, base 10
-    const rest_time_min = parseInt(document.getElementById('rest-time').value, 10);
-
-    //Convert the inserted number of cycles into an integer, base 10
-    let cycles_num = parseInt(document.getElementById("cycles-num").value, 10);
-
-    //Calculate durations in seconds; used for animations
-    const study_time_sec = study_time_min * 60;
-    const rest_time_sec = rest_time_min * 60;
-
-    get_ready_to_study();
-    document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_sec}s linear forwards`;
-
-    let end_time = Date.now() + study_time_sec * 1000;
-
-    // Interval to deal with the passage of time
-    interval = setInterval(function () {
-        const now = Date.now();
-        const difference = end_time - now;
-
-        if (difference <= 0) {
-            if (studying) {
-                studying = false;
-                resting = true;
-                end_time = Date.now() + rest_time_min * 60000;
-                document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_sec}s linear forwards`;
-                get_ready_to_rest();
-                document.getElementById("tomato").style.filter = "brightness(60%)";
-                submit_btn.textContent = "RESTING...";
-            }
-            else if (resting) {
-                resting = false;
-                cycles_num--;
-                if (cycles_num > 0) {
-                    studying = true;
-                    end_time = Date.now() + study_time_min * 60000;
-                    document.getElementById("tomato").style.filter = "brightness(100%)";
-                    get_ready_to_study();
-                    document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_sec}s linear forwards`;
-                    submit_btn.textContent = "STUDYING...";
-                }
-                else {
-                    clearInterval(interval);
-                    submit_btn.textContent = "START STUDYING";
-                    document.getElementById("tomato").style.filter = "brightness(100%)";
-                    toggleControlButtons(true);
-                    enable_form_inputs();
-                    document.getElementById('timer-display').textContent = "00:00";
-                }
-            }
-        }
-        else {
-            // Minutes and seconds left
-            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-            // Display remaining time on #timer-display
-            document.getElementById('timer-display').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }
-    }, 1000);
-}
-
+// Automotically called when the component is mounted; sets up suggestionStructsArray with data from defaultCycles, initializes the form with
+// provided values or default ones (30 study + 5 rest, 5 cycles), enables the form
 onMounted(()=>{
     const buttons = [...document.querySelectorAll("#suggestions>button")];
     let i = -1;
@@ -305,17 +180,181 @@ onMounted(()=>{
         setDisplayed(30, 5, 5);
     document.getElementById('timer-display').textContent = "00:00";
     enable_form_inputs();
-    
 })
 
+// If the component is unmounted, clears the eventually active interval function
 onUnmounted(() => {
     clearInterval(interval);
 });
 
+// Graphically prepares the tomato for studying sessions
+function get_ready_to_study() {
+    document.getElementById("tomato-body").style.backgroundColor = "var(--my-unripe-tomato)"
+    document.getElementById("closed-tomato-eye-l").style.display = "none";
+    document.getElementById("closed-tomato-eye-r").style.display = "none";
+    document.getElementById("tomato-eye-l").style.display = "block";
+    document.getElementById("tomato-eye-r").style.display = "block";
+    document.getElementById("tomato-table").style.display = "block";
+    document.getElementById("tomato-book").style.display = "block";
+    document.getElementById("tomato-book-cover").style.display = "block";
+    document.getElementById("tomato-bed").style.display = "none";
+}
+
+// Graphically prepares the tomato for resting sessions
+function get_ready_to_rest() {
+    document.getElementById("tomato-body").style.backgroundColor = "var(--my-ripe-tomato)"
+    document.getElementById("tomato-eye-l").style.display = "none";
+    document.getElementById("tomato-eye-r").style.display = "none";
+    document.getElementById("closed-tomato-eye-l").style.display = "block";
+    document.getElementById("closed-tomato-eye-r").style.display = "block";
+    document.getElementById("tomato-table").style.display = "none";
+    document.getElementById("tomato-book").style.display = "none";
+    document.getElementById("tomato-book-cover").style.display = "none";
+    document.getElementById("tomato-bed").style.display = "block";
+}
+
+// Sets up to start a study session
+function startStudying(){
+    studying = true;
+    resting = false;
+    end_time = Date.now() + study_time_min * 60000;
+    document.getElementById("tomato").style.filter = "brightness(100%)";
+    get_ready_to_study();
+    document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_min*60}s linear forwards`;
+    document.getElementById("start-btn").textContent = "STUDYING...";
+}
+
+// Sets up to start a rest session
+function startResting(){
+    studying = false;
+    resting = true;
+    end_time = Date.now() + rest_time_min * 60000;
+    document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_min * 60}s linear forwards`;
+    get_ready_to_rest();
+    document.getElementById("tomato").style.filter = "brightness(60%)";
+    document.getElementById("start-btn").textContent = "RESTING...";
+}
+
+// Function that handles the end of the last cycle
+function endInterval(){
+    studying = false;
+    resting = false;
+    clearInterval(interval);
+    document.getElementById("start-btn").textContent = "START STUDYING";
+    document.getElementById("tomato").style.filter = "brightness(100%)";
+    toggleControlButtons(true);
+    enable_form_inputs();
+    document.getElementById('timer-display').textContent = "00:00";
+}
+
+// Disables all inputs in the form; used to prevent the user from editing the form while a study/rest session is active
+function disable_form_inputs(){
+    const input_list = document.querySelectorAll("#times-form input, #avail-time-form input");
+    for(const el of input_list){
+        el.disabled = true;
+    }
+}
+
+// Enables all inputs in the form
+function enable_form_inputs(){
+    const input_list = document.querySelectorAll("#times-form input, #avail-time-form input");
+    for(const el of input_list){
+        el.disabled = false;
+    }
+}
+
+// Enables/disables the form's control buttons (submit, skip, skip cycle, restart cycle)
+// If the submit button is enabled, the other ones must be disabled, and viceversa
+// enableSubmit: if true, submit button should be enabled and the other buttons should be disabled
+//               if false, submit button should be disabled and the other buttons should be enabled
+function toggleControlButtons(enableSubmit){
+    const submit_btn = document.getElementById("start-btn");
+    const skip_next_btn = document.getElementById("skip-next-btn");
+    const restart_btn = document.getElementById("restart-btn");
+    const skip_cycle_btn = document.getElementById("skip-cycle-btn");
+    submit_btn.disabled = !enableSubmit;
+    skip_next_btn.disabled = enableSubmit;
+    restart_btn.disabled = enableSubmit;
+    skip_cycle_btn.disabled = enableSubmit;
+}
+
+// Handles the "skip" button press; simply "moves" the end time to now and lets the interval function deal with the consequences
+function handleSkip(){
+    end_time = Date.now();
+}
+
+// Handles the "skip cycle" button press; decreases the number of remaining cycles and either proceeds with the next cycle or ends the
+function handleSkipCycle(){
+    const submit_btn = document.getElementById("start-btn");
+    
+    cycles_num--;
+    
+    if(cycles_num > 0){ // Proceed with the study session of the following cycle
+        startStudying();
+    }
+    else{ // The skipped cycle was the last one; end interval repetition and re-enable the form
+        endInterval();
+    }
+}
+
+// Handles the "restart cycle" button press; simply reverts to the beginning of the study session for the current cycle
+function handleRestart(){
+    startStudying();
+}
+
+// Handles the "start studying" button press (submits the form)
+function handleSubmit(){
+    const expand_collapse = document.getElementById("expand-collapse");
+
+    toggleControlButtons(false); // Disables submit button, enables skip/skip cycle/restart cycle buttons
+    disable_form_inputs(); // Disables the inputs in the form
+    if (expand_collapse.classList.contains("expanded")) // If the suggestions box is currently expanded, collapse it
+        expandCollapse();
+
+    // Convert the inserted study time, rest time and cycles number into integers, base 10
+    study_time_min = parseInt(document.getElementById('study-time').value, 10);
+    rest_time_min = parseInt(document.getElementById('rest-time').value, 10);
+    cycles_num = parseInt(document.getElementById("cycles-num").value, 10);
+
+    startStudying();
+
+    // Interval function to deal with the passage of time
+    interval = setInterval(function () {
+        const now = Date.now();
+        const difference = end_time - now; // Time left for the current study/rest session, in milliseconds
+
+        if (difference <= 0) { // Current study/rest session ended
+            if (studying) { // The ongoing session was a study session, switch to resting
+                startResting();
+            }
+            else if (resting) { // The ongoing session was a rest session; decrement the number of cycles left and either proceed with the next one or end the interval function
+                cycles_num--;
+
+                if (cycles_num > 0) {
+                    startStudying();
+                }
+                else {
+                    endInterval();
+                }
+            }
+        }
+        else {
+            // Minutes and seconds left
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+            // Display remaining time on #timer-display
+            document.getElementById('timer-display').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+    }, 1000);
+}
+
+// Computed available time based on the corresponding inputs in the form
 let availTime = computed(() => {
     return availH.value*60 + availM.value;
 });
 
+// Whenever available time changes, update the calculated suggestions and eventually expand/collapse the suggestions box
 watch(availTime, (newAvailTime, oldAvailTime) => {
     for (let i = 0; i < suggestionsStructsArray.length; i++){
         const suggestionStruct = suggestionsStructsArray[i];
@@ -324,31 +363,40 @@ watch(availTime, (newAvailTime, oldAvailTime) => {
         suggestionStruct.cyclesNum = numOfCycles;
     }
 
-    if((oldAvailTime == 0 && newAvailTime > 0) || (oldAvailTime > 0 && newAvailTime == 0)) expandContract();
+    if((oldAvailTime == 0 && newAvailTime > 0) || (oldAvailTime > 0 && newAvailTime == 0)){ 
+        //TODO CONTROLLA
+        expandCollapse();
+    }
 });
 
+// Calculates how many cycles of minsPerCycle minutes fit in totMin minutes
 function calcNumOfCycles(totMin, minsPerCycle){
     return Math.floor(totMin / minsPerCycle);
 }
 
+// Sets the values for the study time, rest time and cycles number inputs in the form
 function setDisplayed(studyTime, restTime, cyclesNum){
     document.getElementById("study-time").value = studyTime;
     document.getElementById("rest-time").value = restTime;
     document.getElementById("cycles-num").value = cyclesNum;
 }
 
+// True if suggestion button with the provided index should be displayed (more than 0 cycles), false otherwise
 function buttonShouldBeDisplayed(index){
     if(!suggestionsStructsArray[index] || suggestionsStructsArray[index].cyclesNum == 0)
         return false;
     return true;
 }
 
+//TODO rimuovi se inutile
+//True if at least one suggestion button should be displayed (and thus the suggestions box should be displayed)
 function boxShouldBeDisplayed(){
     return suggestionsStructsArray.some((elem) => elem.cyclesNum > 0);
 }
 
-function expandContract() {
-   const el = document.getElementById("expand-contract")
+// Expand/collapse the suggestions box
+function expandCollapse() {
+   const el = document.getElementById("expand-collapse")
    el.classList.toggle('expanded')
    el.classList.toggle('collapsed')
 }
@@ -371,14 +419,19 @@ main {
     height: 100%;
 }
 
+main * {
+    transition: 0.5s all;
+}
+
 #times-form {
     font-family: "Nunito", serif;
     width: 100%;
     height: 50vh;
 }
 
-#times-form .col-form-label {
-    margin-right: 1em;
+#avail-time-form {
+    font-family: "Nunito", serif;
+    width: 100%;
 }
 
 .row > .badge {
@@ -388,11 +441,11 @@ main {
 #suggestions-box{
     background-color: #60d394;
     padding: 0.5em;
-    border-radius: 0.5em;
 }
 
 #suggestions-box > label {
     color: white;
+    font-family: "Nunito", serif;
 }
 
 .suggestion-btn{
@@ -405,13 +458,27 @@ main {
     overflow: hidden;
 }
   
-#expand-contract {
+#expand-collapse {
     margin-top: -100%;
-    transition: 0.2s all;
+    transition: 0.3s all;
 }
   
-#expand-contract.expanded {
+#expand-collapse.expanded {
     margin-top: 0;
+}
+
+@media(width < 767px){
+    #avail-time-form {
+        margin-bottom: 2rem;
+    }
+
+    #avail-time-form:has(+ #expand-container > .expanded){
+        margin-bottom: 0;
+    }
+
+    #expand-collapse.expanded {
+        margin-bottom: 2rem;
+    }
 }
 
 .form-control + span {
@@ -448,8 +515,8 @@ main {
 }
 
 .control-btn:disabled{
-    background-color: black;
-    color: rgb(80, 80, 80);
+    background-color: gray;
+    color: white;
 }
 
 .control-btn:hover{
@@ -472,19 +539,10 @@ label {
     position: relative;
     width: 100%;
     height: 200px;
-    top: 50px;
-}
-
-@media(width >=576px) {
-    #tomato {
-        top: 0px;
-    }
+    top: 0px;
 }
 
 @media(width < 576px){
-    main{
-        margin-top: 100px;
-    }
 }
 
 #tomato * {
