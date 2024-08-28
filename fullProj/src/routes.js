@@ -6,6 +6,7 @@ import TodoPage from "./components/TodoPage.vue";
 import Note from "./components/Note.vue";
 import RegLog from "./components/registerLogin.vue";
 import Pomodoro from "./components/Pomodoro.vue";
+import Calendar from "./components/Calendar.vue";
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -17,7 +18,8 @@ const router = createRouter({
         { path: '/note/:id', component: Note, props: true },
         { path: '/login', component: RegLog },
         { path: '/pomodoro/:study/:rest/:cycles', component: Pomodoro, props: true },
-        { path: '/pomodoro', component: Pomodoro }
+        { path: '/pomodoro', component: Pomodoro },
+        { path: '/calendar', component: Calendar }
     ]
 });
 export default router;

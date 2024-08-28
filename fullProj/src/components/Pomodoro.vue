@@ -1,5 +1,4 @@
-//TODO: bottoni nel coso espandibile se width bassa, testi piccoli hours e minutes se width bassa, tasto reset
-// aggiusta navbar toggler
+//TODO: bottoni nel coso espandibile se width bassa
 
 <template>
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,11 +16,11 @@
                         <div class="col">
                             <div class="row">
                                 <div class="col-6">
-                                    <input type="number" class="form-control" id="avail-h" v-model="availH" min="0"><span>
+                                    <input type="number" class="form-control" id="avail-h" v-model="availH" min="0"><span class="input-subtext">
                                         hours</span>
                                 </div>
                                 <div class="col-6">
-                                    <input type="number" class="form-control" id="avail-min" v-model="availM" min="0" max="59"><span>
+                                    <input type="number" class="form-control" id="avail-min" v-model="availM" min="0" max="59"><span class="input-subtext">
                                         minutes</span>
                                 </div>
                             </div>
@@ -30,7 +29,7 @@
             </form>
             <div id="expand-container">
                 <div id="expand-collapse" class="collapsed">
-                    <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex; ">
+                    <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex;">
                         <label for="suggestions">SUGGESTIONS</label>
                         <div id="suggestions">
                             <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
@@ -41,17 +40,15 @@
             <form id="times-form" class="d-flex flex-column align-items-center justify-content-evenly">
                 <div class="container-fluid">
                     <div class="form-group row">
-                        <label for="study-time" class="col-md-6 col-form-label text-center text-md-end">STUDY</label>
+                        <label for="study-time" class="col-md-6 col-form-label text-center text-md-end">STUDY (minutes)</label>
                         <div class="col-12 col-md-3">
-                            <input type="number" class="form-control text-center text-md-start" id="study-time" required min="0" value="30"><span>
-                                minutes</span>
+                            <input type="number" class="form-control text-center text-md-start" id="study-time" required min="0" value="30">
                         </div>
                     </div>
                     <div class="form-group row">
-                        <label for="rest-time" class="col-md-6 col-form-label text-center text-md-end">REST</label>
+                        <label for="rest-time" class="col-md-6 col-form-label text-center text-md-end">REST (minutes)</label>
                         <div class="col-12 col-md-3">
-                            <input type="number" class="form-control text-center text-md-start" id="rest-time" required min="0" value="5"><span>
-                                minutes</span>
+                            <input type="number" class="form-control text-center text-md-start" id="rest-time" required min="0" value="5">
                         </div>
                     </div>
                     <div class="form-group row">
@@ -63,11 +60,8 @@
                 </div>
 
                 <button type="submit" @click.prevent="handleSubmit" class="badge badge-pill mt-2" id="start-btn">START STUDYING</button>
-                <!--
-                <button type="button" class="badge badge-pill" id="reset-btn">RESET</button>
-                -->
                
-                <div class="row col-8 mt-1 mb-1">
+                <div class="row col-10 col-sm-8 mt-1 mb-1" id="control-btns-container">
                     <button class="btn badge badge-pill col-4 control-btn" id="skip-next-btn" disabled @click.prevent="handleSkip">Skip</button>
                     <button class="btn badge badge-pill col-4 control-btn" id="skip-cycle-btn" disabled @click.prevent="handleSkipCycle">Skip cycle</button>
                     <button class="btn badge badge-pill col-4 control-btn" id="restart-btn" disabled @click.prevent="handleRestart">Restart cycle</button>
@@ -188,7 +182,7 @@ onUnmounted(() => {
 });
 
 // Graphically prepares the tomato for studying sessions
-function get_ready_to_study() {
+function setup_tomato_study() {
     document.getElementById("tomato-body").style.backgroundColor = "var(--my-unripe-tomato)"
     document.getElementById("closed-tomato-eye-l").style.display = "none";
     document.getElementById("closed-tomato-eye-r").style.display = "none";
@@ -201,7 +195,7 @@ function get_ready_to_study() {
 }
 
 // Graphically prepares the tomato for resting sessions
-function get_ready_to_rest() {
+function setup_tomato_rest() {
     document.getElementById("tomato-body").style.backgroundColor = "var(--my-ripe-tomato)"
     document.getElementById("tomato-eye-l").style.display = "none";
     document.getElementById("tomato-eye-r").style.display = "none";
@@ -219,7 +213,7 @@ function startStudying(){
     resting = false;
     end_time = Date.now() + study_time_min * 60000;
     document.getElementById("tomato").style.filter = "brightness(100%)";
-    get_ready_to_study();
+    setup_tomato_study();
     document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_min*60}s linear forwards`;
     document.getElementById("start-btn").textContent = "STUDYING...";
 }
@@ -230,7 +224,7 @@ function startResting(){
     resting = true;
     end_time = Date.now() + rest_time_min * 60000;
     document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_min * 60}s linear forwards`;
-    get_ready_to_rest();
+    setup_tomato_rest();
     document.getElementById("tomato").style.filter = "brightness(60%)";
     document.getElementById("start-btn").textContent = "RESTING...";
 }
@@ -364,7 +358,6 @@ watch(availTime, (newAvailTime, oldAvailTime) => {
     }
 
     if((oldAvailTime == 0 && newAvailTime > 0) || (oldAvailTime > 0 && newAvailTime == 0)){ 
-        //TODO CONTROLLA
         expandCollapse();
     }
 });
@@ -386,12 +379,6 @@ function buttonShouldBeDisplayed(index){
     if(!suggestionsStructsArray[index] || suggestionsStructsArray[index].cyclesNum == 0)
         return false;
     return true;
-}
-
-//TODO rimuovi se inutile
-//True if at least one suggestion button should be displayed (and thus the suggestions box should be displayed)
-function boxShouldBeDisplayed(){
-    return suggestionsStructsArray.some((elem) => elem.cyclesNum > 0);
 }
 
 // Expand/collapse the suggestions box
@@ -429,6 +416,11 @@ main * {
     height: 50vh;
 }
 
+
+#times-form .row {
+    margin-bottom: 1rem;
+}
+
 #avail-time-form {
     font-family: "Nunito", serif;
     width: 100%;
@@ -451,7 +443,6 @@ main * {
 .suggestion-btn{
     font-size: 0.75em;
     font-family: "Source Code Pro", sans-serif;
-    width: 103px; /* TODO fai meglio */
 }
 
 #expand-container {
@@ -467,21 +458,22 @@ main * {
     margin-top: 0;
 }
 
-@media(width < 767px){
+@media(width < 768px){
     #avail-time-form {
         margin-bottom: 2rem;
     }
 
+    /* If #avail-time-form is followed by the expanded suggestions box, remove bottom margin from the form and give it to the suggestions box */
     #avail-time-form:has(+ #expand-container > .expanded){
         margin-bottom: 0;
     }
-
     #expand-collapse.expanded {
         margin-bottom: 2rem;
     }
+    
 }
 
-.form-control + span {
+.input-subtext {
     font-size: 60%;
 }
 
@@ -540,9 +532,6 @@ label {
     width: 100%;
     height: 200px;
     top: 0px;
-}
-
-@media(width < 576px){
 }
 
 #tomato * {

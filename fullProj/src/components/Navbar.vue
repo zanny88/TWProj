@@ -3,7 +3,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
 
-    <div :class="['navbar','navbar-expand-lg', 'navbar-dark', {'disabled-navbar': !val}]"><!--la classe disabled-navbar viene aggiunta in base al valore di nav-->
+    <div :class="['navbar','navbar-expand-lg', 'sticky-top', 'navbar-dark', {'disabled-navbar': !val}]"><!--la classe disabled-navbar viene aggiunta in base al valore di nav-->
         <div class="container-fluid">
             <div class="container-fluid col-5" id="logo-container">
                 <router-link class="navbar-brand" to="/">
@@ -12,15 +12,28 @@
                 </router-link>
               </div>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navMenu">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><router-link class="nav-link" to="">Calendar</router-link></li>
+                <li class="nav-item dropdown" v-if="!hamburgerShowing">
+                    <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Show
+                    </a>
+                    <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
+                        <li><router-link class="dropdown-item" to="/calendar">Calendar</router-link></li>
+                        <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
+                        <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>
+                        <li><router-link class="dropdown-item" to="/pomodoro">Pomodoro</router-link></li>
+                    </ul>
+                </li>
+                <ul v-if="hamburgerShowing" id="ul-if-hamburgerShowing">
+                    <li class="nav-item"><router-link class="nav-link" to="/calendar">Calendar</router-link></li>
                     <li class="nav-item"><router-link class="nav-link" to="/showNote">Notes</router-link></li>
                     <li class="nav-item"><router-link class="nav-link" to="/showTodo">To&nbsp;Do</router-link></li>
                     <li class="nav-item"><router-link class="nav-link" to="/pomodoro">Pomodoro</router-link></li>
+                </ul>
                     <form class="d-flex position-relative" role="search" id="searchForm">
                         <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput" @input="inputSearch()" v-model="searchString" autocomplete="off"/>
                         <div class="nav-item dropdown">
@@ -36,27 +49,47 @@
                                 <li><input type="radio" name="filterB" value="heading" />Friends</li>
                             </ul>
                         </div>
-                        <button class="btn btn-outline-success" type="submit" @click.prevent="submitSearch()">Search</button><!--il .prevent in @click è utilizzato per evitare che il bottone esegua la sua solita azione di submit del form-->
+                        <button class="btn btn-outline-light" type="submit" @click.prevent="submitSearch()">Search</button><!--il .prevent in @click è utilizzato per evitare che il bottone esegua la sua solita azione di submit del form-->
                         <div class="list-group position-absolute w-100" sytle="z-index: 1050;" id="resultList"></div>
                     </form>
                 </ul>
-                <button class="btn btn-outline-info" @click="logout()">Logout</button>
+                <button class="btn btn-outline-dark" @click="logout()">Logout</button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-    import {inject,watch,ref} from "vue";
+    import {inject,watch,ref,onMounted} from "vue";
     import axios from "axios";
-    import { useRouter } from "vue-router";
+    import { useRouter, useRoute } from "vue-router";
 
     const api_url = "http://localhost:3000/";
     const router = useRouter();
+    const route = useRoute();
 
     var loggedIn = inject("loggedIn");//variabile globale ref creata in main.js per controllare se l'utente è loggato o meno
     var val = ref(loggedIn.value);//questo passaggio serve per poter gestire la modifica del valore della variabile loggedIn all'interno del componente
     var searchString = ref('');
+    var hamburgerShowing = ref(false);
+
+    function updateCollapsed(){
+        let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        if (vw < 992)
+            hamburgerShowing.value = true;
+        else
+            hamburgerShowing.value = false;
+    }
+
+    watch(route, () => {
+        document.querySelector("#navMenu").classList.remove("show");
+    })
+
+    onMounted(() => {
+        updateCollapsed();
+        window.addEventListener("resize", updateCollapsed);
+        window.addEventListener("onload", updateCollapsed);
+    });
 
     async function logout(){
         const r = await axios.get(`${api_url}user/logout`);
@@ -98,13 +131,25 @@
     }
     
 </script>
+
 <style scoped>
 
-/*la classe disabilità la navbar*/
+/*la classe disabilita la navbar*/
 .navbar{
     background-color: #dda15e;
-    margin-bottom: 50px;
+    margin-bottom: 15px;
 }
+
+.navbar * {
+    transition: 0.5s all;
+}
+
+@media(width >= 768px){
+    .navbar{
+        margin-bottom: 50px;
+    }
+}
+
 .navbar *{
     font-family: Poppins, sans-serif;
 }
@@ -137,4 +182,11 @@
     pointer-events: none;
     opacity: 0.6;
 }
+
+#ul-if-hamburgerShowing{
+    list-style-type: none; /* Remove bullets */
+    padding: 0; 
+    margin: 0; 
+}
+
 </style>
