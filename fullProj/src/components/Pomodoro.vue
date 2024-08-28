@@ -1,4 +1,4 @@
-//TODO: bottoni nel coso espandibile se width bassa
+//TODO: centrare bottoni nel coso espandibile se width bassa
 
 <template>
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,12 +16,12 @@
                         <div class="col">
                             <div class="row">
                                 <div class="col-6">
-                                    <input type="number" class="form-control" id="avail-h" v-model="availH" min="0"><span class="input-subtext">
-                                        hours</span>
+                                    <input type="number" class="form-control" id="avail-h" v-model="availH" min="0">
+                                    <span class="input-subtext">hours</span>
                                 </div>
                                 <div class="col-6">
-                                    <input type="number" class="form-control" id="avail-min" v-model="availM" min="0" max="59"><span class="input-subtext">
-                                        minutes</span>
+                                    <input type="number" class="form-control" id="avail-min" v-model="availM">
+                                    <span class="input-subtext">minutes</span>
                                 </div>
                             </div>
                         </div>
@@ -348,6 +348,16 @@ let availTime = computed(() => {
     return availH.value*60 + availM.value;
 });
 
+watch(availM, (newAvailM, oldAvailM) => {
+    if(newAvailM > 59){
+        const remainder = newAvailM % 60;
+        availM.value = remainder;
+        availH.value += 1;
+    }
+
+    else if(newAvailM < 0) availM.value = 59;
+})
+
 // Whenever available time changes, update the calculated suggestions and eventually expand/collapse the suggestions box
 watch(availTime, (newAvailTime, oldAvailTime) => {
     for (let i = 0; i < suggestionsStructsArray.length; i++){
@@ -357,9 +367,14 @@ watch(availTime, (newAvailTime, oldAvailTime) => {
         suggestionStruct.cyclesNum = numOfCycles;
     }
 
-    if((oldAvailTime == 0 && newAvailTime > 0) || (oldAvailTime > 0 && newAvailTime == 0)){ 
-        expandCollapse();
-    }
+    const el = document.getElementById("expand-collapse");
+
+    // Expand suggestions box if previously there were no suggestions and now there's at least one
+    // Collapse suggestions box if previously there were suggestions and now not anymore
+    if( (el.classList.contains("collapsed") && boxShouldBeDisplayed()) ||
+        (el.classList.contains("expanded") && !boxShouldBeDisplayed())){
+            expandCollapse();
+        }
 });
 
 // Calculates how many cycles of minsPerCycle minutes fit in totMin minutes
@@ -372,6 +387,10 @@ function setDisplayed(studyTime, restTime, cyclesNum){
     document.getElementById("study-time").value = studyTime;
     document.getElementById("rest-time").value = restTime;
     document.getElementById("cycles-num").value = cyclesNum;
+}
+
+function boxShouldBeDisplayed(){
+    return suggestionsStructsArray.some((elem) => elem.cyclesNum > 0);
 }
 
 // True if suggestion button with the provided index should be displayed (more than 0 cycles), false otherwise
