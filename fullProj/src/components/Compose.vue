@@ -121,10 +121,7 @@
             if (secondTodoIndex !== -1) {
                 final_todo_index = secondTodoIndex;
                 // Estrae la sottostringa tra il primo e il secondo "[todo]".
-                let extractedText = text.substring(firstTodoIndex + "[todo]".length, secondTodoIndex).trim();
-                if(/<\/?[^>]+(>|$)/g.test(extractedText)){
-                    extractedText = extractedText.replace(/<\/?[^>]+(>|$)/g,'').trim();
-                }
+                const extractedText = text.substring(firstTodoIndex + "[todo]".length, secondTodoIndex).trim();
                 console.log("extract text for todo: ",extractedText);
                 results.push(extractedText);  // Aggiunge la sottostringa alla lista dei risultati.
                 startIndex = secondTodoIndex + "[todo]".length;  // Aggiorna startIndex per cercare la prossima occorrenza.
