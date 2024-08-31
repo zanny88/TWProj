@@ -17,17 +17,17 @@
             </button>
             <div class="collapse navbar-collapse" id="navMenu">
                 <ul class="navbar-nav me-auto">
-                <li class="nav-item dropdown" v-if="!hamburgerShowing">
-                    <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Show
-                    </a>
-                    <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
-                        <li><router-link class="dropdown-item" to="/calendar">Calendar</router-link></li>
-                        <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
-                        <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>
-                        <li><router-link class="dropdown-item" to="/pomodoro">Pomodoro</router-link></li>
-                    </ul>
-                </li>
+                    <li class="nav-item dropdown" v-if="!hamburgerShowing">
+                        <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Show
+                        </a>
+                        <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
+                            <li><router-link class="dropdown-item" to="/calendar">Calendar</router-link></li>
+                            <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
+                            <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>
+                            <li><router-link class="dropdown-item" to="/pomodoro">Pomodoro</router-link></li>
+                        </ul>
+                    </li>
                 <ul v-if="hamburgerShowing" id="ul-if-hamburgerShowing">
                     <li class="nav-item"><router-link class="nav-link" to="/calendar">Calendar</router-link></li>
                     <li class="nav-item"><router-link class="nav-link" to="/showNote">Notes</router-link></li>
