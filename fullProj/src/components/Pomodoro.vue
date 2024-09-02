@@ -1,4 +1,7 @@
-//TODO: centrare bottoni nel coso espandibile se width bassa
+<!-- 
+TODO: centrare bottoni nel coso espandibile se width bassa
+ultimo pomodoro svolto
+-->
 
 <template>
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,6 +13,22 @@
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
 
         <main>
+            <div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="notificationModalTitle">{{modalTitle}}</h5>
+                    </div>
+                    <div class="modal-body">
+                      {{modalBody}}
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             <form id="avail-time-form" class="d-flex flex-column align-items-center justify-content-evenly container-fluid">
                     <div class="form-group row" id="avail-time-row">
                         <label for="avail-h" class="col-md-6 col-form-label text-center text-md-end">(OPTIONAL) AVAILABLE TIME</label>
@@ -104,13 +123,15 @@
 
 <script setup>
 import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
-import { useRouter } from "vue-router";
 
 const props = defineProps(['study', 'rest', 'cycles']);
 
 let availH = ref(0);
 let availM = ref(0);
+let modalTitle = ref('');
+let modalBody = ref('');
     
+let notifModal; // Notification modal shown when starting a cycle, switching between study and rest and at the end of each cycle
 let suggestionsStructsArray = []; // Array of objects; each objects represents a suggestion given based on the provided available time
 let studying = false;
 let resting = false;
@@ -118,7 +139,11 @@ let interval; // Used for the interval-based function to update the timer while 
 let end_time; // End time for the currently active study/rest session
 let study_time_min; // Provided study session length in minutes
 let rest_time_min; // Provided rest session length in minutes
-let cycles_num = 0; // Provided amount of cycles (study session followed by rest session) to go through
+let tot_cycles = 0; // Provided amount of cycles (study session followed by rest session) to go through
+let cycles_left = 0; // Number of cycles left to go through
+
+let start_pause_time;
+let end_pause_time;
 
 // Used to provide suggestions based on the available time
 const defaultCycles = [
@@ -157,6 +182,8 @@ const defaultCycles = [
 // Automotically called when the component is mounted; sets up suggestionStructsArray with data from defaultCycles, initializes the form with
 // provided values or default ones (30 study + 5 rest, 5 cycles), enables the form
 onMounted(()=>{
+    window.bootstrap = require('/node_modules/bootstrap/dist/js/bootstrap');
+
     const buttons = [...document.querySelectorAll("#suggestions>button")];
     let i = -1;
     for (const btn of buttons){
@@ -173,6 +200,9 @@ onMounted(()=>{
     else 
         setDisplayed(30, 5, 5);
     document.getElementById('timer-display').textContent = "00:00";
+    notifModal = new bootstrap.Modal(document.getElementById('notificationModal'), {});
+    document.getElementById('notificationModal').addEventListener('hidden.bs.modal', resume);
+    
     enable_form_inputs();
 })
 
@@ -181,9 +211,16 @@ onUnmounted(() => {
     clearInterval(interval);
 });
 
+function reset_tomato_animation(){
+    const el = document.getElementById("tomato-body");
+    el.style.animation = 'none';
+    el.offsetHeight; /* trigger reflow */
+    el.style.animation = null; 
+}
+
 // Graphically prepares the tomato for studying sessions
 function setup_tomato_study() {
-    document.getElementById("tomato-body").style.backgroundColor = "var(--my-unripe-tomato)"
+    document.getElementById("tomato-body").style.backgroundColor = "var(--my-unripe-tomato)";
     document.getElementById("closed-tomato-eye-l").style.display = "none";
     document.getElementById("closed-tomato-eye-r").style.display = "none";
     document.getElementById("tomato-eye-l").style.display = "block";
@@ -213,9 +250,16 @@ function startStudying(){
     resting = false;
     end_time = Date.now() + study_time_min * 60000;
     document.getElementById("tomato").style.filter = "brightness(100%)";
+    reset_tomato_animation();
     setup_tomato_study();
     document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_min*60}s linear forwards`;
     document.getElementById("start-btn").textContent = "STUDYING...";
+    if(interval){ // Modal won't appear for the first study session
+        modalTitle.value = "Switch to studying";
+        modalBody.value = `Current cycle: ${tot_cycles - cycles_left + 1}/${tot_cycles}`;
+        notifModal.toggle();
+        pause();
+    }
 }
 
 // Sets up to start a rest session
@@ -223,10 +267,16 @@ function startResting(){
     studying = false;
     resting = true;
     end_time = Date.now() + rest_time_min * 60000;
-    document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_min * 60}s linear forwards`;
+    reset_tomato_animation();
     setup_tomato_rest();
+
+    document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_min * 60}s linear forwards`;
     document.getElementById("tomato").style.filter = "brightness(60%)";
     document.getElementById("start-btn").textContent = "RESTING...";
+    modalTitle.value = "Switch to resting";
+    modalBody.value = `Current cycle: ${tot_cycles - cycles_left + 1}/${tot_cycles}`;
+    notifModal.toggle();
+    pause();
 }
 
 // Function that handles the end of the last cycle
@@ -234,6 +284,10 @@ function endInterval(){
     studying = false;
     resting = false;
     clearInterval(interval);
+    modalTitle.value = `${tot_cycles} cycles completed!`;
+    modalBody.value = `Well done!`;
+    notifModal.toggle();
+    pause();
     document.getElementById("start-btn").textContent = "START STUDYING";
     document.getElementById("tomato").style.filter = "brightness(100%)";
     toggleControlButtons(true);
@@ -255,6 +309,21 @@ function enable_form_inputs(){
     for(const el of input_list){
         el.disabled = false;
     }
+}
+
+function pause(){
+    start_pause_time = Date.now();
+    document.getElementById("tomato-body").style.animationPlayState = "paused";
+    clearInterval(interval);
+}
+
+function resume(){
+    end_pause_time = Date.now();
+    let time_in_pause = end_pause_time - start_pause_time;
+    end_time += time_in_pause;
+
+    document.getElementById("tomato-body").style.animationPlayState = "running";
+    interval = setInterval(intervalLoop, 0);
 }
 
 // Enables/disables the form's control buttons (submit, skip, skip cycle, restart cycle)
@@ -281,9 +350,9 @@ function handleSkip(){
 function handleSkipCycle(){
     const submit_btn = document.getElementById("start-btn");
     
-    cycles_num--;
+    cycles_left--;
     
-    if(cycles_num > 0){ // Proceed with the study session of the following cycle
+    if(cycles_left > 0){ // Proceed with the study session of the following cycle
         startStudying();
     }
     else{ // The skipped cycle was the last one; end interval repetition and re-enable the form
@@ -296,24 +365,8 @@ function handleRestart(){
     startStudying();
 }
 
-// Handles the "start studying" button press (submits the form)
-function handleSubmit(){
-    const expand_collapse = document.getElementById("expand-collapse");
-
-    toggleControlButtons(false); // Disables submit button, enables skip/skip cycle/restart cycle buttons
-    disable_form_inputs(); // Disables the inputs in the form
-    if (expand_collapse.classList.contains("expanded")) // If the suggestions box is currently expanded, collapse it
-        expandCollapse();
-
-    // Convert the inserted study time, rest time and cycles number into integers, base 10
-    study_time_min = parseInt(document.getElementById('study-time').value, 10);
-    rest_time_min = parseInt(document.getElementById('rest-time').value, 10);
-    cycles_num = parseInt(document.getElementById("cycles-num").value, 10);
-
-    startStudying();
-
-    // Interval function to deal with the passage of time
-    interval = setInterval(function () {
+// Function used to deal with the passage of time during study and rest sessions
+function intervalLoop(){
         const now = Date.now();
         const difference = end_time - now; // Time left for the current study/rest session, in milliseconds
 
@@ -322,9 +375,9 @@ function handleSubmit(){
                 startResting();
             }
             else if (resting) { // The ongoing session was a rest session; decrement the number of cycles left and either proceed with the next one or end the interval function
-                cycles_num--;
+                cycles_left--;
 
-                if (cycles_num > 0) {
+                if (cycles_left > 0) {
                     startStudying();
                 }
                 else {
@@ -340,7 +393,26 @@ function handleSubmit(){
             // Display remaining time on #timer-display
             document.getElementById('timer-display').textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
-    }, 1000);
+}
+
+// Handles the "start studying" button press (submits the form)
+function handleSubmit(){
+    const expand_collapse = document.getElementById("expand-collapse");
+
+    toggleControlButtons(false); // Disables submit button, enables skip/skip cycle/restart cycle buttons
+    disable_form_inputs(); // Disables the inputs in the form
+    if (expand_collapse.classList.contains("expanded")) // If the suggestions box is currently expanded, collapse it
+        expandCollapse();
+
+    // Convert the inserted study time, rest time and cycles number into integers, base 10
+    study_time_min = parseInt(document.getElementById('study-time').value, 10);
+    rest_time_min = parseInt(document.getElementById('rest-time').value, 10);
+    tot_cycles = cycles_left = parseInt(document.getElementById("cycles-num").value, 10);
+
+    startStudying();
+
+    // Indefinitely run the intervalLoop function, which deals with the passage of time during cycles
+    interval = setInterval(intervalLoop, 0);
 }
 
 // Computed available time based on the corresponding inputs in the form
@@ -425,9 +497,10 @@ main {
     height: 100%;
 }
 
-main * {
+main *:not(.modal) {
     transition: 0.5s all;
 }
+    
 
 #times-form {
     font-family: "Nunito", serif;
