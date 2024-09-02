@@ -16,24 +16,24 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navMenu">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item dropdown" v-if="!hamburgerShowing">
-                        <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Show
-                        </a>
-                        <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
-                            <li><router-link class="dropdown-item" to="/calendar">Calendar</router-link></li>
-                            <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
-                            <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>
-                            <li><router-link class="dropdown-item" to="/pomodoro">Pomodoro</router-link></li>
-                        </ul>
-                    </li>
-                <ul v-if="hamburgerShowing" id="ul-if-hamburgerShowing">
-                    <li class="nav-item"><router-link class="nav-link" to="/calendar">Calendar</router-link></li>
-                    <li class="nav-item"><router-link class="nav-link" to="/showNote">Notes</router-link></li>
-                    <li class="nav-item"><router-link class="nav-link" to="/showTodo">To&nbsp;Do</router-link></li>
-                    <li class="nav-item"><router-link class="nav-link" to="/pomodoro">Pomodoro</router-link></li>
-                </ul>
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item dropdown" v-if="!hamburgerShowing">
+                            <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Show
+                            </a>
+                            <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
+                                <li><router-link class="dropdown-item" to="/calendar">Calendar</router-link></li>
+                                <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
+                                <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>
+                                <li><router-link class="dropdown-item" to="/pomodoro">Pomodoro</router-link></li>
+                            </ul>
+                        </li>
+                    <ul v-if="hamburgerShowing" id="ul-if-hamburgerShowing">
+                        <li class="nav-item"><router-link class="nav-link" to="/calendar">Calendar</router-link></li>
+                        <li class="nav-item"><router-link class="nav-link" to="/showNote">Notes</router-link></li>
+                        <li class="nav-item"><router-link class="nav-link" to="/showTodo">To&nbsp;Do</router-link></li>
+                        <li class="nav-item"><router-link class="nav-link" to="/pomodoro">Pomodoro</router-link></li>
+                    </ul>
                     <form class="d-flex position-relative" role="search" id="searchForm">
                         <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput" @input="inputSearch()" v-model="searchString" autocomplete="off"/>
                         <div class="nav-item dropdown">

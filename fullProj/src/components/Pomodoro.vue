@@ -1,7 +1,7 @@
-// TODO: centrare bottoni nel coso espandibile se width bassa
-// CON SKIP CYCLE E RESTART CYCLE MENTRE STUDIA NON RESETTA ANIMAZIONE
-// ultimo pomodoro svolto
-// notifica per inizio ciclo, passaggio da una fase alla successiva, fine ciclo
+<!-- 
+TODO: centrare bottoni nel coso espandibile se width bassa
+ultimo pomodoro svolto
+-->
 
 <template>
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -182,7 +182,7 @@ const defaultCycles = [
 // Automotically called when the component is mounted; sets up suggestionStructsArray with data from defaultCycles, initializes the form with
 // provided values or default ones (30 study + 5 rest, 5 cycles), enables the form
 onMounted(()=>{
-    window.bootstrap = require('/node_modules/bootstrap/dist/js/bootstrap.bundle.js');
+    window.bootstrap = require('/node_modules/bootstrap/dist/js/bootstrap');
 
     const buttons = [...document.querySelectorAll("#suggestions>button")];
     let i = -1;
@@ -211,9 +211,16 @@ onUnmounted(() => {
     clearInterval(interval);
 });
 
+function reset_tomato_animation(){
+    const el = document.getElementById("tomato-body");
+    el.style.animation = 'none';
+    el.offsetHeight; /* trigger reflow */
+    el.style.animation = null; 
+}
+
 // Graphically prepares the tomato for studying sessions
 function setup_tomato_study() {
-    document.getElementById("tomato-body").style.backgroundColor = "var(--my-unripe-tomato)"
+    document.getElementById("tomato-body").style.backgroundColor = "var(--my-unripe-tomato)";
     document.getElementById("closed-tomato-eye-l").style.display = "none";
     document.getElementById("closed-tomato-eye-r").style.display = "none";
     document.getElementById("tomato-eye-l").style.display = "block";
@@ -243,6 +250,7 @@ function startStudying(){
     resting = false;
     end_time = Date.now() + study_time_min * 60000;
     document.getElementById("tomato").style.filter = "brightness(100%)";
+    reset_tomato_animation();
     setup_tomato_study();
     document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_min*60}s linear forwards`;
     document.getElementById("start-btn").textContent = "STUDYING...";
@@ -259,8 +267,10 @@ function startResting(){
     studying = false;
     resting = true;
     end_time = Date.now() + rest_time_min * 60000;
-    document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_min * 60}s linear forwards`;
+    reset_tomato_animation();
     setup_tomato_rest();
+
+    document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_min * 60}s linear forwards`;
     document.getElementById("tomato").style.filter = "brightness(60%)";
     document.getElementById("start-btn").textContent = "RESTING...";
     modalTitle.value = "Switch to resting";
