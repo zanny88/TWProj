@@ -61,19 +61,19 @@ ultimo pomodoro svolto
                     <div class="form-group row">
                         <label for="study-time" class="col-md-6 col-form-label text-center text-md-end">STUDY (minutes)</label>
                         <div class="col-12 col-md-3">
-                            <input type="number" class="form-control text-center text-md-start" id="study-time" required min="0" value="30">
+                            <input type="number" class="form-control text-center text-md-start" id="study-time" required min="0" v-model="studyT">
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="rest-time" class="col-md-6 col-form-label text-center text-md-end">REST (minutes)</label>
                         <div class="col-12 col-md-3">
-                            <input type="number" class="form-control text-center text-md-start" id="rest-time" required min="0" value="5">
+                            <input type="number" class="form-control text-center text-md-start" id="rest-time" required min="0" v-model="restT">
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="cycles-num" class="col-md-6 col-form-label text-center text-md-end">CYCLES</label>
                         <div class="col-12 col-md-3">
-                            <input type="number" class="form-control text-center text-md-start" id="cycles-num" required min="1" value="5">
+                            <input type="number" class="form-control text-center text-md-start" id="cycles-num" required min="1" v-model="cyclesN">
                         </div>
                     </div>
                 </div>
@@ -126,6 +126,9 @@ import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
 
 const props = defineProps(['study', 'rest', 'cycles']);
 
+let studyT = ref(30);
+let restT = ref(5); 
+let cyclesN = ref(5);
 let availH = ref(0);
 let availM = ref(0);
 let modalTitle = ref('');
@@ -136,10 +139,10 @@ let suggestionsStructsArray = []; // Array of objects; each objects represents a
 let studying = false;
 let resting = false;
 let interval; // Used for the interval-based function to update the timer while studying/resting
-let end_time; // End time for the currently active study/rest session
-let study_time_min; // Provided study session length in minutes
-let rest_time_min; // Provided rest session length in minutes
-let tot_cycles = 0; // Provided amount of cycles (study session followed by rest session) to go through
+let end_time; // End time for the currently active study/rest phase
+let study_time_min; // Provided study phase length in minutes
+let rest_time_min; // Provided rest phase length in minutes
+let tot_cycles = 0; // Provided amount of cycles (study phase followed by rest phase) to go through
 let cycles_left = 0; // Number of cycles left to go through
 
 let start_pause_time;
@@ -218,7 +221,7 @@ function reset_tomato_animation(){
     el.style.animation = null; 
 }
 
-// Graphically prepares the tomato for studying sessions
+// Graphically prepares the tomato for studying phases
 function setup_tomato_study() {
     document.getElementById("tomato-body").style.backgroundColor = "var(--my-unripe-tomato)";
     document.getElementById("closed-tomato-eye-l").style.display = "none";
@@ -231,7 +234,7 @@ function setup_tomato_study() {
     document.getElementById("tomato-bed").style.display = "none";
 }
 
-// Graphically prepares the tomato for resting sessions
+// Graphically prepares the tomato for resting phases
 function setup_tomato_rest() {
     document.getElementById("tomato-body").style.backgroundColor = "var(--my-ripe-tomato)"
     document.getElementById("tomato-eye-l").style.display = "none";
@@ -244,7 +247,7 @@ function setup_tomato_rest() {
     document.getElementById("tomato-bed").style.display = "block";
 }
 
-// Sets up to start a study session
+// Sets up to start a study phase
 function startStudying(){
     studying = true;
     resting = false;
@@ -254,7 +257,7 @@ function startStudying(){
     setup_tomato_study();
     document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_min*60}s linear forwards`;
     document.getElementById("start-btn").textContent = "STUDYING...";
-    if(interval){ // Modal won't appear for the first study session
+    if(interval){ // Modal won't appear for the first study phase
         modalTitle.value = "Switch to studying";
         modalBody.value = `Current cycle: ${tot_cycles - cycles_left + 1}/${tot_cycles}`;
         notifModal.toggle();
@@ -262,7 +265,7 @@ function startStudying(){
     }
 }
 
-// Sets up to start a rest session
+// Sets up to start a rest phase
 function startResting(){
     studying = false;
     resting = true;
@@ -295,7 +298,7 @@ function endInterval(){
     document.getElementById('timer-display').textContent = "00:00";
 }
 
-// Disables all inputs in the form; used to prevent the user from editing the form while a study/rest session is active
+// Disables all inputs in the form; used to prevent the user from editing the form while a study/rest phase is active
 function disable_form_inputs(){
     const input_list = document.querySelectorAll("#times-form input, #avail-time-form input");
     for(const el of input_list){
@@ -323,7 +326,7 @@ function resume(){
     end_time += time_in_pause;
 
     document.getElementById("tomato-body").style.animationPlayState = "running";
-    interval = setInterval(intervalLoop, 0);
+    if(cycles_left > 0) interval = setInterval(intervalLoop, 0);
 }
 
 // Enables/disables the form's control buttons (submit, skip, skip cycle, restart cycle)
@@ -352,7 +355,7 @@ function handleSkipCycle(){
     
     cycles_left--;
     
-    if(cycles_left > 0){ // Proceed with the study session of the following cycle
+    if(cycles_left > 0){ // Proceed with the study phase of the following cycle
         startStudying();
     }
     else{ // The skipped cycle was the last one; end interval repetition and re-enable the form
@@ -360,21 +363,21 @@ function handleSkipCycle(){
     }
 }
 
-// Handles the "restart cycle" button press; simply reverts to the beginning of the study session for the current cycle
+// Handles the "restart cycle" button press; simply reverts to the beginning of the study phase for the current cycle
 function handleRestart(){
     startStudying();
 }
 
-// Function used to deal with the passage of time during study and rest sessions
+// Function used to deal with the passage of time during study and rest phases
 function intervalLoop(){
         const now = Date.now();
-        const difference = end_time - now; // Time left for the current study/rest session, in milliseconds
+        const difference = end_time - now; // Time left for the current study/rest phase, in milliseconds
 
-        if (difference <= 0) { // Current study/rest session ended
-            if (studying) { // The ongoing session was a study session, switch to resting
+        if (difference <= 0) { // Current study/rest phase ended
+            if (studying) { // The ongoing phase was a study phase, switch to resting
                 startResting();
             }
-            else if (resting) { // The ongoing session was a rest session; decrement the number of cycles left and either proceed with the next one or end the interval function
+            else if (resting) { // The ongoing phase was a rest phase; decrement the number of cycles left and either proceed with the next one or end the interval function
                 cycles_left--;
 
                 if (cycles_left > 0) {
@@ -456,9 +459,9 @@ function calcNumOfCycles(totMin, minsPerCycle){
 
 // Sets the values for the study time, rest time and cycles number inputs in the form
 function setDisplayed(studyTime, restTime, cyclesNum){
-    document.getElementById("study-time").value = studyTime;
-    document.getElementById("rest-time").value = restTime;
-    document.getElementById("cycles-num").value = cyclesNum;
+    studyT.value = studyTime;
+    restT.value = restTime;
+    cyclesN.value = cyclesNum;
 }
 
 function boxShouldBeDisplayed(){
