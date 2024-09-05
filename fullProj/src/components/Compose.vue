@@ -105,13 +105,17 @@
         while (true) {
             // Trova il primo indice di "[todo]" a partire da startIndex.
             const firstTodoIndex = text.indexOf("[todo]", startIndex);
+            console.log("todo trovato al'indice, ",firstTodoIndex);
 
             if(!start_todo_index){
+                console.log("non avevo ancora trovato todo e quindi mi salvo l'indice");
                 start_todo_index = firstTodoIndex;
             }
 
             if (firstTodoIndex === -1) {
-                start_todo_index = 0;
+                if(start_todo_index == -1){
+                    start_todo_index = 0;
+                }
                 break;  // Esce dal ciclo se non ci sono più "[todo]" nel testo.
             }
 
@@ -140,7 +144,7 @@
     function create_todo_obj(data){
         var addTodos = [];
         if(data){
-            for(let t of data){
+            for(let t of data){                
                 var tasks = t.split("\n").map(task => task.trim()).filter(item => item != "");
                 var x = {
                     ID: null,
@@ -169,12 +173,14 @@
             todos_data = check_for_todo(post.value);
             todo_objs = create_todo_obj(todos_data);
         }
-        //payload per il salvataggio del post di base 
+        //payload per il salvataggio del post di base
+        console.log("tolgo i todo dal corpo della nota");
+        console.log(`il primo todo inizia all'indice: ${start_todo_index} e l'ultimo todo finisce all'indice: ${final_todo_index}`);
         const newPost = {
             ID: sent_to_modify.value != null ? sent_to_modify.value._id : null,//se si stava modificando un post già esistente viene aggiunto l'ID di questo 
             parent_id: null,
             heading: title.value,
-            content: start_todo_index != final_todo_index ? post.value.slice(0,start_todo_index) + post.value.slice(final_todo_index + 6) : post.value,
+            content: post.value,
             tags: tags.value,
             place: place.value,
             public: publicCheck.value,
@@ -218,8 +224,6 @@
                     }
                     await Promise.all(promises);
                 }else{
-                    console.log("aggiungo l'ID del to-do da modificare al'oggetto");
-                    console.log(`lista degli ID dei to-do figli della nota da modificare: ${res.data.t_child}`);
                     //se invece vengono solo modificati i to-do allora si invia una richiesta di modifica del to-do, questo avviene grazie al salvataggio dell'ID del to-do nel payload
                     //queseta operazione viene svolta con un ciclo perchè l'idea era quella di poter creare più to-do dentro ad una nota ma per ora il tutto è stato testato con un solo to-do
                     for(let i=0;i<res.data.t_child.length;i++){
