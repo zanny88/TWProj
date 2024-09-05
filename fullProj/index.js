@@ -32,7 +32,7 @@ const noteSchema = new mongoose.Schema ({
 });
 
 const todoSchema = new mongoose.Schema({
-    parent_id: String,//id della nota da cui è stato creato il to-do 
+    parent_id: String,//id della nota da cui è stato creato il to-do
     user: String,
     public: Boolean,
     heading: String,
@@ -269,13 +269,41 @@ app.post("/todos/tasks/delete",async (req,res) => {
     const {todo_id,task_index} = req.body;
     try{
         var r = await Todo.findById(todo_id);
+        console.log("todo trovato");
         if(!r){
-            res.status(404).send("Todo not found");
+            return res.status(404).send("Todo not found");
         }
+
+        var n = await Note.findById(r.parent_id);
+        if(!n){
+            return res.status(404).send("Nota padre not found");
+        }
+
+        var todo_index = n.todo_children.indexOf(todo_id);
+        var content_rows = n.content.split('\n');
+        var n_todo = 0;
+        console.log("fino a qui tutto bene");
+        for(let i=0;i<content_rows.length;i++){
+            if(n_todo == (todo_index * 2)+1){
+                if(content_rows[i].includes(r.tasks[task_index])){
+                    content_rows.splice(i,1);
+                }
+            }else if(n_todo > (todo_index*2)+1){
+                break;
+            }
+            if(content_rows[i].includes("[todo]")){
+                n_todo++;
+            }
+        }
+
+        n.content = content_rows.join('\n');
+
         r.tasks.splice(task_index,1);
         r.completed.splice(task_index,1);
 
-        await Todo.findOneAndUpdate({_id: todo_id},{tasks: r.tasks, completed: r.completed});
+        await Todo.findOneAndUpdate({_id: todo_id},{HTMLcontent: r.HTMLcontent, tasks: r.tasks, completed: r.completed});
+        await Note.findOneAndUpdate({_id: r.parent_id},{content: n.content});
+        
         res.send({message: "OK"});
     }catch(error){
         res.status(500).send("Error while fetching todo");
