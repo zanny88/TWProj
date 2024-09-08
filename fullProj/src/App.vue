@@ -6,11 +6,11 @@
 <script setup>
 import Navbar from './components/Navbar.vue';
 import axios from "axios";
-import {onMounted,inject,watch} from "vue";
+import {onMounted, inject, watch, provide} from "vue";
 import {useRouter} from "vue-router";
 
-const api_url = "http://localhost:3000/";
 const router = useRouter();
+const api_url = inject('api_url');
 var loggedIn = inject("loggedIn");
 
 async function checkLogged(){

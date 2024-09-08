@@ -51,7 +51,7 @@ ultimo pomodoro svolto
                     <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex;">
                         <label for="suggestions">SUGGESTIONS</label>
                         <div id="suggestions">
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
+                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesTotum)" v-show="buttonShouldBeDisplayed(index)"></button>
                         </div>
                     </div>
                 </div>
@@ -73,7 +73,7 @@ ultimo pomodoro svolto
                     <div class="form-group row">
                         <label for="cycles-num" class="col-md-6 col-form-label text-center text-md-end">CYCLES</label>
                         <div class="col-12 col-md-3">
-                            <input type="number" class="form-control text-center text-md-start" id="cycles-num" required min="1" v-model="cyclesN">
+                            <input type="number" class="form-control text-center text-md-start" id="cycles-num" required min="1" v-model="cyclesTot">
                         </div>
                     </div>
                 </div>
@@ -123,12 +123,16 @@ ultimo pomodoro svolto
 
 <script setup>
 import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
+import axios from 'axios';
 
+const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const props = defineProps(['study', 'rest', 'cycles']);
 
 let studyT = ref(30);
 let restT = ref(5); 
-let cyclesN = ref(5);
+let cyclesTot = ref(5);
+let cyclesLeft = ref(5); // Number of cycles left to go through
+let state = ref("idle");
 let availH = ref(0);
 let availM = ref(0);
 let modalTitle = ref('');
@@ -136,17 +140,38 @@ let modalBody = ref('');
     
 let notifModal; // Notification modal shown when starting a cycle, switching between study and rest and at the end of each cycle
 let suggestionsStructsArray = []; // Array of objects; each objects represents a suggestion given based on the provided available time
-let studying = false;
-let resting = false;
 let interval; // Used for the interval-based function to update the timer while studying/resting
 let end_time; // End time for the currently active study/rest phase
-let study_time_min; // Provided study phase length in minutes
-let rest_time_min; // Provided rest phase length in minutes
-let tot_cycles = 0; // Provided amount of cycles (study phase followed by rest phase) to go through
-let cycles_left = 0; // Number of cycles left to go through
 
 let start_pause_time;
 let end_pause_time;
+
+/*
+const sessionSchema = new mongoose.Schema({
+    user: String,
+    studyTime: Number,
+    restTime: Number,
+    totCycles: Number,
+    completedCycles: Number,
+    //inactiveTime: { type: Number, default: 0 },
+    state: { type: String, default: "study" },
+    date: { type: Date }
+});
+*/
+
+let currentSession = computed(() => {
+    return {
+        //user is added by back-end function in index.js
+        studyTime: studyT.value,
+        restTime: restT.value,
+        totCycles: cyclesTot.value,
+        completedCycles: cyclesTot.value - cyclesLeft.value,
+        // inactiveTime: sessionInactiveTime.value,
+        state: state.value,
+        // date
+    };
+});
+
 
 // Used to provide suggestions based on the available time
 const defaultCycles = [
@@ -195,7 +220,7 @@ onMounted(()=>{
         suggestionsStructsArray[i].button = btn;
         suggestionsStructsArray[i].studyDuration = defaultCycles[i].studyDuration;
         suggestionsStructsArray[i].restDuration = defaultCycles[i].restDuration;
-        suggestionsStructsArray[i].cyclesNum = 0;
+        suggestionsStructsArray[i].cyclesTotum = 0;
     }
     
     if (props.study && props.rest && props.cycles)
@@ -249,17 +274,16 @@ function setup_tomato_rest() {
 
 // Sets up to start a study phase
 function startStudying(){
-    studying = true;
-    resting = false;
-    end_time = Date.now() + study_time_min * 60000;
+    state.value = "studying";
+    end_time = Date.now() + studyT.value * 60000;
     document.getElementById("tomato").style.filter = "brightness(100%)";
     reset_tomato_animation();
     setup_tomato_study();
-    document.getElementById("tomato-body").style.animation = `become-ripe ${study_time_min*60}s linear forwards`;
+    document.getElementById("tomato-body").style.animation = `become-ripe ${studyT.value*60}s linear forwards`;
     document.getElementById("start-btn").textContent = "STUDYING...";
     if(interval){ // Modal won't appear for the first study phase
         modalTitle.value = "Switch to studying";
-        modalBody.value = `Current cycle: ${tot_cycles - cycles_left + 1}/${tot_cycles}`;
+        modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
         notifModal.toggle();
         pause();
     }
@@ -267,32 +291,33 @@ function startStudying(){
 
 // Sets up to start a rest phase
 function startResting(){
-    studying = false;
-    resting = true;
-    end_time = Date.now() + rest_time_min * 60000;
+    state.value = "resting";
+    end_time = Date.now() + restT.value * 60000;
     reset_tomato_animation();
     setup_tomato_rest();
 
-    document.getElementById("tomato-body").style.animation = `become-unripe ${rest_time_min * 60}s linear forwards`;
+    document.getElementById("tomato-body").style.animation = `become-unripe ${restT.value * 60}s linear forwards`;
     document.getElementById("tomato").style.filter = "brightness(60%)";
     document.getElementById("start-btn").textContent = "RESTING...";
     modalTitle.value = "Switch to resting";
-    modalBody.value = `Current cycle: ${tot_cycles - cycles_left + 1}/${tot_cycles}`;
+    modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
     notifModal.toggle();
     pause();
 }
 
 // Function that handles the end of the last cycle
 function endInterval(){
-    studying = false;
-    resting = false;
+saveSession();
+
+    state.value = "idle";
     clearInterval(interval);
-    modalTitle.value = `${tot_cycles} cycles completed!`;
+    modalTitle.value = `${cyclesTot.value} cycles completed!`;
     modalBody.value = `Well done!`;
     notifModal.toggle();
     pause();
     document.getElementById("start-btn").textContent = "START STUDYING";
     document.getElementById("tomato").style.filter = "brightness(100%)";
+    reset_tomato_animation();
     toggleControlButtons(true);
     enable_form_inputs();
     document.getElementById('timer-display').textContent = "00:00";
@@ -326,7 +351,7 @@ function resume(){
     end_time += time_in_pause;
 
     document.getElementById("tomato-body").style.animationPlayState = "running";
-    if(cycles_left > 0) interval = setInterval(intervalLoop, 0);
+    if(cyclesLeft.value > 0) interval = setInterval(intervalLoop, 0);
 }
 
 // Enables/disables the form's control buttons (submit, skip, skip cycle, restart cycle)
@@ -353,9 +378,9 @@ function handleSkip(){
 function handleSkipCycle(){
     const submit_btn = document.getElementById("start-btn");
     
-    cycles_left--;
+    cyclesLeft.value--;
     
-    if(cycles_left > 0){ // Proceed with the study phase of the following cycle
+    if(cyclesLeft.value > 0){ // Proceed with the study phase of the following cycle
         startStudying();
     }
     else{ // The skipped cycle was the last one; end interval repetition and re-enable the form
@@ -374,13 +399,13 @@ function intervalLoop(){
         const difference = end_time - now; // Time left for the current study/rest phase, in milliseconds
 
         if (difference <= 0) { // Current study/rest phase ended
-            if (studying) { // The ongoing phase was a study phase, switch to resting
+            if (state.value == "studying") { // The ongoing phase was a study phase, switch to resting
                 startResting();
             }
-            else if (resting) { // The ongoing phase was a rest phase; decrement the number of cycles left and either proceed with the next one or end the interval function
-                cycles_left--;
+            else if (state.value == "resting") { // The ongoing phase was a rest phase; decrement the number of cycles left and either proceed with the next one or end the interval function
+                cyclesLeft.value--;
 
-                if (cycles_left > 0) {
+                if (cyclesLeft.value > 0) {
                     startStudying();
                 }
                 else {
@@ -407,10 +432,7 @@ function handleSubmit(){
     if (expand_collapse.classList.contains("expanded")) // If the suggestions box is currently expanded, collapse it
         expandCollapse();
 
-    // Convert the inserted study time, rest time and cycles number into integers, base 10
-    study_time_min = parseInt(document.getElementById('study-time').value, 10);
-    rest_time_min = parseInt(document.getElementById('rest-time').value, 10);
-    tot_cycles = cycles_left = parseInt(document.getElementById("cycles-num").value, 10);
+    cyclesLeft.value = cyclesTot.value;
 
     startStudying();
 
@@ -439,7 +461,7 @@ watch(availTime, (newAvailTime, oldAvailTime) => {
         const suggestionStruct = suggestionsStructsArray[i];
         const numOfCycles = calcNumOfCycles(newAvailTime, suggestionStruct.studyDuration + suggestionStruct.restDuration);
         suggestionStruct.button.innerHTML = `${numOfCycles}&times;(${suggestionStruct.studyDuration}+${suggestionStruct.restDuration})`;
-        suggestionStruct.cyclesNum = numOfCycles;
+        suggestionStruct.cyclesTotum = numOfCycles;
     }
 
     const el = document.getElementById("expand-collapse");
@@ -458,19 +480,19 @@ function calcNumOfCycles(totMin, minsPerCycle){
 }
 
 // Sets the values for the study time, rest time and cycles number inputs in the form
-function setDisplayed(studyTime, restTime, cyclesNum){
+function setDisplayed(studyTime, restTime, cyclesTotum){
     studyT.value = studyTime;
     restT.value = restTime;
-    cyclesN.value = cyclesNum;
+    cyclesTot.value = cyclesTotum;
 }
 
 function boxShouldBeDisplayed(){
-    return suggestionsStructsArray.some((elem) => elem.cyclesNum > 0);
+    return suggestionsStructsArray.some((elem) => elem.cyclesTotum > 0);
 }
 
 // True if suggestion button with the provided index should be displayed (more than 0 cycles), false otherwise
 function buttonShouldBeDisplayed(index){
-    if(!suggestionsStructsArray[index] || suggestionsStructsArray[index].cyclesNum == 0)
+    if(!suggestionsStructsArray[index] || suggestionsStructsArray[index].cyclesTotum == 0)
         return false;
     return true;
 }
@@ -480,6 +502,10 @@ function expandCollapse() {
    const el = document.getElementById("expand-collapse")
    el.classList.toggle('expanded')
    el.classList.toggle('collapsed')
+}
+
+async function saveSession(){
+    let res = await axios.post(pomodoro_sessions_api_url, currentSession.value);
 }
 
 </script>
@@ -501,16 +527,14 @@ main {
 }
 
 main *:not(.modal) {
-    transition: 0.5s all;
+    transition: all 0.3s;
 }
     
-
 #times-form {
     font-family: "Nunito", serif;
     width: 100%;
     height: 50vh;
 }
-
 
 #times-form .row {
     margin-bottom: 1rem;
@@ -546,7 +570,7 @@ main *:not(.modal) {
   
 #expand-collapse {
     margin-top: -100%;
-    transition: 0.3s all;
+    transition: all 0.3s;
 }
   
 #expand-collapse.expanded {
