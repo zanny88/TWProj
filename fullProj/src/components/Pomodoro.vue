@@ -51,7 +51,7 @@ ultimo pomodoro svolto
                     <div id="suggestions-box" class="mt-1 mb-1 flex-column justify-content-evenly align-items-center" style="display:flex;">
                         <label for="suggestions">SUGGESTIONS</label>
                         <div id="suggestions">
-                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesTotum)" v-show="buttonShouldBeDisplayed(index)"></button>
+                            <button type="button" class="col btn btn-light text-black ms-2 mb-2 suggestion-btn" v-for="(cycle,index) in defaultCycles" :key="index" @click.prevent="setDisplayed(suggestionsStructsArray[index].studyDuration, suggestionsStructsArray[index].restDuration, suggestionsStructsArray[index].cyclesNum)" v-show="buttonShouldBeDisplayed(index)"></button>
                         </div>
                     </div>
                 </div>
@@ -220,7 +220,7 @@ onMounted(()=>{
         suggestionsStructsArray[i].button = btn;
         suggestionsStructsArray[i].studyDuration = defaultCycles[i].studyDuration;
         suggestionsStructsArray[i].restDuration = defaultCycles[i].restDuration;
-        suggestionsStructsArray[i].cyclesTotum = 0;
+        suggestionsStructsArray[i].cyclesNum = 0;
     }
     
     if (props.study && props.rest && props.cycles)
@@ -461,7 +461,7 @@ watch(availTime, (newAvailTime, oldAvailTime) => {
         const suggestionStruct = suggestionsStructsArray[i];
         const numOfCycles = calcNumOfCycles(newAvailTime, suggestionStruct.studyDuration + suggestionStruct.restDuration);
         suggestionStruct.button.innerHTML = `${numOfCycles}&times;(${suggestionStruct.studyDuration}+${suggestionStruct.restDuration})`;
-        suggestionStruct.cyclesTotum = numOfCycles;
+        suggestionStruct.cyclesNum = numOfCycles;
     }
 
     const el = document.getElementById("expand-collapse");
@@ -480,19 +480,19 @@ function calcNumOfCycles(totMin, minsPerCycle){
 }
 
 // Sets the values for the study time, rest time and cycles number inputs in the form
-function setDisplayed(studyTime, restTime, cyclesTotum){
+function setDisplayed(studyTime, restTime, cyclesNum){
     studyT.value = studyTime;
     restT.value = restTime;
-    cyclesTot.value = cyclesTotum;
+    cyclesTot.value = cyclesNum;
 }
 
 function boxShouldBeDisplayed(){
-    return suggestionsStructsArray.some((elem) => elem.cyclesTotum > 0);
+    return suggestionsStructsArray.some((elem) => elem.cyclesNum > 0);
 }
 
 // True if suggestion button with the provided index should be displayed (more than 0 cycles), false otherwise
 function buttonShouldBeDisplayed(index){
-    if(!suggestionsStructsArray[index] || suggestionsStructsArray[index].cyclesTotum == 0)
+    if(!suggestionsStructsArray[index] || suggestionsStructsArray[index].cyclesNum == 0)
         return false;
     return true;
 }
