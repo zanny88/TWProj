@@ -1,6 +1,6 @@
 <!-- 
 TODO: centrare bottoni nel coso espandibile se width bassa
-ultimo pomodoro svolto
+      gestire situazione in cui carico una sessione già completata, gestire situazione in cui completo una sessione 
 -->
 
 <template>
@@ -126,13 +126,14 @@ import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
 import axios from 'axios';
 
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
-const props = defineProps(['study', 'rest', 'cycles']);
+const props = defineProps(['sessionId']);
 
 let studyT = ref(30);
 let restT = ref(5); 
 let cyclesTot = ref(5);
 let cyclesLeft = ref(5); // Number of cycles left to go through
 let state = ref("idle");
+let id = ref('');
 let availH = ref(0);
 let availM = ref(0);
 let modalTitle = ref('');
@@ -142,6 +143,7 @@ let notifModal; // Notification modal shown when starting a cycle, switching bet
 let suggestionsStructsArray = []; // Array of objects; each objects represents a suggestion given based on the provided available time
 let interval; // Used for the interval-based function to update the timer while studying/resting
 let end_time; // End time for the currently active study/rest phase
+let loaded_session = false;
 
 let start_pause_time;
 let end_pause_time;
@@ -169,6 +171,7 @@ let currentSession = computed(() => {
         // inactiveTime: sessionInactiveTime.value,
         state: state.value,
         // date
+        _id: id
     };
 });
 
@@ -209,7 +212,7 @@ const defaultCycles = [
 
 // Automotically called when the component is mounted; sets up suggestionStructsArray with data from defaultCycles, initializes the form with
 // provided values or default ones (30 study + 5 rest, 5 cycles), enables the form
-onMounted(()=>{
+onMounted(async ()=>{
     window.bootstrap = require('/node_modules/bootstrap/dist/js/bootstrap');
 
     const buttons = [...document.querySelectorAll("#suggestions>button")];
@@ -223,10 +226,33 @@ onMounted(()=>{
         suggestionsStructsArray[i].cyclesNum = 0;
     }
     
-    if (props.study && props.rest && props.cycles)
-        setDisplayed(parseInt(props.study), parseInt(props.rest), parseInt(props.cycles));
-    else 
+
+    if (props.sessionId){
+        var session = await axios.post(`${pomodoro_sessions_api_url}read`, {_id: props.sessionId});
+        if(session && session.data){
+            var sessionData = session.data;          
+            loaded_session = true;
+
+            setDisplayed(sessionData.studyTime, sessionData.restTime, sessionData.totCycles);
+            id.value = props.sessionId;
+            cyclesLeft.value = sessionData.totCycles - sessionData.completedCycles;
+            state.value = sessionData.state;
+
+            if(state.value == "resting"){ 
+                setup_tomato_rest();
+                document.getElementById("start-btn").textContent = "START RESTING";
+            }
+            else{
+                setup_tomato_study();
+            }
+        }
+        else{
+            setDisplayed(30, 5, 5);
+        }
+    }
+    else{
         setDisplayed(30, 5, 5);
+    }
     document.getElementById('timer-display').textContent = "00:00";
     notifModal = new bootstrap.Modal(document.getElementById('notificationModal'), {});
     document.getElementById('notificationModal').addEventListener('hidden.bs.modal', resume);
@@ -234,8 +260,10 @@ onMounted(()=>{
     enable_form_inputs();
 })
 
-// If the component is unmounted, clears the eventually active interval function
+// If the component is unmounted, clears the eventually active interval function (after saving the current session, if active)
 onUnmounted(() => {
+    if(loaded_session && state.value != "idle") updateSession();
+    //else saveSession(); //uncomment to make it save every session on quit
     clearInterval(interval);
 });
 
@@ -257,6 +285,7 @@ function setup_tomato_study() {
     document.getElementById("tomato-book").style.display = "block";
     document.getElementById("tomato-book-cover").style.display = "block";
     document.getElementById("tomato-bed").style.display = "none";
+    document.getElementById("tomato").style.filter = "brightness(100%)";
 }
 
 // Graphically prepares the tomato for resting phases
@@ -270,15 +299,16 @@ function setup_tomato_rest() {
     document.getElementById("tomato-book").style.display = "none";
     document.getElementById("tomato-book-cover").style.display = "none";
     document.getElementById("tomato-bed").style.display = "block";
+    document.getElementById("tomato").style.filter = "brightness(60%)";
 }
 
 // Sets up to start a study phase
 function startStudying(){
     state.value = "studying";
     end_time = Date.now() + studyT.value * 60000;
-    document.getElementById("tomato").style.filter = "brightness(100%)";
     reset_tomato_animation();
     setup_tomato_study();
+
     document.getElementById("tomato-body").style.animation = `become-ripe ${studyT.value*60}s linear forwards`;
     document.getElementById("start-btn").textContent = "STUDYING...";
     if(interval){ // Modal won't appear for the first study phase
@@ -297,18 +327,17 @@ function startResting(){
     setup_tomato_rest();
 
     document.getElementById("tomato-body").style.animation = `become-unripe ${restT.value * 60}s linear forwards`;
-    document.getElementById("tomato").style.filter = "brightness(60%)";
     document.getElementById("start-btn").textContent = "RESTING...";
-    modalTitle.value = "Switch to resting";
-    modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
-    notifModal.toggle();
-    pause();
+    if(interval){ // Modal won't appear for the first rest phase
+        modalTitle.value = "Switch to resting";
+        modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
+        notifModal.toggle();
+        pause();
+    }
 }
 
 // Function that handles the end of the last cycle
 function endInterval(){
-saveSession();
-
     state.value = "idle";
     clearInterval(interval);
     modalTitle.value = `${cyclesTot.value} cycles completed!`;
@@ -316,7 +345,6 @@ saveSession();
     notifModal.toggle();
     pause();
     document.getElementById("start-btn").textContent = "START STUDYING";
-    document.getElementById("tomato").style.filter = "brightness(100%)";
     reset_tomato_animation();
     toggleControlButtons(true);
     enable_form_inputs();
@@ -339,12 +367,14 @@ function enable_form_inputs(){
     }
 }
 
+// Called when the notification modal appears to "freeze" everything going on below it
 function pause(){
     start_pause_time = Date.now();
     document.getElementById("tomato-body").style.animationPlayState = "paused";
     clearInterval(interval);
 }
 
+// Called when the notification modal is dismissed to resume
 function resume(){
     end_pause_time = Date.now();
     let time_in_pause = end_pause_time - start_pause_time;
@@ -432,9 +462,10 @@ function handleSubmit(){
     if (expand_collapse.classList.contains("expanded")) // If the suggestions box is currently expanded, collapse it
         expandCollapse();
 
-    cyclesLeft.value = cyclesTot.value;
+    if(!loaded_session) cyclesLeft.value = cyclesTot.value;
 
-    startStudying();
+    if(state.value == "resting") startResting();
+    else startStudying();
 
     // Indefinitely run the intervalLoop function, which deals with the passage of time during cycles
     interval = setInterval(intervalLoop, 0);
@@ -505,7 +536,11 @@ function expandCollapse() {
 }
 
 async function saveSession(){
-    let res = await axios.post(pomodoro_sessions_api_url, currentSession.value);
+    let res = await axios.post(`${pomodoro_sessions_api_url}create`, currentSession.value);
+}
+
+async function updateSession(){
+    let res = await axios.post(`${pomodoro_sessions_api_url}update`, currentSession.value);
 }
 
 </script>

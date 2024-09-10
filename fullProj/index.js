@@ -51,7 +51,7 @@ const sessionSchema = new mongoose.Schema({
     totCycles: Number,
     completedCycles: Number,
     //inactiveTime: { type: Number, default: 0 },
-    state: { type: String, default: "study" },
+    state: { type: String, default: "idle" },
     date: { type: Date }
 });
 
@@ -242,29 +242,6 @@ app.post("/compose", async (req, res) => {
 
 });
 
-app.post("/pomodoro/sessions", async (req, res) => {
-    const newSession = {
-        ...req.body,
-        user: currentUser.name,
-        date: new Date().getTime(),
-    }
-    console.log(newSession);
-
-
-    /*
-    return {
-        //user is added by back-end function in index.js
-        studyTime: studyT.value,
-        restTime: restT.value,
-        totCycles: cyclesTot.value,
-        completedCycles: cyclesTot.value - cyclesLeft.value,
-        // inactiveTime: sessionInactiveTime.value,
-        state: state.value,
-        // date
-    };
-    */
-});
-
 //gestione richiesta post per contrassegnare un task come completato
 //viene cercato il to-do e modificato il valore all'indice corrispondente del task nell'array completed
 //l'ID del to-do e l'indice del task vengono passati come payload alla richiesta
@@ -330,6 +307,76 @@ app.post("/todos/tasks/delete", async (req, res) => {
         res.send({ message: "OK" });
     } catch (error) {
         res.status(500).send("Error while fetching todo");
+    }
+});
+
+
+app.post("/pomodoro/sessions/create", async (req, res) => {
+    try {
+        const { _id, ...data } = req.body;
+        const newSession = new Session({
+            user: currentUser.name,
+            state: "idle",
+            completedCycles: 0,
+            ...data
+        });
+        await newSession.save();
+    } catch (error) {
+        console.log("Error: ", error);
+        res.status(500).send("Error while creating session");
+    }
+});
+
+app.post("/pomodoro/sessions/read", async (req, res) => {
+    const { _id } = req.body;
+    try {
+        var target = await Session.findById(_id);
+        if (!target) {
+            res.status(404).send("Session not found");
+        }
+        else {
+            res.json(target);
+        }
+    } catch (error) {
+        console.log("Error: ", error);
+        res.status(500).send("Error while reading session");
+    }
+});
+
+app.post("/pomodoro/sessions/update", async (req, res) => {
+    console.log("in update func");
+    const { _id, ...data } = req.body;
+    const id = _id._value;
+    console.log("id = ", id);
+    console.log("data = ", data);
+    try {
+        var target = await Session.findById(id);
+        if (!target) {
+            res.status(404).send("Session not found");
+        }
+        else {
+            await Session.findByIdAndUpdate(id, data);
+            res.json({ message: "OK" });
+        }
+    } catch (error) {
+        console.log("Error: ", error);
+        res.status(500).send("Error while updating session");
+    }
+});
+
+app.post("/pomodoro/sessions/delete", async (req, res) => {
+    const { _id } = req.body;
+    try {
+        var target = await Session.findById(_id);
+        if (!target) {
+            res.status(404).send("Session not found");
+        }
+
+        await Session.findByIdAndDelete(_id);
+
+    } catch (error) {
+        console.log("Error: ", error);
+        res.status(500).send("Error while deleting session");
     }
 });
 
