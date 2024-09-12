@@ -50,9 +50,8 @@ const sessionSchema = new mongoose.Schema({
     restTime: Number,
     totCycles: Number,
     completedCycles: Number,
-    //inactiveTime: { type: Number, default: 0 },
     state: { type: String, default: "idle" },
-    date: { type: Date }
+    dateTime: { type: Date }
 });
 
 const userSchema = new mongoose.Schema({/*!!!!!!!!!!!!!!!!!*/
@@ -68,6 +67,10 @@ const User = mongoose.model("User", userSchema);/*!!!!!!!!!!!*/
 const Session = mongoose.model("Session", sessionSchema);
 
 var currentUser = null;
+
+app.post("/getUser", (req, res) => {
+    res.json({ name: currentUser.name });
+});
 
 //gestione richiesta post per richiedere un preciso to-do o una precisa nota inviando l'ID
 app.post("/:blogType/get", async (req, res) => {
@@ -343,19 +346,33 @@ app.post("/pomodoro/sessions/read", async (req, res) => {
     }
 });
 
-app.post("/pomodoro/sessions/update", async (req, res) => {
-    console.log("in update func");
-    const { _id, ...data } = req.body;
-    const id = _id._value;
-    console.log("id = ", id);
-    console.log("data = ", data);
+// POST request to get informations on the latest pomodoro session. Note: to access the information, read the .data field of the received JSON.
+// Sends undefined if there are no previously created sessions for the current user.
+app.post("/pomodoro/sessions/read/latest", async (req, res) => {
+    const { user } = req.body;
     try {
-        var target = await Session.findById(id);
+        var userSessions = await Session.find({ user: user }).sort({ dateTime: "descending" });
+        if (userSessions.length == 0) {
+            res.json(undefined);
+        }
+        else {
+            res.json(userSessions[0]);
+        }
+    } catch (error) {
+        console.log("Error: ", error);
+        res.status(500).send("Error while reading session");
+    }
+});
+
+app.post("/pomodoro/sessions/update", async (req, res) => {
+    const { _id, ...data } = req.body;
+    try {
+        var target = await Session.findById(_id);
         if (!target) {
             res.status(404).send("Session not found");
         }
         else {
-            await Session.findByIdAndUpdate(id, data);
+            await Session.findByIdAndUpdate(_id, data);
             res.json({ message: "OK" });
         }
     } catch (error) {

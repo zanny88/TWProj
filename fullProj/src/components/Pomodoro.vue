@@ -13,6 +13,8 @@ TODO: centrare bottoni nel coso espandibile se width bassa
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
 
         <main>
+            <button class="btn" @click.prevent="get_latest">Get latest</button>
+
             <div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalTitle" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                   <div class="modal-content">
@@ -125,6 +127,7 @@ TODO: centrare bottoni nel coso espandibile se width bassa
 import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
 import axios from 'axios';
 
+const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const props = defineProps(['sessionId']);
 
@@ -134,6 +137,7 @@ let cyclesTot = ref(5);
 let cyclesLeft = ref(5); // Number of cycles left to go through
 let state = ref("idle");
 let id = ref('');
+let dateTime = ref(0);
 let availH = ref(0);
 let availM = ref(0);
 let modalTitle = ref('');
@@ -155,9 +159,8 @@ const sessionSchema = new mongoose.Schema({
     restTime: Number,
     totCycles: Number,
     completedCycles: Number,
-    //inactiveTime: { type: Number, default: 0 },
     state: { type: String, default: "study" },
-    date: { type: Date }
+    dateTime: { type: Date }
 });
 */
 
@@ -168,10 +171,9 @@ let currentSession = computed(() => {
         restTime: restT.value,
         totCycles: cyclesTot.value,
         completedCycles: cyclesTot.value - cyclesLeft.value,
-        // inactiveTime: sessionInactiveTime.value,
         state: state.value,
-        // date
-        _id: id
+        dateTime: dateTime.value,
+        _id: id.value
     };
 });
 
@@ -237,6 +239,7 @@ onMounted(async ()=>{
             id.value = props.sessionId;
             cyclesLeft.value = sessionData.totCycles - sessionData.completedCycles;
             state.value = sessionData.state;
+            dateTime.value = sessionData.dateTime;
 
             if(state.value == "resting"){ 
                 setup_tomato_rest();
@@ -245,13 +248,18 @@ onMounted(async ()=>{
             else{
                 setup_tomato_study();
             }
+
+            console.log("Loaded session. Current session:\n", currentSession.value);
         }
         else{
             setDisplayed(30, 5, 5);
+            dateTime.value = new Date().getTime();
         }
     }
     else{
+        console.log("Didn't load a pre-existing session.");
         setDisplayed(30, 5, 5);
+        dateTime.value = new Date().getTime();
     }
     document.getElementById('timer-display').textContent = "00:00";
     notifModal = new bootstrap.Modal(document.getElementById('notificationModal'), {});
@@ -263,9 +271,18 @@ onMounted(async ()=>{
 // If the component is unmounted, clears the eventually active interval function (after saving the current session, if active)
 onUnmounted(() => {
     if(loaded_session && state.value != "idle") updateSession();
-    //else saveSession(); //uncomment to make it save every session on quit
+    // else saveSession(); //uncomment to make it save every session on quit
     clearInterval(interval);
 });
+
+async function get_latest(){
+    const user = (await axios.post(`${api_url}getUser`)).data.name;
+    var session = await axios.post(`${pomodoro_sessions_api_url}read/latest`, {user: user});
+    if(session.data)
+        console.log("latest session by user", user, ": ", session.data);
+    else
+        console.log("No sessions exist for user", user);
+}
 
 function reset_tomato_animation(){
     const el = document.getElementById("tomato-body");
