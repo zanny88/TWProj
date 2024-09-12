@@ -13,8 +13,10 @@ TODO: centrare bottoni nel coso espandibile se width bassa
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
 
         <main>
+            <!--
             <button class="btn" @click.prevent="get_latest">Get latest</button>
-
+            -->
+            
             <div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalTitle" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                   <div class="modal-content">
