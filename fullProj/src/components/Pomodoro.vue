@@ -1,6 +1,5 @@
 <!-- 
 TODO: centrare bottoni nel coso espandibile se width bassa
-      gestire situazione in cui carico una sessione già completata, gestire situazione in cui completo una sessione 
 -->
 
 <template>
@@ -230,52 +229,63 @@ onMounted(async ()=>{
         suggestionsStructsArray[i].cyclesNum = 0;
     }
     
+    enable_form_inputs();
 
     if (props.sessionId){
         var session = await axios.post(`${pomodoro_sessions_api_url}read`, {_id: props.sessionId});
         if(session && session.data){
-            var sessionData = session.data;          
-            loaded_session = true;
-
-            setDisplayed(sessionData.studyTime, sessionData.restTime, sessionData.totCycles);
-            id.value = props.sessionId;
-            cyclesLeft.value = sessionData.totCycles - sessionData.completedCycles;
-            state.value = sessionData.state;
-            dateTime.value = sessionData.dateTime;
-
-            if(state.value == "resting"){ 
-                setup_tomato_rest();
-                document.getElementById("start-btn").textContent = "START RESTING";
+            var sessionData = session.data;
+            if(sessionData.totCycles == sessionData.completedCycles){
+                console.log("Attempted to load an already completed session. Falling back on a new default session.");
+                defaultInit();
             }
             else{
-                setup_tomato_study();
-            }
+                loaded_session = true;
+                disable_form_inputs();
 
-            console.log("Loaded session. Current session:\n", currentSession.value);
+                setDisplayed(sessionData.studyTime, sessionData.restTime, sessionData.totCycles);
+                id.value = props.sessionId;
+                cyclesLeft.value = sessionData.totCycles - sessionData.completedCycles;
+                state.value = sessionData.state;
+                dateTime.value = sessionData.dateTime;
+
+                if(state.value == "resting"){ 
+                    setup_tomato_rest();
+                    document.getElementById("start-btn").textContent = "START RESTING";
+                }
+                else{
+                    setup_tomato_study();
+                }
+
+                console.log("Loaded session. Current session:\n", currentSession.value);
+            }
         }
         else{
-            setDisplayed(30, 5, 5);
-            dateTime.value = new Date().getTime();
+            console.log("Invalid session id prop. Falling back on a new default session.")
+            defaultInit();
         }
     }
     else{
         console.log("Didn't load a pre-existing session.");
-        setDisplayed(30, 5, 5);
-        dateTime.value = new Date().getTime();
+        defaultInit();
     }
     document.getElementById('timer-display').textContent = "00:00";
     notifModal = new bootstrap.Modal(document.getElementById('notificationModal'), {});
+    document.getElementById('notificationModal').addEventListener('shown.bs.modal', pause);
     document.getElementById('notificationModal').addEventListener('hidden.bs.modal', resume);
-    
-    enable_form_inputs();
 })
 
-// If the component is unmounted, clears the eventually active interval function (after saving the current session, if active)
+// If the component is unmounted, clears the eventually active interval function
 onUnmounted(() => {
-    if(loaded_session && state.value != "idle") updateSession();
-    // else saveSession(); //uncomment to make it save every session on quit
     clearInterval(interval);
+    if(loaded_session && state.value != "idle") updateSession();
+    //else saveSession(); //uncomment to make it save every session on quit (should only be used for debugging purposes)
 });
+
+function defaultInit(){
+    setDisplayed(30, 5, 5);
+    dateTime.value = new Date().getTime();
+}
 
 async function get_latest(){
     const user = (await axios.post(`${api_url}getUser`)).data.name;
@@ -330,12 +340,10 @@ function startStudying(){
 
     document.getElementById("tomato-body").style.animation = `become-ripe ${studyT.value*60}s linear forwards`;
     document.getElementById("start-btn").textContent = "STUDYING...";
-    if(interval){ // Modal won't appear for the first study phase
-        modalTitle.value = "Switch to studying";
-        modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
-        notifModal.toggle();
-        pause();
-    }
+
+    modalTitle.value = "Switch to studying";
+    modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
+    notifModal.toggle();
 }
 
 // Sets up to start a rest phase
@@ -347,22 +355,23 @@ function startResting(){
 
     document.getElementById("tomato-body").style.animation = `become-unripe ${restT.value * 60}s linear forwards`;
     document.getElementById("start-btn").textContent = "RESTING...";
-    if(interval){ // Modal won't appear for the first rest phase
-        modalTitle.value = "Switch to resting";
-        modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
-        notifModal.toggle();
-        pause();
-    }
+
+    modalTitle.value = "Switch to resting";
+    modalBody.value = `Current cycle: ${cyclesTot.value - cyclesLeft.value + 1}/${cyclesTot.value}`;
+    notifModal.toggle();
 }
 
 // Function that handles the end of the last cycle
 function endInterval(){
-    state.value = "idle";
     clearInterval(interval);
+    state.value = "idle";
+    if(loaded_session){
+        updateSession();
+        loaded_session = false;
+    }
     modalTitle.value = `${cyclesTot.value} cycles completed!`;
     modalBody.value = `Well done!`;
     notifModal.toggle();
-    pause();
     document.getElementById("start-btn").textContent = "START STUDYING";
     reset_tomato_animation();
     toggleControlButtons(true);
@@ -555,10 +564,12 @@ function expandCollapse() {
 }
 
 async function saveSession(){
+    console.log("Saving as a newly created session.");
     let res = await axios.post(`${pomodoro_sessions_api_url}create`, currentSession.value);
 }
 
 async function updateSession(){
+    console.log("Updating the previously loaded session.");
     let res = await axios.post(`${pomodoro_sessions_api_url}update`, currentSession.value);
 }
 
