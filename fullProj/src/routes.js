@@ -7,6 +7,8 @@ import Note from "./components/Note.vue";
 import RegLog from "./components/registerLogin.vue";
 import Pomodoro from "./components/Pomodoro.vue";
 import Calendar from "./components/Calendar.vue";
+import ActivityPage from "./components/ActivityPage.vue";
+import EventPage from "./components/EventPage.vue";
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -19,7 +21,10 @@ const router = createRouter({
         { path: '/login', component: RegLog },
         { path: '/pomodoro/:sessionId', component: Pomodoro, props: true },
         { path: '/pomodoro', component: Pomodoro },
-        { path: '/calendar', component: Calendar }
+        { path: '/calendar', component: Calendar, props: true },
+        { path: '/editActivity/:id/:callback', component: ActivityPage, props: true },
+        { path: '/editEvent/:id/:callback/:eventDate', component: EventPage, props: true },
+        { path: '/calendar/:mode/:calDate', component: Calendar, props: true }
     ]
 });
 export default router;
