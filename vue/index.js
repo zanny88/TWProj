@@ -62,10 +62,46 @@ const userSchema = new mongoose.Schema({/*!!!!!!!!!!!!!!!!!*/
     inbox: {type: [String], default: []}
 });
 
+const eventSchema = new mongoose.Schema({
+	owner: String,
+    participants: {type: [String], default: []},
+	participants_state: {type:[String], default: []},          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
+    title: String,
+    date_start: Date,
+    date_end: Date,
+    repetitions: Number,                   /* 0 per infinite */
+    interval_period: Number,
+    interval_days_in_week: [Number],       /* giorni nella settimana */
+    interval_n_day_in_month: [Number],     /* n esimo giorno del mese */
+    interval_n_of_day_in_month: [Number],  /* n esimo giorno della settimana nel mese, codifica "n, giorno" */
+    duration: Number,                      /* numero di minuti di durata */
+	all_day: Boolean,
+    place: String,
+	notification_advance: Number,           /* anticipo in minuti nella notifica */
+	notification_repetitions: Number,       /* 0 per infinite*/
+	notification_interval: Number,          /* numero di minuti tra una notifica e la successiva */
+	notification_modes: [String],
+	notification_stop: Boolean,             /* Falso per notifiche non ancora fermate, vero per notifiche fermate */
+	ev_type:{type: String, default: "Event"}                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
+})
+
+const activitySchema = new mongoose.Schema({
+    owner: String,
+	participants: [String],
+	participants_state: {type:[String], default: []},          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
+    title: String,
+    end: Date,
+	creation_date: Date,
+    has_deadline: Boolean,
+    is_completed: Boolean
+})
+
 const Note = mongoose.model("Note",noteSchema);
 const Todo = mongoose.model("Todo",todoSchema);
 const User = mongoose.model("User",userSchema);/*!!!!!!!!!!!*/
 const Session = mongoose.model("Session",sessionSchema);
+const Event = mongoose.model("Event", eventSchema);
+const Activity = mongoose.model("Activity", activitySchema);
 
 var currentUser = null;
 
@@ -459,6 +495,138 @@ app.post('/search',async (req,res) => {
         res.status(500).send("Error while search");
     }
 });
+
+
+
+
+
+//gestione richiesta post per richiedere un evento di un utente (con eventId = -1 si ottengono tutti gli eventi di quell'utente)
+app.get("/getEvents/:userName/:eventId", async (req,res) => {
+    var userName = req.params.userName;
+	var eventId = req.params.eventId
+	console.log("/getEvents/:userName/:eventId  "+userName+" " + eventId);
+    var events;
+	if (eventId == "-1"){
+		events = await Event.find({owner: userName});
+	}else{
+		events = await Event.find({owner: userName, _id: eventId});
+	}
+	console.log("return="+events);
+    res.send(events);
+});
+
+//gestione richiesta post per l'aggiunta di un'evento
+app.post("/addEvent",async (req,res) => {
+	console.log("/addEvent "+req.body);
+	const {userName, title, date_start, date_end, place, participants, all_day} = req.body;
+	const NewEvent = new Event ({
+		owner: userName,
+		title: title,
+		date_start: date_start,
+		date_end: date_end,
+		place: place,
+		participants: participants,
+		all_day: all_day
+	});
+	try{
+		NewEvent.save();
+		console.log("added event="+NewEvent);
+		res.json({message: "OK"});
+	}catch(error){
+		res.status(500).send("Error saving new activity");
+	}
+});
+
+//gestione richiesta post per la modifica di un'evento
+app.post("/editEvent",async (req,res) => {
+	console.log("/editEvent "+req.body);
+	const {userName, eventId, title, date_start, date_end, place, participants, all_day} = req.body;
+	console.log("ricerca di eventId="+req.body.eventId);
+	var event_ = await Event.findOne({_id: eventId, owner: userName});
+	if(!event_){
+		res.json({
+			message: "event not found"
+		});
+	}else{
+		event_.title = title;
+		event_.date_start = date_start;
+		event_.date_end = date_end;
+		event_.place = place;
+		event_.participants = participants;
+		event_.all_day = all_day;
+		try{
+			event_.save();
+			res.json({message: "OK"});
+			console.log("salvato:"+event_);
+		}catch(error){
+			res.status(500).send("Error modifying event");
+		}
+	}
+});
+
+
+
+//gestione richiesta post per richiedere un'attività di un utente (con activityId = -1 si ottengono tutte le attività di quell'utente)
+app.get("/getActivities/:userName/:activityId", async (req,res) => {
+    var userName = req.params.userName;
+	var activityId = req.params.activityId
+	console.log("/getActivities/:userName/:activityId  "+userName+" "+activityId);
+    var activities;
+	if (activityId == "-1"){
+		activities = await Activity.find({owner: userName});
+	}else{
+		activities = await Activity.find({owner: userName, _id: activityId});
+	}
+	console.log("return="+activities);
+    res.send(activities);
+});
+
+//gestione richiesta post per l'aggiunta di un'attività
+app.post("/addActivity",async (req,res) => {
+	console.log("/addActivity "+req.body);
+	const {userName, title, end, participants, is_completed} = req.body;
+	const NewActivity = new Activity ({
+		owner: userName,
+		title: title,
+		end: end,
+		participants: participants,
+		is_completed: is_completed,
+		creation_date: Date.now()
+	});
+	try{
+		NewActivity.save();
+		console.log("added activity="+NewActivity);
+		res.json({message: "OK"});
+	}catch(error){
+		res.status(500).send("Error saving new activity");
+	}
+});
+
+//gestione richiesta post per la modifica di un'attività
+app.post("/editActivity",async (req,res) => {
+	console.log("/editActivity "+req.body);
+	const {userName, activityId, title, end, participants, is_completed} = req.body;
+	console.log("ricerca di activityId:"+activityId);
+	var activity = await Activity.findOne({_id: activityId, owner: userName});
+	if(!activity){
+		res.json({
+			message: "activity not found"
+		});
+	}else{
+		activity.title = title;
+		activity.end = end;
+		activity.participants = participants;
+		activity.is_completed = is_completed;
+		try{
+			activity.save();
+			res.json({message: "OK"});
+			console.log("salvato:"+activity);
+		}catch(error){
+			res.status(500).send("Error modifying activity");
+		}
+	}
+});
+
 //-----------------------------------------------------------------------
 
 app.listen(3000,() => {
