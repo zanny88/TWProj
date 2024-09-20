@@ -46,6 +46,7 @@
     const router = useRouter();
     const api_url = "http://localhost:3000/";
     var loggedIn = inject('loggedIn');
+	var loggedUser = inject('loggedUser');
 
     var name = ref('');
     var passwd = ref('');
@@ -71,6 +72,7 @@
             
             if(r.data.message == "OK"){
                 loggedIn.value = true;//modifica della variabile globale per sbloccare la navbar e poter navigare l'applicazione
+				loggedUser.value = name.value;//modifica della variabile globale per ricordare il codice utente loggato
                 router.push({path: "/"});
             }else{
                 console.log(r.data.message);
