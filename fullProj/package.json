@@ -7,16 +7,19 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "@vuepic/vue-datepicker": "^9.0.3",
     "axios": "^1.7.2",
     "bootstrap": "^5.3.3",
     "core-js": "^3.8.3",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
     "express": "^4.19.2",
+    "jquery": "^3.7.1",
     "mongodb": "^6.7.0",
     "mongoose": "^8.4.4",
     "vue": "^3.2.13",
     "vue-axios": "^3.5.2",
-    "vue-router": "^4.4.0"
+    "vue-router": "^4.4.5"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~5.0.0",

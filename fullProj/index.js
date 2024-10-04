@@ -389,6 +389,7 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
     const { user } = req.body;
     try {
         var userSessions = await Session.find({ user: user }).sort({ dateTime: "descending" });
+        console.log("User sessions:\n", userSessions, "\n");
         if (userSessions.length == 0) {
             res.json(undefined);
         }
