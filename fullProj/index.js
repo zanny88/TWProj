@@ -106,7 +106,9 @@ const Activity = mongoose.model("Activity", activitySchema);
 var currentUser = null;
 
 app.post("/getUser", (req, res) => {
-    res.json({ name: currentUser.name });
+    if (currentUser)
+        res.json({ name: currentUser.name });
+    else res.json(undefined);
 });
 
 //gestione richiesta post per richiedere un preciso to-do o una precisa nota inviando l'ID
@@ -389,13 +391,20 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
     const { user } = req.body;
     try {
         var userSessions = await Session.find({ user: user }).sort({ dateTime: "descending" });
-        console.log("User sessions:\n", userSessions, "\n");
-        if (userSessions.length == 0) {
-            res.json(undefined);
+        const now = new Date().getTime();
+
+        //Check each session from the most recent to the oldest. If the currently checked session was the latest session before "now", send its info.
+        //Necessary in order to account for time machine (otherwise it would have just sent userSession[0]).
+        //When time machine is implemented, TODO: change initialization of "now" constant above
+        for (const session of userSessions) {
+            if (session.dateTime < now) {
+                res.json(session);
+            }
         }
-        else {
-            res.json(userSessions[0]);
-        }
+
+        //Either no previous session exists, or none of them are before the time considered as "now"
+        res.json(undefined);
+
     } catch (error) {
         console.log("Error: ", error);
         res.status(500).send("Error while reading session");

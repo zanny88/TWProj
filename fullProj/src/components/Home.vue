@@ -18,35 +18,42 @@
 
     <div class="container-fluid">
         
-            <div class="row mb-5 justify-content-center justify-content-md-start">
+            <div class="row mb-3 justify-content-center justify-content-md-start">
                 <div class="col col-md-8">
-                    <div class="preview container-fluid" id="calendar-preview">
-                        <div class="row">
+                    <div class="preview container-fluid floating floating1" id="calendar-preview">
+                        <div class="row h-25">
                             <router-link class="preview-title col" to="/calendar">CALENDAR</router-link>
                         </div>
 
-                        <div class="row">
+                        <div class="row h-75">
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothCalendar1.png" class="img-fluid preview-img"/></div>
                             <div class="col d-flex flex-column preview-info">
                                 <div>Calendar preview</div>
-                                <div id="calendar-preview-info"></div>
+                                <div id="calendar-preview-info">(Eventi di oggi)</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row mb-5 justify-content-center justify-content-md-end">
+            <div class="row mb-3 justify-content-center justify-content-md-end">
                 <div class="col col-md-8">
-                    <div class="preview container-fluid" id="pomodoro-preview">
-                        <div class="row">
+                    <div class="preview container-fluid floating floating2" id="pomodoro-preview">
+                        <div class="row h-25">
                             <router-link class="preview-title col" to="/pomodoro">POMODORO</router-link>
                         </div>
 
-                        <div class="row">
+                        <div class="row h-75">
                             <div class="col d-flex flex-column preview-info">
                                 <div>Last Pomodoro session:</div>
-                                <div id="pomodoro-preview-info"></div>
+                                <div id="pomodoro-preview-info">
+                                    <router-link 
+                                        v-if="latestPomodoroSession != ''"
+                                        id="resume-pomodoro-link"
+                                        :to="`/pomodoro/${latestPomodoroSession}`"
+                                        ><BIconPlayFill/></router-link>
+                                </div>
+                                
                             </div>
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothTomato.png" class="img-fluid preview-img"/></div>
                         </div>
@@ -54,18 +61,18 @@
                 </div>
             </div>
 
-            <div class="row mb-5 justify-content-center justify-content-md-start">
+            <div class="row mb-3 justify-content-center justify-content-md-start">
                 <div class="col col-md-8">
-                    <div class="preview container-fluid" id="notes-preview">
-                        <div class="row">
+                    <div class="preview container-fluid floating floating3" id="notes-preview">
+                        <div class="row h-25">
                             <router-link class="preview-title col" to="/showNote">NOTES</router-link>
                         </div>
 
-                        <div class="row">
+                        <div class="row h-75">
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothStudying.png" class="img-fluid preview-img"/></div>
                             <div class="col d-flex flex-column preview-info">
                                 <div>Notes preview</div>
-                                <div id="notes-preview-info"></div>
+                                <div id="notes-preview-info">(Ultima nota)</div>
                             </div>
                         </div>
                     </div>
@@ -92,7 +99,7 @@ Palette 1:
 }
 .preview{
     width: 80%;
-    height: 20vh;
+    height: 24vh;
     border-radius: 2em;
     text-align: center;
     box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.218);
@@ -126,6 +133,16 @@ Palette 1:
     }
 }
 
+#resume-pomodoro-link{
+    position: absolute;
+    color: white;
+
+    &:hover{
+        transform: scale(1.5,1.5);
+        transition: 200ms all;
+    }
+}
+
 .preview-img{
     max-height: 93px;
     object-fit: cover;
@@ -133,6 +150,43 @@ Palette 1:
 
 .preview-info * {
     font-family: Ginto, sans-serif;
+}
+
+.floating {  
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+}
+
+.floating1{
+    animation-name: floating1;
+}
+
+.floating2{
+    animation-name: floating2;
+}
+
+.floating3{
+    animation-name: floating3;
+}
+
+@keyframes floating1 {
+    0% { transform: translate(0,  0px); }
+    25%  { transform: translate(0, 3px); }
+    75%   { transform: translate(0, -3px); }    
+    100%   { transform: translate(0, -1px); }    
+}
+@keyframes floating2 {
+    0% { transform: translate(0,  3px); }
+    50%  { transform: translate(0, -3px); }
+    75%   { transform: translate(0, 0px); }    
+    100%   { transform: translate(0, 2px); }    
+}
+@keyframes floating3 {
+    0% { transform: translate(0,  -3px); }
+    50%  { transform: translate(0, 3px); }
+    75%   { transform: translate(0, 0px); }    
+    100%   { transform: translate(0, -2px); }    
 }
 
 /*
@@ -247,11 +301,14 @@ Animated background credit: https://codepen.io/mohaiman/pen/MQqMyo
 </style>
 
 <script setup>
-import {inject, computed, watch, ref, onUnmounted, onMounted} from "vue";
+import {inject, ref, onMounted} from "vue";
+
 import axios from 'axios';
 
 const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
+
+let latestPomodoroSession = ref('');
 
 async function get_latest_pomodoro_stats(){
     const target = document.getElementById("pomodoro-preview-info");
@@ -260,7 +317,10 @@ async function get_latest_pomodoro_stats(){
     var session = await axios.post(`${pomodoro_sessions_api_url}read/latest`, {user: user});
     if(session.data){
         const data = session.data;
-        target.innerText = `Study duration: ${data.studyTime} minutes\nRest duration: ${data.restTime} minutes\nCompleted cycles: ${data.completedCycles}/${data.totCycles}`;
+        latestPomodoroSession.value = data._id;
+        target.insertAdjacentHTML('afterbegin', `<div>Study duration: ${data.studyTime} minutes</div>
+                            <div>Rest duration: ${data.restTime} minutes</div>
+                            <div>Completed cycles: ${data.completedCycles}/${data.totCycles}</div>`);
     }
     else
         target.innerText = "No session exists.";
