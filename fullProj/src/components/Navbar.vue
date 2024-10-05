@@ -136,7 +136,7 @@
 
 /*la classe disabilita la navbar*/
 .navbar{
-    background-color: #dda15e;
+    background-color: #ffb140;
     margin-bottom: 15px;
 }
 

@@ -31,3 +31,10 @@ onMounted(() => {
 })
 
 </script>
+
+<style scoped>
+@font-face {
+  font-family: Ginto;
+  src: url('/public/fonts/ABCGintoNormal-Regular-Trial-BF651b7b7846685.otf');
+}
+</style>
