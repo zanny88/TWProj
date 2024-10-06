@@ -129,6 +129,34 @@ app.post("/:blogType/get", async (req, res) => {
 
 });
 
+app.post("/getNotes/latest", async (req, res) => {
+    const { user } = req.body;
+    try {
+        var userNotes = await Note.find({ user: user }).sort({ date: "descending" });
+        const now = new Date().getTime();
+        let done = false;
+
+        //Check each note from the most recent to the oldest. If the currently checked note was the latest session before "now", send its info.
+        //Necessary in order to account for time machine (otherwise it would have just sent userNotes[0]).
+        //When time machine is implemented, TODO: change initialization of "now" constant above
+        for (const note of userNotes) {
+            if (note.el_type == "notes" && note.date < now) {
+                console.log("sending note: ", note);
+                res.send(note);
+                done = true;
+                break;
+            }
+        }
+
+        //Either no previous session exists, or none of them are before the time considered as "now"
+        if (!done) res.json(undefined);
+
+    } catch (error) {
+        console.log("Error: ", error);
+        res.status(500).send("Error while reading latest note");
+    }
+});
+
 //gestione richiesta post per richiedere un numero di note (con limit = -1 si ottengono tutte le note) 
 app.post("/getNotes/:limit", async (req, res) => {
     var lim = Number(req.params.limit);

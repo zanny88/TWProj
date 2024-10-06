@@ -45,7 +45,7 @@
 
                         <div class="row h-75">
                             <div class="col d-flex flex-column preview-info">
-                                <div>Last Pomodoro session:</div>
+                                <div>Latest Pomodoro session:</div>
                                 <div id="pomodoro-preview-info">
                                     <router-link 
                                         v-if="latestPomodoroSession != ''"
@@ -70,9 +70,26 @@
 
                         <div class="row h-75">
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothStudying.png" class="img-fluid preview-img"/></div>
-                            <div class="col d-flex flex-column preview-info">
-                                <div>Notes preview</div>
-                                <div id="notes-preview-info">(Ultima nota)</div>
+                            <div class="col d-flex flex-column preview-info align-items-center">
+                                <div>Latest note:</div>
+
+                                <div class="card" style="width: 14rem;" v-if="latestNoteId != ''" id="latest-note-card">
+                                    <div class="card-body">
+                                      <h5 class="card-title">
+                                        <router-link 
+                                            
+                                            id="latest-note-link"
+                                            :to="`/note/${latestNoteId}`">{{latestNoteHeading}}
+                                        </router-link>
+                                        </h5>
+                                        <hr>
+                                      <p class="card-text" v-if="latestNoteContent != ''">{{latestNoteContent}}</p>
+                                      <p class="card-text" v-else style="font-style: italic;">(no content provided)</p>
+                                    </div>
+                                  </div>
+
+                                
+                                <div v-else>No note exists.</div>
                             </div>
                         </div>
                     </div>
@@ -102,9 +119,25 @@ Palette 1:
     height: 24vh;
     border-radius: 2em;
     text-align: center;
-    box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.218);
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.648);
 }
 
+#calendar-preview{
+    background-color: #885A5A;
+    color: white;
+}
+
+#pomodoro-preview{
+    background-color: #353A47;
+    color: white;
+}
+
+#notes-preview{
+    background-color: #DC136C;
+    color: white;
+}
+
+/*
 #calendar-preview{
     background-color: #60d394;
     color: white;
@@ -119,6 +152,7 @@ Palette 1:
     background-color: #d90368;
     color: white;
 }
+*/
 
 .preview-title{
     font-family: Poppins, sans-serif;
@@ -140,6 +174,38 @@ Palette 1:
     &:hover{
         transform: scale(1.5,1.5);
         transition: 200ms all;
+    }
+}
+
+#latest-note-link{
+    color: black;
+    text-decoration: none;
+    text-transform: uppercase;
+
+    &:hover{
+        transform: scale(1.2, 1.2);
+        transition: 500ms all;
+        text-decoration: underline;
+    }
+}
+
+#latest-note-card{
+    hr{
+        margin: 1px;
+    }
+
+    .card-body{
+        padding: 8px;
+    }
+
+    .card-title{
+        margin-bottom: 0;
+        font-size: 1rem;
+    }
+
+    .card-text{
+        font-size: 0.75rem;
+        opacity: 0.4;
     }
 }
 
@@ -189,9 +255,7 @@ Palette 1:
     100%   { transform: translate(0, -3px); }    
 }
 
-/*
-Animated background credit: https://codepen.io/mohaiman/pen/MQqMyo
-*/
+/*****************Animated background credit: https://codepen.io/mohaiman/pen/MQqMyo*************************/
 
 @keyframes animate {
     0%{
@@ -214,7 +278,8 @@ Animated background credit: https://codepen.io/mohaiman/pen/MQqMyo
     left: 0;
     margin: 0;
     padding: 0;
-    background: #d0cbdb;
+    /*background: #d0cbdb;*/
+    background: #84b082;
     overflow: hidden;
     z-index: -1;
 }
@@ -298,6 +363,8 @@ Animated background credit: https://codepen.io/mohaiman/pen/MQqMyo
     bottom: -108px;
     animation-delay: 16s;
 }
+
+/*********************************************************************/
 </style>
 
 <script setup>
@@ -307,8 +374,12 @@ import axios from 'axios';
 
 const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
+const notes_api_url = inject('notes_api_url');
 
 let latestPomodoroSession = ref('');
+let latestNoteId =  ref('');
+let latestNoteHeading =  ref('');
+let latestNoteContent = ref('');
 
 async function get_latest_pomodoro_stats(){
     const target = document.getElementById("pomodoro-preview-info");
@@ -326,8 +397,25 @@ async function get_latest_pomodoro_stats(){
         target.innerText = "No session exists.";
 }
 
+async function get_latest_note_heading(){
+
+    const user = (await axios.post(`${api_url}getUser`)).data.name;
+    var note = await axios.post(`${notes_api_url}latest`, {user: user});
+
+    if(note.data){
+        const data = note.data;
+        latestNoteId.value = data._id;
+        latestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
+        if(data.content){
+            let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
+            latestNoteContent.value = tmpContent;
+        }
+    }
+}
+
 onMounted(() => {
     get_latest_pomodoro_stats();
+    get_latest_note_heading();
 });
 
 </script>

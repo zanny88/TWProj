@@ -16,6 +16,7 @@ app.use(router);
 
 const loggedIn = ref();
 app.provide('loggedIn', loggedIn);
+
 const loggedUser = ref();
 app.provide('loggedUser', loggedUser);
 
@@ -24,6 +25,9 @@ app.provide('api_url', api_url);
 
 const pomodoro_sessions_api_url = `${api_url}pomodoro/sessions/`;
 app.provide('pomodoro_sessions_api_url', pomodoro_sessions_api_url);
+
+const notes_api_url = `${api_url}getNotes/`;
+app.provide('notes_api_url', notes_api_url);
 
 app.component('VueDatePicker', VueDatePicker);
 
