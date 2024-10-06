@@ -11,6 +11,15 @@ TODO: centrare bottoni nel coso espandibile se width bassa
         <link href="https://fonts.googleapis.com/css2?family=Monoton&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
 
+        <ul class="background">
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+            <li></li>
+         </ul>
+
         <main>
             <!--
             <button class="btn" @click.prevent="get_latest">Get latest</button>
@@ -860,4 +869,85 @@ label {
     left: 45px;
     bottom: 53px;
 }
+
+/****** Animated background credit: https://codepen.io/BjornRombaut/pen/mOLGgX **********/
+
+@keyframes cube {
+    from {
+        transform: scale(0) rotate(0deg) translate(-50%, -50%);
+        opacity: 1;
+    }
+    to {
+        transform: scale(20) rotate(960deg) translate(-50%, -50%);
+        opacity: 0;
+    }
+}
+
+.background {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    background: #ffe1cd;
+    overflow: hidden;
+    z-index: -100;
+}
+.background li {
+    position: absolute;
+    top: 80vh;
+    left: 45vw;
+    width: 10px;
+    height: 10px;
+    border: solid 1px #e5cab8;
+    color: transparent;
+    transform-origin: top left;
+    transform: scale(0) rotate(0deg) translate(-50%, -50%);
+    animation: cube 22s ease-in forwards infinite;
+}
+undefined
+.background li:nth-child(0) {
+    animation-delay: 0s;
+    left: 86vw;
+    top: 79vh;
+    border-color: #fff7e1;
+}
+
+.background li:nth-child(1) {
+    animation-delay: 2s;
+    left: 26vw;
+    top: 19vh;
+    border-color: #fff7e1;
+}
+
+.background li:nth-child(2) {
+    animation-delay: 4s;
+    left: 71vw;
+    top: 33vh;
+    border-color: #fff7e1;
+}
+
+.background li:nth-child(3) {
+    animation-delay: 6s;
+    left: 7vw;
+    top: 4vh;
+}
+
+.background li:nth-child(4) {
+    animation-delay: 8s;
+    left: 36vw;
+    top: 51vh;
+    border-color: #fff7e1;
+}
+
+.background li:nth-child(5) {
+    animation-delay: 10s;
+    left: 57vw;
+    top: 90vh;
+}
+
+
+/******************************************************************/
 </style>

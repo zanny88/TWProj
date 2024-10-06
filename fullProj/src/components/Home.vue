@@ -45,13 +45,14 @@
 
                         <div class="row h-75">
                             <div class="col d-flex flex-column preview-info">
-                                <div>Latest Pomodoro session:</div>
+                                <div>Latest session:</div>
                                 <div id="pomodoro-preview-info">
                                     <router-link 
                                         v-if="latestPomodoroSession != ''"
                                         id="resume-pomodoro-link"
-                                        :to="`/pomodoro/${latestPomodoroSession}`"
-                                        ><BIconPlayFill/></router-link>
+                                        :to="`/pomodoro/${latestPomodoroSession}`">
+                                            RESUME
+                                    </router-link>
                                 </div>
                                 
                             </div>
@@ -168,11 +169,17 @@ Palette 1:
 }
 
 #resume-pomodoro-link{
-    position: absolute;
-    color: white;
+    background-color: white;
+    font-size: 0.8em;
+    padding: 0.2rem;
+    border-radius: 5px;
+    color: black;
+    mix-blend-mode: screen;
+    text-decoration: none;
 
     &:hover{
-        transform: scale(1.5,1.5);
+        background-color: var(--my-tomato);
+        color: white;
         transition: 200ms all;
     }
 }
