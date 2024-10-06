@@ -71,7 +71,7 @@
                         <div class="row h-75">
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothStudying.png" class="img-fluid preview-img"/></div>
                             <div class="col d-flex flex-column preview-info align-items-center">
-                                <div>Latest note:</div>
+                                <div style="margin-bottom: 0.5rem">Latest note:</div>
 
                                 <div class="card" style="width: 14rem;" v-if="latestNoteId != ''" id="latest-note-card">
                                     <div class="card-body">
@@ -175,6 +175,10 @@ Palette 1:
         transform: scale(1.5,1.5);
         transition: 200ms all;
     }
+}
+
+#pomodoro-preview-info{
+    font-size: 0.8em;
 }
 
 #latest-note-link{
