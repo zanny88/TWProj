@@ -153,9 +153,9 @@ Palette 1:
 }
 
 .floating {  
-    animation-duration: 3s;
+    animation-duration: 5s;
     animation-iteration-count: infinite;
-    animation-timing-function: ease-in-out;
+    animation-timing-function: linear;
 }
 
 .floating1{
@@ -174,19 +174,19 @@ Palette 1:
     0% { transform: translate(0,  0px); }
     25%  { transform: translate(0, 3px); }
     75%   { transform: translate(0, -3px); }    
-    100%   { transform: translate(0, -1px); }    
+    100%   { transform: translate(0, 0px); }    
 }
 @keyframes floating2 {
     0% { transform: translate(0,  3px); }
     50%  { transform: translate(0, -3px); }
     75%   { transform: translate(0, 0px); }    
-    100%   { transform: translate(0, 2px); }    
+    100%   { transform: translate(0, 3px); }    
 }
 @keyframes floating3 {
     0% { transform: translate(0,  -3px); }
     50%  { transform: translate(0, 3px); }
     75%   { transform: translate(0, 0px); }    
-    100%   { transform: translate(0, -2px); }    
+    100%   { transform: translate(0, -3px); }    
 }
 
 /*
