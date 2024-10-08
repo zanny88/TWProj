@@ -437,7 +437,6 @@ async function get_latest_note_heading(){
 onMounted(() => {
     get_latest_pomodoro_stats();
     get_latest_note_heading();
-    get_events_by_date();
 });
 
 </script>
