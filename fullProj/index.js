@@ -280,6 +280,7 @@ app.post("/compose", async (req, res) => {
                 }
             } else {
                 savedDocument = await newNote.save();
+                res.send({ message: "OK" });
             }
             //se la richiesta era per la creazione di una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
             //servirà durante la creazione dei to-do (se presenti)
