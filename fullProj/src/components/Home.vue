@@ -43,9 +43,9 @@
                             <router-link class="preview-title col" to="/pomodoro">POMODORO</router-link>
                         </div>
 
-                        <div class="row h-75">
+                        <div class="hstack h-50">
                             <div class="col d-flex flex-column preview-info">
-                                <div>Latest session:</div>
+                                <div>Latest:</div>
                                 <div id="pomodoro-preview-info">
                                     <router-link 
                                         v-if="latestPomodoroSession != ''"
@@ -54,8 +54,12 @@
                                             RESUME
                                     </router-link>
                                 </div>
-                                
                             </div>
+
+                            <div class="col-1 vr ms-3 me-3" style="color: #B8BDB5;"></div>
+
+                            <div class="col"><router-link :to="'/pomodoro'"><button class="btn badge-pill btn-light fw-bold p-2" id="new-session-btn">NEW SESSION</button></router-link></div>
+                            
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothTomato.png" class="img-fluid preview-img"/></div>
                         </div>
                     </div>
@@ -168,7 +172,7 @@ Palette 1:
     }
 }
 
-#resume-pomodoro-link{
+#resume-pomodoro-link, #new-session-btn{
     background-color: white;
     font-size: 0.8em;
     padding: 0.2rem;
@@ -218,6 +222,11 @@ Palette 1:
         font-size: 0.75rem;
         opacity: 0.4;
     }
+}
+
+.vr{
+    width: 1px; 
+    height: 95%; 
 }
 
 .preview-img{
@@ -386,6 +395,7 @@ import axios from 'axios';
 const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const notes_api_url = inject('notes_api_url');
+const loggedUser = inject('loggedUser');
 
 let latestPomodoroSession = ref('');
 let latestNoteId =  ref('');
@@ -400,9 +410,9 @@ async function get_latest_pomodoro_stats(){
     if(session.data){
         const data = session.data;
         latestPomodoroSession.value = data._id;
-        target.insertAdjacentHTML('afterbegin', `<div>Study duration: ${data.studyTime} minutes</div>
-                            <div>Rest duration: ${data.restTime} minutes</div>
-                            <div>Completed cycles: ${data.completedCycles}/${data.totCycles}</div>`);
+        target.insertAdjacentHTML('afterbegin', `<div>Study: ${data.studyTime} min.</div>
+                            <div>Rest: ${data.restTime} min.</div>
+                            <div>Cycles: ${data.completedCycles}/${data.totCycles}</div>`);
     }
     else
         target.innerText = "No session exists.";
@@ -427,6 +437,7 @@ async function get_latest_note_heading(){
 onMounted(() => {
     get_latest_pomodoro_stats();
     get_latest_note_heading();
+    get_events_by_date();
 });
 
 </script>

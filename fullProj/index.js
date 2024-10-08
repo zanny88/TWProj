@@ -141,7 +141,6 @@ app.post("/getNotes/latest", async (req, res) => {
         //When time machine is implemented, TODO: change initialization of "now" constant above
         for (const note of userNotes) {
             if (note.el_type == "notes" && note.date < now) {
-                console.log("sending note: ", note);
                 res.send(note);
                 done = true;
                 break;
