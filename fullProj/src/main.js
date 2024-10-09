@@ -29,6 +29,9 @@ app.provide('pomodoro_sessions_api_url', pomodoro_sessions_api_url);
 const notes_api_url = `${api_url}getNotes/`;
 app.provide('notes_api_url', notes_api_url);
 
+const token = ref(localStorage.getItem('token'));
+app.provide('IDtoken',token);
+
 app.component('VueDatePicker', VueDatePicker);
 
 //Bootstrap Icons
