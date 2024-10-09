@@ -8,11 +8,22 @@ const bodyParser = require("body-parser");
 const { rmSync } = require("fs");
 const { ConnectionClosedEvent } = require("mongodb");
 
+const passport = require('passport');
+const bcrypt = require('bcrypt');
+const initializePassport = require('./passport-config');
+const jwt = require('jsonwebtoken');
+
+const User = require('./userModel');
+
+initializePassport(passport);
+
 app.use(cors());
 app.set("view engine");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+
+app.use(passport.initialize());
 
 const mongoDBUri = "mongodb+srv://marcostignani9:qpalzmQP8@clusternote.yd03buh.mongodb.net/?retryWrites=true&w=majority&appName=ClusterNote";
 //const mongoDBUri = "mongodb+srv://giarrussolorenzo:t1otEqlgBECuv4NL@cluster0.hqzaedi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
@@ -55,13 +66,6 @@ const sessionSchema = new mongoose.Schema({
     dateTime: { type: Date }
 });
 
-const userSchema = new mongoose.Schema({/*!!!!!!!!!!!!!!!!!*/
-    name: String,
-    passw: String,
-    friends: { type: [String], default: [] },
-    inbox: { type: [String], default: [] }
-});
-
 const eventSchema = new mongoose.Schema({
     owner: String,
     participants: { type: [String], default: [] },
@@ -98,7 +102,6 @@ const activitySchema = new mongoose.Schema({
 
 const Note = mongoose.model("Note", noteSchema);
 const Todo = mongoose.model("Todo", todoSchema);
-const User = mongoose.model("User", userSchema);/*!!!!!!!!!!!*/
 const Session = mongoose.model("Session", sessionSchema);
 const Event = mongoose.model("Event", eventSchema);
 const Activity = mongoose.model("Activity", activitySchema);
@@ -141,6 +144,7 @@ app.post("/getNotes/latest", async (req, res) => {
         //When time machine is implemented, TODO: change initialization of "now" constant above
         for (const note of userNotes) {
             if (note.el_type == "notes" && note.date < now) {
+                console.log("sending note: ", note);
                 res.send(note);
                 done = true;
                 break;
@@ -161,9 +165,9 @@ app.post("/getNotes/:limit", async (req, res) => {
     var lim = Number(req.params.limit);
     var note;
     if (lim > 0) {
-        note = await Note.find({ user: currentUser.name }).limit(lim);
+        note = await Note.find({ user: req.body.ID }).limit(lim);
     } else {
-        note = await Note.find({ user: currentUser.name });
+        note = await Note.find({ user: req.body.ID });
     }
     res.send(note);
 });
@@ -182,7 +186,7 @@ app.post("/getTodos/:limit", async (req, res) => {
 
 //gestione richiesta post per aggiungere o modificare note e to-do
 app.post("/compose", async (req, res) => {
-    const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children } = req.body;
+    const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children,author } = req.body;
     var savedDocument;
 
     //la tipologia del post viene riconosciuta con il valore di post_type (0 per le note e 1 per i to-do)
@@ -205,7 +209,7 @@ app.post("/compose", async (req, res) => {
             }
         } else {
             var newNote = new Note({
-                user: currentUser.name,
+                user: author,
                 public: public,
                 heading: heading,
                 content: content,
@@ -250,7 +254,7 @@ app.post("/compose", async (req, res) => {
         } else {
             var newTodo = new Todo({
                 parent_id: parent_id,
-                user: currentUser.name,
+                user: author,
                 public: public,
                 heading: heading,
                 tasks: content.split("\n").map(task => task.trim()).filter(item => item !== ""),
@@ -533,45 +537,32 @@ app.post("/duplicateNote/:id", async (req, res) => {
 //gestione richiesta post per il login/register di un utente
 //la tipologia della registrazione viene passata nell'URL della richiesta
 //alla fine della gestione della richiesta se non ci sono stati errori l'utente viene salvato nella variabile currentUser utilizzata per le operazioni e i display dei post
-app.post("/user/:regType", async (req, res) => {
+app.post("/user/:regType", async (req, res, next) => {
     var newUser = null;
     var user = null;
-    var x = null;
-    //oggetto utilizzato per una più facile ricerca nel database
-    const loggedUser = {
-        name: req.body.username,
-        passw: req.body.password
-    };
 
     if (req.params.regType == "Login") {
-        try {
-            user = await User.findOne(loggedUser);
-            if (!user) {
-                res.json({
-                    message: "user not found while login"
-                });
-            } else {
-                currentUser = user;
-                res.json({ message: "OK" });
-            }
-        } catch (error) {
-            res.status(500).send("Error login");
-        }
+        passport.authenticate('local', (err, user, info) => {
+            if (err) return next(err);
+            if (!user) return res.status(400).send(info.message);
+            const token = jwt.sign(user.name, 'SECRET_KEY');
+            return res.json({ token });
+        })(req, res, next);
     } else {
-        x = await User.findOne(loggedUser);
+        x = await User.findOne({name: req.body.username});
         //se viene effettuata una registrazione di un nuovo utente ma è già presente un utente con quel nome nel database la richiesta non viene effettuata
         if (x) {
             res.json({
-                message: "username found while register"
+                message: "already user"
             });
         } else {
+            var password = await bcrypt.hash(req.body.password, 10);
             var newUser = new User({
                 name: req.body.username,
-                passw: req.body.password
+                passw: password
             });
             try {
                 newUser.save();
-                currentUser = newUser;
                 res.json({ message: "OK" });
             } catch (error) {
                 res.status(500).send("Error saving new user");
@@ -595,7 +586,7 @@ app.get("/user/logout", (req, res) => {
 async function realSearch(u, filter, query) {
     let results = [];
     if (filter == "tag") {
-        const allNote = await Note.find({ user: u, public: true });
+        const allNote = await Note.find({ user: u});
         //aggiungere todo
         allNote.forEach(item => {
             if (item.tags.includes(query)) {
@@ -605,7 +596,6 @@ async function realSearch(u, filter, query) {
     } else {
         const resultsNote = await Note.find({
             user: u,
-            public: true,
             [filter]: { $regex: new RegExp(query, 'i') }
         });
         //aggiungere todo
@@ -626,13 +616,13 @@ async function processUsers(users, filter, query) {
 }
 
 app.post('/search', async (req, res) => {
-    if (!req.query.query) {
+    if (!req.body.query) {
         res.status(400).send("Query parameter is required");
     }
     try {
-        const query = req.query.query;
-        const filter = req.query.filter;
-        const friends = req.query.friends;
+        const query = req.body.query;
+        const filter = req.body.filter;
+        const friends = req.body.friends;
 
         var users;
         if (friends == "true") {
