@@ -5,10 +5,13 @@
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="form-floating">
-                        <input type="text" v-model="name" id="username" name="username" class="form-control"/>
+                        <input type="text" v-model="name" id="username" name="username" class="form-control" @input="hideDiv()"/>
                         <label for="username">Username: </label>
                     </div>
                 </div>
+            </div>
+            <div v-show="showDismissibleAlert" style="background: red; color: black;">
+                Username già in uso!
             </div>
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-12">
@@ -47,9 +50,11 @@
     const api_url = "http://localhost:3000/";
     var loggedIn = inject('loggedIn');
 	var loggedUser = inject('loggedUser');
+    var token = inject('IDtoken');
 
     var name = ref('');
     var passwd = ref('');
+    var showDismissibleAlert = ref(false);
 
     //ho utilizzato una srtinga invece di un indice perchè riutilizzerò il valore di formType per la richiesta al server 
     var formType = ref("Login");
@@ -59,6 +64,8 @@
     };
 
     function changeForm(){
+        name.value = '';
+        passwd.value = '';
         formType.value = formType.value === "Login" ? "Register" : "Login";
     }
 
@@ -69,17 +76,25 @@
                 password: passwd.value
             }
             const r = await axios.post(api_url + "user/" + formType.value, newUser);
-            
-            if(r.data.message == "OK"){
-                loggedIn.value = true;//modifica della variabile globale per sbloccare la navbar e poter navigare l'applicazione
-				loggedUser.value = name.value;//modifica della variabile globale per ricordare il codice utente loggato
+            console.log(r.data.message);
+            console.log(formType);
+
+            if(r.data.message == "already user"){
+                showDismissibleAlert.value = true;
+            }else if(formType.value == "Login"){
+                localStorage.setItem('token',r.data.token);
+                token.value = r.data.token;
+                loggedIn.value = true;
                 router.push({path: "/"});
-            }else{
-                console.log(r.data.message);
+            }else if(formType.value == "Register"){
+                changeForm();
             }
         }catch(error){
             console.log("Errore: ", error);
         }
 
+    }
+    function hideDiv(){
+        showDismissibleAlert.value=false;        
     }
 </script>

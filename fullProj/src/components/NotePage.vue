@@ -91,8 +91,9 @@
     const isNoteLoaded = computed(() => Notes.value.length > 0);
 
     async function getNotes(){
+        const token = localStorage.getItem('token');
         try{
-            const res = await axios.post(api_url + "getNotes/-1");
+            const res = await axios.post(api_url + "getNotes/-1",{ID: token});
             Notes.value = res.data;
             await nextTick();
         }catch(error){

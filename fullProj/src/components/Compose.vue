@@ -2,7 +2,7 @@
     <h1>Compose</h1>
     <div class="compose-container">
         <div class="form-container">
-            <form action="">
+            <form @submit.prevent="submit">
                 <div id="row" style="text-align: center;">
                     <label for="noteB">Note:</label>
                     <input type="radio" id="noteB" name="typeNote" value="note" checked @click="typeI = 0"/><!--@click indica l'azione da compiere quando il bottone viene cliccato, ovvero cambiare la visualizzazione della label per la textarea del body del post-->
@@ -14,7 +14,7 @@
                 <div class="row" style="position: relative; justify-content: center; align-items: center;">
                     <div class="col-lg-4 col-md-4 col-sm-4">
                         <div class="form-floating">
-                            <input type="text" v-model="title" class="form-control" id="notetitle" required/>
+                            <input type="text" v-model="title" class="form-control" id="notetitle"/>
                             <label for="notetitle" id="titleLabel">Title</label>
                         </div>
                     </div>
@@ -30,7 +30,7 @@
                 <div class="row" style="position: relative; align-items: center; justify-content: center;">
                     <div class="col-lg-4 col-md-4 col-sm-4">
                         <div class="form-floating">
-                            <textarea v-model="tags" class="form-control" placeholder="Write tags" id="tagsArea" required></textarea>
+                            <textarea v-model="tags" class="form-control" placeholder="Write tags" id="tagsArea"></textarea>
                             <label for="tagsArea">Tags</label>
                         </div>
                     </div>
@@ -38,14 +38,14 @@
                 <div class="row" style="position: relative; justify-content: center; align-items: center;">
                     <div class="col-lg-4 col-md-4 col-sm-4">
                         <div class="form-floating">
-                            <input type="text" v-model="place" class="form-control" id="placeArea" required/>
+                            <input type="text" v-model="place" class="form-control" id="placeArea"/>
                             <label for="placeArea">Place</label>
                         </div>
                     </div>
                 </div>
                 <div class="row" style="position: relative; justify-content: center; align-items: center;">
                     <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
-                        <button type="button" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" @click.prevent="submit">Publish</button>
+                        <button type="submit" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" :disabled="!publishDisabled">Publish</button>
                     </div>
                 </div>
             </form>
@@ -67,6 +67,7 @@
     const router = useRouter();//oggetto utilizzato per spostarsi tra i diversi componenti
     const route = useRoute();//oggetto utilizzato per utilizzare i dati passati come payload da un altro componente (funzione note_modify in Note.vue)
     var sent_to_modify = ref(null);//oggetto dove viene salvato il post da modificare quando viene richiesta una modifica
+    const user = localStorage.getItem('token');
 
     //variabili collegate ai diversi tag input con v-modal per ottenere il valore inserito nel tag
     var typeI = ref(0);
@@ -91,6 +92,10 @@
 
     const renderedContent = computed(() => {
         return convertToHTML(post.value);
+    })
+
+    const publishDisabled = computed(() => {
+        return title.value && post.value && tags.value && place.value;
     })
 
     //funzione per cercare la parte della nota, se presente, dove si è indicato di voler creare un to-do con il simbolo [todo]
@@ -155,7 +160,8 @@
                     place: place.value,
                     public: publicCheck.value,
                     post_type: 1,
-                    todo_children: false
+                    todo_children: false,
+                    author: user
                 }
                 addTodos.push(x);
             }
@@ -185,7 +191,8 @@
             place: place.value,
             public: publicCheck.value,
             post_type: typeI.value,
-            todo_children: todo_objs.length > 0
+            todo_children: todo_objs.length > 0,
+            author: user
         };
         console.log(`Main post obj:\n${newPost}`);
         var res = await axios.post(`${api_url}compose`,newPost);
