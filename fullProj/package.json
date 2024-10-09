@@ -9,6 +9,7 @@
   "dependencies": {
     "@vuepic/vue-datepicker": "^9.0.3",
     "axios": "^1.7.2",
+    "bcrypt": "^5.1.1",
     "bootstrap": "^5.3.3",
     "bootstrap-icons-vue": "^1.11.3",
     "core-js": "^3.8.3",
@@ -16,8 +17,11 @@
     "dayjs": "^1.11.13",
     "express": "^4.19.2",
     "jquery": "^3.7.1",
+    "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.7.0",
     "mongoose": "^8.4.4",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
     "vue": "^3.2.13",
     "vue-axios": "^3.5.2",
     "vue-router": "^4.4.5"
