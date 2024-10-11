@@ -189,7 +189,7 @@ app.post("/compose", async (req, res) => {
     const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children,author } = req.body;
     var savedDocument;
 
-    //la tipologia del post viene riconosciuta con il valore di post_type (0 per le note e 1 per i to-do)
+    //la tipologia del post viene riconosciuta con il valore di post_type (0 per le  e 1 per i to-do)
     if (post_type == 0) {
         //se il parametro ID è != da null viene gestita una richiesta di modifica della nota
         //viene quindi cercata e modificata
@@ -387,9 +387,9 @@ app.post("/todos/tasks/delete", async (req, res) => {
 
 app.post("/pomodoro/sessions/create", async (req, res) => {
     try {
-        const { _id, ...data } = req.body;
+        const { _id, user, ...data } = req.body;
         const newSession = new Session({
-            user: currentUser.name,
+            user: user,
             state: "idle",
             completedCycles: 0,
             ...data
@@ -586,11 +586,20 @@ app.get("/user/logout", (req, res) => {
 async function realSearch(u, filter, query) {
     let results = [];
     if (filter == "tag") {
-        const allNote = await Note.find({ user: u});
+        const allNote = await Note.find({user: u});
         //aggiungere todo
         allNote.forEach(item => {
             if (item.tags.includes(query)) {
                 results.push(item);
+            }
+        });
+    } else if (filter == "friends") {
+        const users = await User.find({
+            name: { $reges: new RegExp(query, 'i') }
+        });
+        users.forEach(user => {
+            if(u in user.friends){
+                results.push(user);
             }
         });
     } else {
@@ -623,12 +632,13 @@ app.post('/search', async (req, res) => {
         const query = req.body.query;
         const filter = req.body.filter;
         const friends = req.body.friends;
+        const user = await User.findOne({name: req.body.user});
 
         var users;
         if (friends == "true") {
-            users = currentUser.friends;
+            users = user.friends;
         } else {
-            users = [currentUser.name];
+            users = [user.name];
         }
 
         const searchResults = await processUsers(users, filter, query);
