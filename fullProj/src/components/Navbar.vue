@@ -50,7 +50,16 @@
                             </ul>
                         </div>
                         <button class="btn btn-outline-light" type="submit" @click.prevent="search()">Search</button><!--il .prevent in @click è utilizzato per evitare che il bottone esegua la sua solita azione di submit del form-->
-                        <div class="list-group position-absolute w-100" sytle="z-index: 1050;" id="resultList"></div>
+                        <div class="list-group position-absolute w-100" id="resultList" v-if="searchString.length > 0 && hasSearchresults">
+                            <router-link
+                                v-for="(el,index) in searchResults"
+                                :key = "index"
+                                :to = "el.path"
+                                class = "list-group-item list-group-item-action"
+                            >
+                                {{ el.heading }}
+                            </router-link>
+                        </div>
                     </form>
                 </ul>
                 <button class="btn btn-outline-dark" @click="logout()">Logout</button>
@@ -69,6 +78,9 @@
     const route = useRoute();
     var filter = ref('heading');
     var friendFilter = ref(false);
+
+    var searchResults = ref([]);
+    var hasSearchresults = ref(false);
 
     var loggedIn = inject("loggedIn");//variabile globale ref creata in main.js per controllare se l'utente è loggato o meno
     var token = inject('IDtoken');
@@ -122,23 +134,53 @@
 
         if(searchString.value.length >= 1){
             search(searchString.value,li_val,friendSearch);
+        }else{
+            hasSearchresults.value = false;
         }
     }
 
     async function search(q,f,fs){
         var newSearch = {
+            user: atob(token.value.split('.')[1]),
             query: q,
             filter: f,
             friends: fs
         };
-        const r = await axios.post(`${api_url}search`,newSearch);
+        try{
+            const r = await axios.post(`${api_url}search`,newSearch);
+            if(r.data.length > 0){
+                searchResults.value = r.data.map(e => ({
+                    heading: e.heading,
+                    path: `/note/${e._id}`
+                }));
+                hasSearchresults.value = true;
+            }else{
+                searchResults.value = [];
+                hasSearchresults.value = false;
+            }
 
+        }catch(error){
+            console.log("Error during search: ",error);
+            searchResults.value = [];
+            hasSearchresults.value = false;
+        }
         
     }
     
 </script>
 
 <style scoped>
+#resultList {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #ccc;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    z-index: 1050; 
+    width: 100%;
+}
 
 /*la classe disabilita la navbar*/
 .navbar{

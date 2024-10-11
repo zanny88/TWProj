@@ -64,6 +64,7 @@
     import {useRouter} from "vue-router";
     const api_url = "http://localhost:3000/";
     const router = useRouter();
+    const token = localStorage.getItem('token');
     var sorting = false;
     var sortParam = "";
     var revSort = false;
@@ -91,9 +92,9 @@
     const isNoteLoaded = computed(() => Notes.value.length > 0);
 
     async function getNotes(){
-        const token = localStorage.getItem('token');
+        var user = atob(token.split('.')[1]);
         try{
-            const res = await axios.post(api_url + "getNotes/-1",{ID: token});
+            const res = await axios.post(api_url + "getNotes/-1",{ID: user});
             Notes.value = res.data;
             await nextTick();
         }catch(error){

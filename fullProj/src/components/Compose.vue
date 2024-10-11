@@ -44,6 +44,22 @@
                     </div>
                 </div>
                 <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="share" @input="searchFriend()" v-model="friendName"/>
+                            <label for="share">Friends to share</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="friends" v-if="friendName.length > 0 && friendsFound">
+                    <div
+                        v-for="(el,index) in friends"
+                        :key = "index"
+                    >
+                        {{ el.name }}
+                    </div>
+                </div>
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
                     <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
                         <button type="submit" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" :disabled="!publishDisabled">Publish</button>
                     </div>
@@ -67,7 +83,7 @@
     const router = useRouter();//oggetto utilizzato per spostarsi tra i diversi componenti
     const route = useRoute();//oggetto utilizzato per utilizzare i dati passati come payload da un altro componente (funzione note_modify in Note.vue)
     var sent_to_modify = ref(null);//oggetto dove viene salvato il post da modificare quando viene richiesta una modifica
-    const user = localStorage.getItem('token');
+    const user = atob(localStorage.getItem('token').split('.')[1]);
 
     //variabili collegate ai diversi tag input con v-modal per ottenere il valore inserito nel tag
     var typeI = ref(0);
@@ -78,6 +94,9 @@
     var publicCheck = ref(false);
     var insertType = ref(["Note","To do list, put only one task for line"]);//array utilizzato per il display delle informazioni del tipo di post che si vuole salvare
     //viene utilizzato ref perchè per accedere agli elementi si utilizza come indice typeI altra variabile ref che può cambiare durante la visualizzazione del componente
+    var friendName = ref('');
+    var friendFound = ref(false);
+    var friends = ref([]);
 
     var start_todo_index = 0;
     var final_todo_index = 0;
@@ -261,6 +280,31 @@
             typeI.value = 0;
         }
        
+    }
+
+    async function searchFriend(){
+        var friendPayload = {
+            user: user,
+            query: friendName.value,
+            filter: "friends",
+            friends: false
+        }
+        try{
+            const r = await axios.post(`${api_url}search`,friendPayload);
+            if(r.data.length > 0){
+                friends.value = r.data.map(e => ({
+                    name: e.name
+                }));
+                friendFound.value = true;
+            }else{
+                friends.value = [];
+                friendFound.value = false;
+            }
+        }catch(error){
+            console.log("Error while searching for friends: ",error);
+            friendFound.value = false;
+            friends.value = [];
+        }
     }
 
     onMounted(() => {

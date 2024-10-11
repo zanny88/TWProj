@@ -141,6 +141,8 @@ const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const props = defineProps(['sessionId']);
 
+const token = localStorage('token');
+
 let studyT = ref(30);
 let restT = ref(5); 
 let cyclesTot = ref(5);
@@ -297,7 +299,11 @@ function defaultInit(){
 }
 
 async function get_latest(){
-    const user = (await axios.post(`${api_url}getUser`)).data.name;
+    // const user = (await axios.post(`${api_url}getUser`)).data.name;
+    var user;
+    if(token != null){
+        user = atob(token.split('.')[1]);
+    }
     var session = await axios.post(`${pomodoro_sessions_api_url}read/latest`, {user: user});
     if(session.data)
         console.log("latest session by user", user, ": ", session.data);
@@ -574,7 +580,11 @@ function expandCollapse() {
 
 async function saveSession(){
     console.log("Saving as a newly created session.");
-    let res = await axios.post(`${pomodoro_sessions_api_url}create`, currentSession.value);
+    var sessionObj = {
+        user: atob(token.split('.')[1]),
+        ...currentSession.value
+    }
+    let res = await axios.post(`${pomodoro_sessions_api_url}create`, sessionObj);
 }
 
 async function updateSession(){
