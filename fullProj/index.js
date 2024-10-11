@@ -144,7 +144,6 @@ app.post("/getNotes/latest", async (req, res) => {
         //When time machine is implemented, TODO: change initialization of "now" constant above
         for (const note of userNotes) {
             if (note.el_type == "notes" && note.date < now) {
-                console.log("sending note: ", note);
                 res.send(note);
                 done = true;
                 break;
@@ -186,7 +185,7 @@ app.post("/getTodos/:limit", async (req, res) => {
 
 //gestione richiesta post per aggiungere o modificare note e to-do
 app.post("/compose", async (req, res) => {
-    const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children,author } = req.body;
+    const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author } = req.body;
     var savedDocument;
 
     //la tipologia del post viene riconosciuta con il valore di post_type (0 per le  e 1 per i to-do)
@@ -549,7 +548,7 @@ app.post("/user/:regType", async (req, res, next) => {
             return res.json({ token });
         })(req, res, next);
     } else {
-        x = await User.findOne({name: req.body.username});
+        x = await User.findOne({ name: req.body.username });
         //se viene effettuata una registrazione di un nuovo utente ma è già presente un utente con quel nome nel database la richiesta non viene effettuata
         if (x) {
             res.json({
@@ -586,7 +585,7 @@ app.get("/user/logout", (req, res) => {
 async function realSearch(u, filter, query) {
     let results = [];
     if (filter == "tag") {
-        const allNote = await Note.find({user: u});
+        const allNote = await Note.find({ user: u });
         //aggiungere todo
         allNote.forEach(item => {
             if (item.tags.includes(query)) {
@@ -598,7 +597,7 @@ async function realSearch(u, filter, query) {
             name: { $reges: new RegExp(query, 'i') }
         });
         users.forEach(user => {
-            if(u in user.friends){
+            if (u in user.friends) {
                 results.push(user);
             }
         });
@@ -632,7 +631,7 @@ app.post('/search', async (req, res) => {
         const query = req.body.query;
         const filter = req.body.filter;
         const friends = req.body.friends;
-        const user = await User.findOne({name: req.body.user});
+        const user = await User.findOne({ name: req.body.user });
 
         var users;
         if (friends == "true") {

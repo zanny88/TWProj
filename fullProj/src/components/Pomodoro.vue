@@ -141,7 +141,7 @@ const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const props = defineProps(['sessionId']);
 
-const token = localStorage('token');
+const token = localStorage.getItem('token');
 
 let studyT = ref(30);
 let restT = ref(5); 
