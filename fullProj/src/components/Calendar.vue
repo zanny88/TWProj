@@ -236,7 +236,8 @@
 	}else{
 		CalViewMode.value = VIEW_MODE_DAY;
 	}
-	
+
+	const user = atob(localStorage.getItem('token').split('.')[1]);
 
 	const dayjs = require('dayjs')
 	dayjs().format()
@@ -426,7 +427,7 @@
     const isEventLoaded = computed(() => Events.value.length > 0);
     async function getEvents(){
         try{
-            const res = await axios.get(api_url + "getEvents/" + loggedUser.value + "/-1");
+            const res = await axios.get(api_url + "getEvents/" + user + "/-1");
             Events.value = res.data;
             await nextTick();
 			//alert("ris event=" + Events.value);
@@ -439,7 +440,7 @@
 	const isActivityLoaded = computed(() => Activities.value.length > 0);
     async function getActivities(){
         try{
-            const res = await axios.get(api_url + "getActivities/" + loggedUser.value + "/-1");
+            const res = await axios.get(api_url + "getActivities/" + user + "/-1");
             Activities.value = res.data;
             await nextTick();
 			//alert("ris activity=" + Activities.value +" - #"+Activities.value.length);
