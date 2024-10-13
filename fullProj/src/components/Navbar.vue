@@ -62,6 +62,17 @@
                         </div>
                     </form>
                 </ul>
+                <div class="me-3" id="inbox">
+                    <router-link class="nav-link" to="" v-html="inbox_icon"></router-link>
+                </div>
+                <div class="me-3" id="friend_add">
+                    <router-link class="nav-link" to="/addFriend">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-fill-add" viewBox="0 0 16 16">
+                            <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0m-2-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+                            <path d="M2 13c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/>
+                        </svg>
+                    </router-link>
+                </div>
                 <button class="btn btn-outline-dark" @click="logout()">Logout</button>
             </div>
         </div>
@@ -69,13 +80,14 @@
 </template>
 
 <script setup>
-    import {inject,watch,ref,onMounted,computed} from "vue";
+    import {inject,watch,ref,onMounted} from "vue";
     import axios from "axios";
     import { useRouter, useRoute } from "vue-router";
 
     const api_url = "http://localhost:3000/";
     const router = useRouter();
     const route = useRoute();
+
     var filter = ref('heading');
     var friendFilter = ref(false);
 
@@ -90,9 +102,41 @@
     var searchString = ref('');
     var hamburgerShowing = ref(false);
 
+    var inbox_icon = ref(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope-fill" viewBox="0 0 16 16">
+            <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z"/>
+        </svg>
+    `);
+
     /*window.addEventListener('storage', () => {
         token.value = localStorage.getItem('token');
     });*/
+
+    const handleNewMessage = (data) => {
+        inbox_icon.value = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope-exclamation-fill" viewBox="0 0 16 16">
+                <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.026A2 2 0 0 0 2 14h6.256A4.5 4.5 0 0 1 8 12.5a4.49 4.49 0 0 1 1.606-3.446l-.367-.225L8 9.586zM16 4.697v4.974A4.5 4.5 0 0 0 12.5 8a4.5 4.5 0 0 0-1.965.45l-.338-.207z"/>
+                <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1.5a.5.5 0 0 1-1 0V11a.5.5 0 0 1 1 0m0 3a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0"/>
+            </svg>
+        `;
+    };
+
+    const handleNoMessage = (data) => {
+        inbox_icon.value = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope-fill" viewBox="0 0 16 16">
+                <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z"/>
+            </svg>
+        `;
+    }
+
+    setInterval(async () => {
+        var newMessage = await axios.get(`${api_url}user/checkInbox?user=${atob(token.value.split('.')[1])}`);
+        if(newMessage.message){
+            handleNewMessage();
+        }else{
+            handleNoMessage();
+        }
+    },10000);
 
 
     watch(token,(newValue) => {
