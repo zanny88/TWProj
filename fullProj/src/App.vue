@@ -14,13 +14,9 @@ const api_url = inject('api_url');
 var loggedIn = inject("loggedIn");
 
 async function checkLogged(){
-  const r = await axios.get(`${api_url}user/checkLogged`);
-  if(r.data.message == "true"){
-      loggedIn.value = true;
-  }else{
-      loggedIn.value = false;
-  }
-  if(!loggedIn.value){
+  if(localStorage.getItem('token') === null){
+    console.log("fai il login");
+    console.log(localStorage.getItem('token'));
     router.push({path: "/login"});
   }
 }
