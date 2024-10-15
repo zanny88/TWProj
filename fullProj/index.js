@@ -14,7 +14,7 @@ const initializePassport = require('./passport-config');
 const jwt = require('jsonwebtoken');
 
 const User = require('./userModel');
-const {Message} = require('./messageModel');
+const { Message } = require('./messageModel');
 
 initializePassport(passport);
 
@@ -581,15 +581,15 @@ app.get("/user/logout", (req, res) => {
     res.json({ message: "OK" });
 });
 
-app.get('/user/addFriend',async (req,res) => {
-    try{
-        console.log("req.query: ",req.query);
+app.get('/user/addFriend', async (req, res) => {
+    try {
+        console.log("req.query: ", req.query);
         var friend_username = req.query.user;
         var user = req.query.ID;
 
-        console.log("aagiungo richiesta di amicizia all'inbox di: ",friend_username);
+        console.log("aagiungo richiesta di amicizia all'inbox di: ", friend_username);
 
-        var friend = await User.findOne({name: friend_username});
+        var friend = await User.findOne({ name: friend_username });
         var old_inbox = friend.inbox;
 
         var newMessage = new Message({
@@ -600,28 +600,30 @@ app.get('/user/addFriend',async (req,res) => {
 
         old_inbox.push(newMessage);
 
-        const r = await User.findByIdAndUpdate({_id: friend._id},{inbox: old_inbox});
+        const r = await User.findByIdAndUpdate({ _id: friend._id }, { inbox: old_inbox });
         res.send("OK");
-    }catch(error){
-        console.log("Errore nell'agigunta di un amico: ",error);
+    } catch (error) {
+        console.log("Errore nell'agigunta di un amico: ", error);
         res.status(500).send("Errore del server");
     }
 });
 
-app.get("/user/checkInbox",async (req,res) => {
+app.get("/user/checkInbox", async (req, res) => {
     var username = req.query.user;
 
-    try{
-        var user = User.findOne({name: username});
+    try {
+        var user = User.findOne({ name: username });
 
-        var newMessages = user.inbox.filter(msg => msg.seen == false);
-        if(newMessages.length > 0){
-            res.send({message: true});
-        }else{
-            res.send({message: false});
+        if (user && user.inbox) {
+            var newMessages = user.inbox.filter(msg => msg.seen == false);
+            if (newMessages.length > 0) {
+                res.send({ message: true });
+            } else {
+                res.send({ message: false });
+            }
         }
-    }catch(error){
-        console.log("Error fetching user for inbox check: ",error);
+    } catch (error) {
+        console.log("Error fetching user for inbox check: ", error);
     }
 });
 

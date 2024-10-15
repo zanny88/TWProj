@@ -10,10 +10,10 @@
 
     <div class="container-fluid">
 
-        <div id="header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div id="header">
             <h1>Notes Viewer</h1>
             <div style="display: flex; align-items: center; gap: 5px;">
-                <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button id="filter" class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Ordina
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
                         <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
@@ -52,22 +52,6 @@
             </div>
         </div>
     <div id="page-body" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 gx-4 gy-5 justify-content-center" style="width: 100vw; margin-left: 1px;" v-if="isNoteLoaded">
-        <!--
-        <div class="col" v-for="note in Notes" :key="note._id">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{note.heading}}</h5>
-                    <p>{{note.content.substring(0,100)}}...</p>
-                </div>
-                <div class="card-footer">
-                    <small class="text-body-secondary">Written by {{ note.user }} in {{note.place}} on {{new Date(note.date).toDateString()}}<br/></small>
-                    <small class="text-body-secondary">Tags: {{note.tags.join('-')}}</small>
-                </div>
-                <button type="button" class="btn btn-outline-info" @click="gotoNotePage(note._id)">Read more</button>
-            </div>
-        </div> 
-        -->
-
         <div class="col" align="center" v-for="note in Notes" :key="note._id">
             <div class="card h-100">
                 <router-link :to="`/note/${note._id}`" class="card-body note-link">
@@ -174,6 +158,13 @@
 </script>
 
 <style scoped>
+#header{
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 2rem;
+}
+
 #header h1{
     font-family: Poppins;
     text-transform: uppercase;
@@ -196,7 +187,8 @@
 
 #page-body .col .card{
     color:#000;
-    background:#ffc;
+    background-color: #ffc;
+    background-image: url('/src/assets/textured-paper.png');
     height:20em;
     width:20em;
     padding:2em;
