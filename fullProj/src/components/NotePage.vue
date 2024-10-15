@@ -1,47 +1,58 @@
 <template>
-    <div id="header" style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Note Page</h1>
-        <div style="display: flex; align-items: center; gap: 5px;">
-            <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                Ordina
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
-                    <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
-                </svg>
-            </button>
-            <ul class="dropdown-menu">
-                <li class="dropdown-item" @click="sortNotes('Nome')">
-                    <div>
-                        Nome
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Nome'">
-                            <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
-                        </svg>
-                    </div>
-                </li>
-                <li class="dropdown-item" @click="sortNotes('Data')">
-                    <div>
-                        Data
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Data'">
-                            <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
-                        </svg>
-                    </div>
-                </li>
-                <li class="dropdown-item" @click="sortNotes('Tag')">
-                    <div>
-                        Tag
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Tag'">
-                            <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
-                        </svg>
-                    </div>
-                </li>
-            </ul>
-            <button v-html="HTMLS[revSort]" v-if="sorting" class="btn" type="button" @click="reverseSort"></button>
-            <button type="button" class="btn btn-outline-info">
-                <router-link to="/create">Add Note</router-link>
-            </button>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Reenie+Beanie&display=swap" rel="stylesheet">
+
+
+    <div class="background"></div>
+
+
+    <div class="container-fluid">
+
+        <div id="header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Notes Viewer</h1>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Ordina
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
+                        <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
+                    </svg>
+                </button>
+                <ul class="dropdown-menu">
+                    <li class="dropdown-item" @click="sortNotes('Nome')">
+                        <div>
+                            Nome
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Nome'">
+                                <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+                            </svg>
+                        </div>
+                    </li>
+                    <li class="dropdown-item" @click="sortNotes('Data')">
+                        <div>
+                            Data
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Data'">
+                                <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+                            </svg>
+                        </div>
+                    </li>
+                    <li class="dropdown-item" @click="sortNotes('Tag')">
+                        <div>
+                            Tag
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Tag'">
+                                <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+                            </svg>
+                        </div>
+                    </li>
+                </ul>
+                <button v-html="HTMLS[revSort]" v-if="sorting" class="btn" type="button" @click="reverseSort"></button>
+                <button type="button" class="btn btn-outline-info">
+                    <router-link to="/create">Add Note</router-link>
+                </button>
+            </div>
         </div>
-        
-    </div>
-    <div class="row row-cols-1 row-cols-md-3 g-4" style="width: 100vw; margin-left: 1px;" v-if="isNoteLoaded"><!--il codice html non viene caricato fino a quando i dati delle note non sono stati ottenuti-->
+    <div id="page-body" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 gx-4 gy-5 justify-content-center" style="width: 100vw; margin-left: 1px;" v-if="isNoteLoaded">
+        <!--
         <div class="col" v-for="note in Notes" :key="note._id">
             <div class="card h-100">
                 <div class="card-body">
@@ -54,8 +65,35 @@
                 </div>
                 <button type="button" class="btn btn-outline-info" @click="gotoNotePage(note._id)">Read more</button>
             </div>
+        </div> 
+        -->
+
+        <div class="col" align="center" v-for="note in Notes" :key="note._id">
+            <div class="card h-100">
+                <router-link :to="`/note/${note._id}`" class="card-body note-link">
+                    <h2 class="card-title">{{note.heading.substring(0,20) + (note.heading.length > 20 ? '...' : '')}}</h2>
+                    <p>{{note.content.substring(0,20) + (note.content.length > 20 ? '...' : '')}}</p>
+                </router-link>
+                <div class="card-footer">
+                    <small class="text-body-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16">
+                            <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z"/>
+                      </svg> 
+                      {{ note.user }} | 
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
+                        <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
+                      </svg> 
+                      {{note.place}} | 
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar" viewBox="0 0 16 16">
+                        <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
+                      </svg> {{new Date(note.date).toDateString()}}<br/></small>
+                    <small class="text-body-secondary">Tags: {{note.tags.join('-')}}</small>
+                </div>
+            </div>
         </div>
     </div>
+
+</div>
 </template>
 
 <script setup>
@@ -136,6 +174,79 @@
 </script>
 
 <style scoped>
+#header h1{
+    font-family: Poppins;
+    text-transform: uppercase;
+    color: white;
+}
+
+#page-body h2 {
+    font-weight: bold;
+    font-size: 2rem;  
+}
+  
+#page-body p {
+    font-family: 'Reenie Beanie';
+    font-size: 2rem;
+}
+
+.note-link{
+    text-decoration: none;
+}
+
+#page-body .col .card{
+    color:#000;
+    background:#ffc;
+    height:20em;
+    width:20em;
+    padding:2em;
+    box-shadow: 5px 5px 7px rgba(33,33,33,.7);
+    transform: rotate(-6deg);
+    transition: all 0.5s;
+}
+
+#page-body .col:nth-child(2n) .card{
+    transform:rotate(4deg);
+    position:relative;
+    top:5px;
+}
+
+#page-body .col:nth-child(3n) .card{
+    transform:rotate(-3deg);
+    position:relative;
+    top:-5px;
+}
+
+#page-body .col:nth-child(5n) .card{
+    transform:rotate(5deg);
+    position:relative;
+    top:-10px;
+}
+
+#page-body .col .card:hover,
+#page-body .col .card:focus{
+    box-shadow:10px 10px 7px rgba(0,0,0,.7);
+    transform: scale(1.125);
+    position:relative;
+    z-index:5;
+}
+
+/**/
+  
+
+.background {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    background: #38726C;
+    overflow: hidden;
+    z-index: -101;
+}
+
 #filter:hover{
     background: #ccc;
     border: 1px solid black;

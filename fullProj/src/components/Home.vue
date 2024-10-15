@@ -139,23 +139,6 @@ Palette 1:
     color: white;
 }
 
-/*
-#calendar-preview{
-    background-color: #60d394;
-    color: white;
-}
-
-#pomodoro-preview{
-    background-color: #723D46;
-    color: white;
-}
-
-#notes-preview{
-    background-color: #d90368;
-    color: white;
-}
-*/
-
 .preview-title{
     font-family: Poppins, sans-serif;
     font-weight: 800;
