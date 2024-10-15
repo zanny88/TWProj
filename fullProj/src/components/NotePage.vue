@@ -1,3 +1,6 @@
+<!-- TODO edit e delete da dropdown -->
+<!-- Capisci sorting-->
+
 <template>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,7 +56,18 @@
         </div>
     <div id="page-body" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 gx-4 gy-5 justify-content-center" style="width: 100vw; margin-left: 1px;" v-if="isNoteLoaded">
         <div class="col" align="center" v-for="note in Notes" :key="note._id">
-            <div class="card h-100">
+            <div class="card h-100" v-on:mouseleave="collapseCardDropdown">
+                <div class="card-header d-flex justify-content-end">
+                    <button class="btn card-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+                            <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
+                        </svg>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li class="dropdown-item" @click="note_modify(note._id)">Edit</li>
+                        <li class="dropdown-item" @click="deleteNote(note._id)">Delete</li>
+                    </ul>
+                </div>
                 <router-link :to="`/note/${note._id}`" class="card-body note-link">
                     <h2 class="card-title">{{note.heading.substring(0,20) + (note.heading.length > 20 ? '...' : '')}}</h2>
                     <p>{{note.content.substring(0,20) + (note.content.length > 20 ? '...' : '')}}</p>
@@ -71,7 +85,11 @@
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar" viewBox="0 0 16 16">
                         <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
                       </svg> {{new Date(note.date).toDateString()}}<br/></small>
-                    <small class="text-body-secondary">Tags: {{note.tags.join('-')}}</small>
+                    <small class="text-body-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tags-fill" viewBox="0 0 16 16">
+                            <path d="M2 2a1 1 0 0 1 1-1h4.586a1 1 0 0 1 .707.293l7 7a1 1 0 0 1 0 1.414l-4.586 4.586a1 1 0 0 1-1.414 0l-7-7A1 1 0 0 1 2 6.586zm3.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+                            <path d="M1.293 7.793A1 1 0 0 1 1 7.086V2a1 1 0 0 0-1 1v4.586a1 1 0 0 0 .293.707l7 7a1 1 0 0 0 1.414 0l.043-.043z"/>
+                      </svg> {{note.tags.join('-')}} </small>
                 </div>
             </div>
         </div>
@@ -87,9 +105,9 @@
     const api_url = "http://localhost:3000/";
     const router = useRouter();
     const token = localStorage.getItem('token');
-    var sorting = false;
-    var sortParam = "";
-    var revSort = false;
+    var sorting = true;
+    var sortParam = "Data";
+    var revSort = true;
 
     const HTMLS = {
         true: `
@@ -124,10 +142,6 @@
         }
     }
 
-    function gotoNotePage(id){
-        router.push({path: "/note/"+id});//passaggio al componente Note.vue
-    }
-
     function sortNotes(param){
         sorting = true;
         if(sortParam != param){
@@ -154,7 +168,38 @@
 
     onMounted(async () => {
         await getNotes();
+        sortNotes("Data");
     });
+
+    function collapseCardDropdown(e){
+        const dropdown = e.target.querySelector(".dropdown-menu");
+
+        if(dropdown?.classList.contains('show')) dropdown.classList.toggle("show");
+    }
+
+    async function deleteNote(id){
+        const payload = {
+            ID: id
+        }
+        try{
+            await axios.post(`${api_url}Notes/delete/`, payload);
+            Notes.value = Notes.value.filter(el => el._id != id);
+        }catch(error){
+            console.log("Error: ",error);
+        }
+    }
+
+    async function note_modify(note_id){
+        const get_payload = {
+            ID: note_id
+        }
+        const r = await axios.post(`${api_url}notes/get`,get_payload);
+        var modify_payload = r.data[0];
+        router.push({
+            path: "/create",
+            query: {data: JSON.stringify(modify_payload)}
+        });
+    }
 </script>
 
 <style scoped>
@@ -223,6 +268,20 @@
     z-index:5;
 }
 
+#page-body .card .card-header{
+    background: none;
+    border: none;
+}
+
+.card-dropdown-btn{
+    border: none;
+
+    &:hover{
+        color: #38726c;
+        transition: all 500ms;
+    }
+}
+
 /**/
   
 
@@ -234,7 +293,8 @@
     left: 0;
     margin: 0;
     padding: 0;
-    background: #38726C;
+    background-color: #38726c;
+    background-image: url("/src/assets/wood-pattern.png");
     overflow: hidden;
     z-index: -101;
 }

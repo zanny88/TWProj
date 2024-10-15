@@ -9,6 +9,7 @@ import Pomodoro from "./components/Pomodoro.vue";
 import Calendar from "./components/Calendar.vue";
 import ActivityPage from "./components/ActivityPage.vue";
 import EventPage from "./components/EventPage.vue";
+import AddFriend from "./components/AddFriend.vue";
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -24,7 +25,8 @@ const router = createRouter({
         { path: '/calendar', component: Calendar, props: true },
         { path: '/editActivity/:id/:callback', component: ActivityPage, props: true },
         { path: '/editEvent/:id/:callback/:eventDate', component: EventPage, props: true },
-        { path: '/calendar/:mode/:calDate', component: Calendar, props: true }
+        { path: '/calendar/:mode/:calDate', component: Calendar, props: true },
+        { path: '/addFriend', component: AddFriend }
     ]
 });
 export default router;

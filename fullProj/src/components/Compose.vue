@@ -54,7 +54,7 @@
                 <div id="friends" v-if="friendName.length > 0 && friendsFound">
                     <div
                         v-for="(el,index) in friends"
-                        :key = "index"
+                        :key="index"
                     >
                         {{ el.name }}
                     </div>

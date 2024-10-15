@@ -53,6 +53,7 @@
                                         :to="`/pomodoro/${latestPomodoroSession}`">
                                             RESUME
                                     </router-link>
+                                    <div v-else>No previous session to resume.</div>
                                 </div>
                             </div>
                             <div class="col-1 vr ms-3 me-3" style="color: #B8BDB5;"></div>
