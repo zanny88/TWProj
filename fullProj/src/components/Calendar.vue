@@ -63,7 +63,7 @@
 						:key="dateDay.id"
 					>                                <!-- Loop sugli item di DateGrid-->
 						<table>
-							<div 
+							<div
 								:class="['val', {'btn-primary': dateDay.num === dayjs(ActiveCalDate).date()}]"
 								v-if="dateDay.num">
 								<tr><button type="button" :class="['btn', {'btn-primary': dateDay.num === dayjs(ActiveCalDate).date()}]" @click="dayClick(dateDay.date)">{{ dateDay.num }}</button></tr>
@@ -82,7 +82,7 @@
 		</div>
 		
 		<div v-else-if="CalViewMode === VIEW_MODE_WEEK">    <!-- MODALITA' SETTIMANALE -->
-			<table style="border-collapse: collapse; width: 100%;" border="1">
+			<table style="border-collapse: collapse; width: 100%;" border="1" class="date-grid-week">
 				<thead>     <!--Intestazioni dei giorni: giorno della settimana e numero giorno-->
 					<tr>
 						<td style="width: 2%;" scope="col">&nbsp;</td>
@@ -93,10 +93,10 @@
 						>
 							<table style="border-collapse: collapse; width: 100%;" border="1">
 								<tbody>
-									<tr>
-										<td style="width: 67.3333%; text-align: center;" class="['day', {today: dayjs(ActiveCalDate).weekday() === index}]">{{ dateDay.day }}</td>
+									<tr>   <!-- giorno della settimana -->
+										<td style="width: 67.3333%; text-align: center;" class="['day', {today: dayjs(ActiveCalDate).weekday() === dayjs(dateDay.date).weekday()}]">{{ dateDay.day }}</td>
 									</tr>
-									<tr>
+									<tr>   <!-- numero del giorno della settimana -->
 										<td style="width: 67.3333%; text-align: center;">
 											<button type="button" :class="['btn', {'btn-primary': dateDay.num === dayjs(ActiveCalDate).date()}]" @click="dayClick(dateDay.date)">{{ dateDay.num }}</button>
 										</td>
@@ -106,8 +106,8 @@
 						</td>
 					</tr>
 				</thead>
-				<tbody>
-					<tr>    <!--Eventi ed attivitÃ  prive di orario: giornata completa-->
+				<tbody class="dayEvents_Week">
+					<tr>    <!--Eventi ed attività prive di orario: giornata completa-->
 						<td style="width: 2%;">&nbsp;</td>
 						<td style="width: 10%;" scope="col"
 							class="date"
@@ -139,7 +139,7 @@
 								<td v-for="event in getDateEventsRowDate(row, dateDay.date)"
 									:key="event.id"
 								>
-									<button type="button" class="btn" @click="editEvent(event.id)" title="Edit activity">{{ event.title }}</button>
+									<button type="button" class="btn" @click="editEvent(event.id)" title="Edit event">{{ event.title }}</button>
 								</td>
 							</div>
 						</td>
@@ -178,7 +178,6 @@
 								</h3>
 							</th>
 						</tr>
-						<!--<tr v-for="event in DateEvents" :key="event.id" v-if="isEventLoaded" >-->
 						<tr v-for="event in getDateEvents(ActiveCalDate)" :key="event.id" v-if="isEventLoaded" >
 							<td>
 								<button type="button" class="events" @click="editEvent(event.id)" title="Edit event">{{ event.title }}</button>
@@ -188,7 +187,7 @@
 				</div>
 			</td>
 
-			<td>      <!-- AttivitÃ  -->
+			<td>      <!-- Attività -->
 				<div class="main-evact">
 					<table>
 						<tr>
@@ -224,7 +223,6 @@
 	const VIEW_MODE_WEEK = "week";
 	const VIEW_MODE_DAY = "day";
 	const api_url = inject('api_url');
-	const loggedUser = inject("loggedUser");     //variabile globale ref creata in main.js per controllare se il codice utente loggato
 	import {useRouter} from "vue-router";
 	const router = useRouter();
 	const props = defineProps(['mode','calDate']);
@@ -236,7 +234,7 @@
 	}else{
 		CalViewMode.value = VIEW_MODE_DAY;
 	}
-
+	
 	const user = atob(localStorage.getItem('token').split('.')[1]);
 
 	const dayjs = require('dayjs')
@@ -259,7 +257,7 @@
 
 	var today = new Date();
 	var Today = ref(new Date(today.getFullYear(), today.getMonth(), today.getDate()));       //Oggi
-	var CalDate = ref(dayjs(Today.value).startOf('month').toDate());   //Inizialmente consideriamo oggi come data del calendario; Ã¨ il primo giorno del mese per vis. mensile, primo giorno della settimana per vis. settimanale, giorno per vis. giornaliera
+	var CalDate = ref(dayjs(Today.value).startOf('month').toDate());   //Inizialmente consideriamo oggi come data del calendario; è il primo giorno del mese per vis. mensile, primo giorno della settimana per vis. settimanale, giorno per vis. giornaliera
 	var ActiveCalDate = ref(Today.value)           //Data evidenziata dell'attuale calendario
 	if (props.calDate != undefined && props.calDate != "0"){
 		ActiveCalDate.value = dayjs(props.calDate, 'DDMMYYYY', true).toDate();
@@ -274,19 +272,22 @@
 
 
 	const CurrentCalString = computed(()=> {
+		const CalDataDayJs = dayjs(CalDate.value);
 		if (CalViewMode.value == VIEW_MODE_MONTH){
-			return dayjs(CalDate.value).format('MMMM') + ' ' + dayjs(CalDate.value).format('YYYY');
+			return CalDataDayJs.format('MMMM') + ' ' + CalDataDayJs.format('YYYY');
 		} else if (CalViewMode.value == VIEW_MODE_WEEK){
-			return 'Week ' + dayjs(CalDate.value).format('DD/MM/YYYY') + ' - ' + dayjs(CalDate.value).add(6, 'day').format('DD/MM/YYYY');
+			return 'Week ' + CalDataDayJs.format('DD/MM/YYYY') + ' - ' + CalDataDayJs.add(6, 'day').format('DD/MM/YYYY');
 		} else{
-			return dayjs(CalDate.value).format('DD/MM/YYYY');
+			return CalDataDayJs.format('DD/MM/YYYY');
 		}
 	})
 	
+	
 	const DateGrid = computed(() => {
 		const calDates = []
+		const CalDataDayJs = dayjs(CalDate.value);
 		if (CalViewMode.value == VIEW_MODE_MONTH){    //Visualizzazione mensile
-			for (let i = 0; i < dayjs(CalDate.value).weekday(); i++){                    //Giorni della settimana precedenti il primo del mese, da domenica
+			for (let i = 0; i < CalDataDayJs.weekday(); i++){                    //Giorni della settimana precedenti il primo del mese, da lunedì
 				const item = {}
 				item.id = -i
 				item.num = null
@@ -294,21 +295,21 @@
 				item.day = DAYS[i]
 				calDates.push(item)
 			}
-			for (let i = 0; i < dayjs(CalDate.value).endOf('month').date(); i++){
+			for (let i = 0; i < CalDataDayJs.endOf('month').date(); i++){
 				const item = {}
 				item.id = i + 1
 				item.num = i + 1
-				item.date = dayjs(CalDate.value).add(i, 'day').toDate()
-				item.day = DAYS[dayjs(CalDate.value).add(i, 'day').weekday()]             //Giorno della settimana del giorno i-esimo del mese
+				item.date = CalDataDayJs.add(i, 'day').toDate()
+				item.day = DAYS[CalDataDayJs.add(i, 'day').weekday()]             //Giorno della settimana del giorno i-esimo del mese
 				calDates.push(item)
 			}
 		} else if (CalViewMode.value == VIEW_MODE_WEEK){    //Visualizzazione settimanale
 			for (let i = 0; i < 7; i++){
 				const item = {}
 				item.id = i + 1
-				item.date = dayjs(CalDate.value).add(i, 'day').toDate()
+				item.date = CalDataDayJs.add(i, 'day').toDate()
 				item.num = dayjs(item.date).date()
-				item.day = DAYS[dayjs(CalDate.value).add(i, 'day').weekday()]             //Giorno della settimana del giorno i-esimo del mese
+				item.day = DAYS[CalDataDayJs.add(i, 'day').weekday()]             //Giorno della settimana del giorno i-esimo del mese
 				calDates.push(item)
 			}
 		} else{    //Visualizzazione giornaliera
@@ -326,7 +327,6 @@
 			item.title = event_.title;
 			item.date_start = event_.date_start;
 			item.date_end = event_.date_end;
-			item.duration = event_.duration;
 			item.ev_type = event_.ev_type;
 			item.all_day = event_.all_day;
 			dateEvents.push(item);
@@ -334,7 +334,7 @@
 		return dateEvents;
 	})
 	
-	function getDateEvents(date){
+	function getDateEvents(date){                   //Eventi di una data
 		//alert("DateEvents="+DateEvents.value+" #"+DateEvents.value.length);
 		//alert("getDateEvents(date), date="+date);
 		const ev = []
@@ -366,7 +366,7 @@
 			}
 			var eventStartDate = dayjs(event_.date_start).toDate();
 			var eventEndDate = dayjs(event_.date_end).toDate();
-			var hour = (row-1)/4;
+			var hour = (row - 1) / 4;
 			var dateRow = dayjs(date).add(hour, 'hour').toDate();
 			if ((eventStartDate <= dateRow && eventEndDate >= dateRow)){
 				ev.push(event_);
@@ -379,16 +379,19 @@
 		const list = []
 		for (let i = 0; i < DateEvents.value.length; i++){
 			var event_ = DateEvents.value[i];
+			if (!event_.all_day){
+				continue;
+			}
 			var eventStartDate = dayjs(event_.date_start).toDate();
 			var eventEndDate = dayjs(event_.date_end).toDate();
-			if (event_.all_day && ((eventStartDate <= date && eventEndDate >= date) || (eventStartDate.getFullYear() == date.getFullYear() && eventStartDate.getMonth() == date.getMonth() && eventStartDate.getDate() == date.getDate()))){
+			if (((eventStartDate <= date && eventEndDate >= date) || (eventStartDate.getFullYear() == date.getFullYear() && eventStartDate.getMonth() == date.getMonth() && eventStartDate.getDate() == date.getDate()))){
 				list.push(event_);
 			}
 		}
 		return list;
 	}
 
-	function getExpiringActivities(date){
+	function getExpiringActivities(date){    //attività con scadenza "date"
 		const list = []
 		for (let i = 0; i < DateActivities.value.length; i++){
 			var activity = DateActivities.value[i];
@@ -479,12 +482,12 @@
 
 	function toWeekView(){
 		CalViewMode.value = VIEW_MODE_WEEK;
-		CalDate.value = dayjs(ActiveCalDate.value).startOf('week').toDate();
+		CalDate.value = dayjs(ActiveCalDate.value).startOf('week').toDate();   //primo giorno della settimana
 	}
 
 	function toMonthView(){
 		CalViewMode.value = VIEW_MODE_MONTH;
-		CalDate.value = dayjs(ActiveCalDate.value).startOf('month').toDate();
+		CalDate.value = dayjs(ActiveCalDate.value).startOf('month').toDate();  //primo giorno del mese
 	}
 	
 	async function dayClick(date){
@@ -494,6 +497,10 @@
 	}
 
 	
+	function getCallbackStr(){
+		return (CalViewMode.value == VIEW_MODE_MONTH ? "CM" : (CalViewMode.value == VIEW_MODE_WEEK ? "CW" : "CD"))+dayjs(ActiveCalDate.value).format('DDMMYYYY');
+	}
+	
 	function addEvent(){
 		router.push({path: "/editEvent/-1/"+getCallbackStr()+"/"+dayjs(ActiveCalDate.value).format('DDMMYYYY')});   //passaggio al componente EventPage.vue
 	}
@@ -502,10 +509,6 @@
 		router.push({path: "/editEvent/" + eventId + "/" + getCallbackStr()+"/-1"});   //passaggio al componente EventPage.vue
 	}
 
-	function getCallbackStr(){
-		return (CalViewMode.value == VIEW_MODE_MONTH ? "CM" : (CalViewMode.value == VIEW_MODE_WEEK ? "CW" : "CD"))+dayjs(ActiveCalDate.value).format('DDMMYYYY');
-	}
-	
 	function addActivity(){
 		router.push({path: "/editActivity/-1/"+getCallbackStr()});   //passaggio al componente ActivityPage.vue
 	}
@@ -634,7 +637,7 @@
         }
 		.date-grid-week{
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
+            //grid-template-columns: repeat(7, 1fr);
             justify-content: space-between;
             align-items: center;
             row-gap: 10px;
@@ -650,9 +653,9 @@
                     height: 20px;
                     text-align: center;
                     /*border-radius: 50%;*/
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
+                    /*display: flex;*/
+                    //align-items: center;
+                    /*justify-content: center;*/
                     padding: 15px;
                     position: relative;
                     /*background-color: antiquewhite;*/
@@ -672,6 +675,16 @@
             }
         }
     }
+	.calendar-grid{
+        margin-top: 15px;
+        display: grid;
+        gap: 10px;
+        user-select: none;
+		.today{
+			color: blueviolet;
+			font-weight: bold;
+		}
+	}
 	.main-evact{
         width: 500px;
 		height: 300px;

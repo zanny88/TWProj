@@ -49,7 +49,6 @@
     const router = useRouter();
     const api_url = "http://localhost:3000/";
     var loggedIn = inject('loggedIn');
-	var loggedUser = inject('loggedUser');
     var token = inject('IDtoken');
 
     var name = ref('');

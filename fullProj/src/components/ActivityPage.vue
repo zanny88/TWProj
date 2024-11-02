@@ -1,6 +1,11 @@
 <template>
     <div class="container" style="text-align: center; margin-top: 10px;">
         <h5 id="title">Activity form</h5>
+		<div class="row" style="position: relative; justify-content: center; align-items: center; margin-top: 10px;">
+			<div class="col-lg-2 col-md-2 col-sm-4">
+				<button type="button" class="btn btn-outline-info" id="deleteButton" @click="remove()">Delete</button>
+			</div>
+		</div>
         <form id="mainForm">
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-12">
@@ -48,7 +53,6 @@
     import '@vuepic/vue-datepicker/dist/main.css';
   
     const api_url = inject('api_url');
-    const loggedUser = inject('loggedUser');
     const router = useRouter();
 	const props = defineProps(['id','callback']);
 
@@ -59,12 +63,13 @@
 
 	var formType = ref('');
 	var title = ref('');
-    var end = ref('');
+    var end = ref(null);
 	var participants = ref([]);
     var is_completed = ref(false);
 	var isLoaded = ref(false);
 
-
+	const user = atob(localStorage.getItem('token').split('.')[1]);
+	
 	const format = (date) => {
 		const day = date.getDate();
 		const month = date.getMonth() + 1;
@@ -88,7 +93,7 @@
     const isActivityLoaded = computed(() => Activities.value.length > 0);
     async function getActivity(activityId){
 		try{
-			const res = await axios.get(api_url + "getActivities/" + loggedUser.value + "/" + activityId);
+			const res = await axios.get(api_url + "getActivities/" + user + "/" + activityId);
 			Activities.value = res.data;
 			await nextTick();
 			if (isActivityLoaded){
@@ -112,7 +117,7 @@
 		if (props.id == "-1"){  //Aggiunta di un'attività
 			try{
 				const newActivity = {
-					userName: loggedUser.value,
+					userName: user,
 					title: title.value,
 					end: (end.value == null ? null : new Date(end.value.getFullYear(), end.value.getMonth(), end.value.getDate())),   //toglie le ore dalla data
 					participants: participants.value,
@@ -127,13 +132,13 @@
 				}
 			}catch(error){
 				console.log("Errore: ", error);
-				//alert("Errore: "+error);
+				alert("Errore: "+error);
 			}
 		}else{  //Modifica di un'attività
 			try{
 				const activity = {
-					userName: loggedUser.value,
-					activityId : props.id,
+					userName: user,
+					activityId: props.id,
 					title: title.value,
 					end: (end.value == null ? null : new Date(end.value.getFullYear(), end.value.getMonth(), end.value.getDate())),
 					participants: participants.value,
@@ -155,6 +160,27 @@
 	
 	function cancel(){
 		callback();
+	}
+
+	async function remove(){
+		if(confirm("Do you really want to delete the activity?")){
+			try{
+				const activity_ = {
+					userName: user,
+					activityId : props.id
+				}
+				const r = await axios.post(api_url + "deleteActivity", activity_);
+				if(r.data.message == "OK"){
+					callback();
+				}else{
+					console.log(r.data.message);
+					//alert("Message= " + r.data.message);
+				}
+			}catch(error){
+				console.log("Errore: ", error);
+				alert("Error: "+error);
+			}
+		}
 	}
 	
 	function callback(){

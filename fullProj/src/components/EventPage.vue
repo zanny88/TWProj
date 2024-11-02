@@ -1,8 +1,10 @@
 <template>
     <div class="container" style="text-align: center; margin-top: 10px;">
         <h5 id="title">Event form</h5>
-		<div class="col-lg-2 col-md-2 col-sm-4">
-			<button type="button" class="btn btn-outline-info" id="deleteButton" @click="remove()">Delete</button>
+		<div class="row" style="position: relative; justify-content: center; align-items: center; margin-top: 10px;">
+			<div class="col-lg-2 col-md-2 col-sm-4">
+				<button type="button" class="btn btn-outline-info" id="deleteButton" @click="remove()">Delete</button>
+			</div>
 		</div>
         <form id="mainForm">
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
@@ -72,7 +74,7 @@
     import '@vuepic/vue-datepicker/dist/main.css';
   
     const api_url = inject('api_url');
-    const loggedUser = inject('loggedUser');
+	const user = atob(localStorage.getItem('token').split('.')[1]);
 	const router = useRouter();
 	const props = defineProps(['id','callback','eventDate']);
 
@@ -122,7 +124,6 @@
 //    interval_days_in_week: [Number],       /* giorni nella settimana */
 //    interval_n_day_in_month: [Number],     /* n esimo giorno del mese */
 //    interval_n_of_day_in_month: [Number],  /* n esimo giorno della settimana nel mese, codifica "n, giorno" */
-    // duration: Number,                      /* numero di minuti di durata */
     // place: String,
 	// notification_advance: Number,           /* anticipo in minuti nella notifica */
 	// notification_repetitions: Number,       /* 0 per infinite*/
@@ -138,7 +139,7 @@
     const isEventLoaded = computed(() => Events.value.length > 0);
     async function getEvent(eventId){
 		try{
-			const res = await axios.get(api_url + "getEvents/" + loggedUser.value + "/" + eventId);
+			const res = await axios.get(api_url + "getEvents/" + user + "/" + eventId);
 			Events.value = res.data;
 			await nextTick();
 			if (isEventLoaded){
@@ -168,7 +169,7 @@
 		if (props.id == "-1"){  //Aggiunta di un evento
 			try{
 				const newevent = {
-					userName: loggedUser.value,
+					userName: user,
 					title: title.value,
 					//day: new Date(day.value.getFullYear(), day.value.getMonth(), day.value.getDate()),   //toglie le ore dalla data
 					date_start: (all_day.value ? new Date(date_start.value.getFullYear(), date_start.value.getMonth(), date_start.value.getDate()) : date_start.value),
@@ -191,7 +192,7 @@
 		}else{  //Modifica di un evento
 			try{
 				const event_ = {
-					userName: loggedUser.value,
+					userName: user,
 					eventId : props.id,
 					title: title.value,
 					//day: new Date(day.value.getFullYear(), day.value.getMonth(), day.value.getDate()),   //toglie le ore dalla data
@@ -219,7 +220,25 @@
 		callback();
 	}
 	
-	function remove(){   //TODO
+	async function remove(){
+		if(confirm("Do you really want to delete the event?")){
+			try{
+				const event_ = {
+					userName: user,
+					eventId : props.id
+				}
+				const r = await axios.post(api_url + "deleteEvent", event_);
+				if(r.data.message == "OK"){
+					callback();
+				}else{
+					console.log(r.data.message);
+					//alert("Message= " + r.data.message);
+				}
+			}catch(error){
+				console.log("Errore: ", error);
+				alert("Error: "+error);
+			}
+		}
 	}
 	
 	function allDayClick(){
