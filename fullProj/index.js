@@ -72,14 +72,13 @@ const eventSchema = new mongoose.Schema({
     participants: { type: [String], default: [] },
     participants_state: { type: [String], default: [] },          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
     title: String,
-    date_start: Date,
-    date_end: Date,
+    date_start: Date,                      /* data e ora di inizio */
+    date_end: Date,                        /* data e ora di fine */
     repetitions: Number,                   /* 0 per infinite */
     interval_period: Number,
     interval_days_in_week: [Number],       /* giorni nella settimana */
     interval_n_day_in_month: [Number],     /* n esimo giorno del mese */
     interval_n_of_day_in_month: [Number],  /* n esimo giorno della settimana nel mese, codifica "n, giorno" */
-    duration: Number,                      /* numero di minuti di durata */
     all_day: Boolean,
     place: String,
     notification_advance: Number,           /* anticipo in minuti nella notifica */
@@ -759,6 +758,31 @@ app.post("/editEvent", async (req, res) => {
         }
     }
 });
+//gestione richiesta post per la cancellazione di un evento
+app.post("/deleteEvent",async (req, res) => {
+	console.log("/deleteEvent " + req.body);
+	const {userName, eventId} = req.body;
+	console.log("ricerca di eventId=" + req.body.eventId);
+	try{
+		var event_ = await Event.findOne({_id: eventId, owner: userName});
+		if(!event_){
+			console.log("Evento non trovato: " + eventId);
+			res.json({
+				message: "event not found"
+			});
+		}else{
+			r = await Event.findByIdAndDelete(eventId);
+			console.log("cancellato:" + eventId);
+			//if(!r){
+			//	return res.status(404).send("Event not found");
+			//}
+			res.json({message: "OK"});
+		}
+    }catch(error){
+        console.log("ERRORE: ",error);
+        res.status(500).send("Error deleting event");
+    }
+});
 //gestione richiesta post per richiedere un'attività di un utente (con activityId = -1 si ottengono tutte le attività di quell'utente)
 app.get("/getActivities/:userName/:activityId", async (req, res) => {
     var userName = req.params.userName;
@@ -815,6 +839,30 @@ app.post("/editActivity", async (req, res) => {
         } catch (error) {
             res.status(500).send("Error modifying activity");
         }
+    }
+});
+app.post("/deleteActivity",async (req, res) => {
+	console.log("/deleteActivity " + req.body);
+	const {userName, activityId} = req.body;
+	console.log("ricerca di activityId=" + req.body.activityId);
+	try{
+		var activity_ = await Activity.findOne({_id: activityId, owner: userName});
+		if(!activity_){
+			console.log("Attivita non trovata: " + activityId);
+			res.json({
+				message: "activity not found"
+			});
+		}else{
+			r = await Activity.findByIdAndDelete(activityId);
+			console.log("cancellato:" + activityId);
+			//if(!r){
+			//	return res.status(404).send("Activity not found");
+			//}
+			res.json({message: "OK"});
+		}
+    }catch(error){
+        console.log("ERRORE: ",error);
+        res.status(500).send("Error deleting activity");
     }
 });
 
