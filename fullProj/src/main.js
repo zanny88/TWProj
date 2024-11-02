@@ -17,9 +17,6 @@ app.use(router);
 const loggedIn = ref();
 app.provide('loggedIn', loggedIn);
 
-const loggedUser = ref();
-app.provide('loggedUser', loggedUser);
-
 const api_url = "http://localhost:3000/";
 app.provide('api_url', api_url);
 
