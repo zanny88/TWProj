@@ -107,7 +107,7 @@
 					</tr>
 				</thead>
 				<tbody class="dayEvents_Week">
-					<tr>    <!--Eventi ed attività prive di orario: giornata completa-->
+					<tr>    <!--Eventi ed attivitï¿½ prive di orario: giornata completa-->
 						<td style="width: 2%;">&nbsp;</td>
 						<td style="width: 10%;" scope="col"
 							class="date"
@@ -159,6 +159,9 @@
 		<div v-else>
 			Error: calendar view mode not supported!
 		</div>
+		<button type="button" class="btn task-icon" @click="generateICal" title="Download iCal">
+			Download iCal
+		  </button>
     </div>
 	
 	<table>
@@ -187,7 +190,7 @@
 				</div>
 			</td>
 
-			<td>      <!-- Attività -->
+			<td>      <!-- Attivitï¿½ -->
 				<div class="main-evact">
 					<table>
 						<tr>
@@ -218,6 +221,7 @@
 <script setup>
 	import {computed, ref, nextTick, onMounted, inject} from "vue";
     import axios from 'axios';
+	import { createEvent, createEvents } from 'ics';
 	const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 	const VIEW_MODE_MONTH = "month";
 	const VIEW_MODE_WEEK = "week";
@@ -257,7 +261,7 @@
 
 	var today = new Date();
 	var Today = ref(new Date(today.getFullYear(), today.getMonth(), today.getDate()));       //Oggi
-	var CalDate = ref(dayjs(Today.value).startOf('month').toDate());   //Inizialmente consideriamo oggi come data del calendario; è il primo giorno del mese per vis. mensile, primo giorno della settimana per vis. settimanale, giorno per vis. giornaliera
+	var CalDate = ref(dayjs(Today.value).startOf('month').toDate());   //Inizialmente consideriamo oggi come data del calendario; ï¿½ il primo giorno del mese per vis. mensile, primo giorno della settimana per vis. settimanale, giorno per vis. giornaliera
 	var ActiveCalDate = ref(Today.value)           //Data evidenziata dell'attuale calendario
 	if (props.calDate != undefined && props.calDate != "0"){
 		ActiveCalDate.value = dayjs(props.calDate, 'DDMMYYYY', true).toDate();
@@ -287,7 +291,7 @@
 		const calDates = []
 		const CalDataDayJs = dayjs(CalDate.value);
 		if (CalViewMode.value == VIEW_MODE_MONTH){    //Visualizzazione mensile
-			for (let i = 0; i < CalDataDayJs.weekday(); i++){                    //Giorni della settimana precedenti il primo del mese, da lunedì
+			for (let i = 0; i < CalDataDayJs.weekday(); i++){                    //Giorni della settimana precedenti il primo del mese, da lunedï¿½
 				const item = {}
 				item.id = -i
 				item.num = null
@@ -391,7 +395,7 @@
 		return list;
 	}
 
-	function getExpiringActivities(date){    //attività con scadenza "date"
+	function getExpiringActivities(date){    //attivitï¿½ con scadenza "date"
 		const list = []
 		for (let i = 0; i < DateActivities.value.length; i++){
 			var activity = DateActivities.value[i];
@@ -517,10 +521,44 @@
 		router.push({path: "/editActivity/" + activityId + "/" + getCallbackStr()});   //passaggio al componente ActivityPage.vue
 	}
 
+	function generateICal() {
+      const events = Events.value.map(event => ({
+        start: [dayjs(event.date_start).year(), dayjs(event.date_start).month() + 1, dayjs(event.date_start).date(), dayjs(event.date_start).hour(), dayjs(event.date_start).minute()],
+        end: [dayjs(event.date_end).year(), dayjs(event.date_end).month() + 1, dayjs(event.date_end).date(), dayjs(event.date_end).hour(), dayjs(event.date_end).minute()],
+        title: event.title,
+        description: event.description,
+        location: event.location,
+        url: event.url,
+      }));
+
+      const activities = Activities.value.map(activity => ({
+        start: [dayjs(activity.date_start).year(), dayjs(activity.date_start).month() + 1, dayjs(activity.date_start).date(), dayjs(activity.date_start).hour(), dayjs(activity.date_start).minute()],
+        end: [dayjs(activity.date_end).year(), dayjs(activity.date_end).month() + 1, dayjs(activity.date_end).date(), dayjs(activity.date_end).hour(), dayjs(activity.date_end).minute()],
+        title: activity.title,
+        description: activity.description,
+        location: activity.location,
+        url: activity.url,
+      }));
+
+      const allEvents = [...events, ...activities];
+
+      createEvents(allEvents, (error, value) => {
+        if (error) {
+          console.log(error);
+          return;
+        }
+        const blob = new Blob([value], { type: 'text/calendar' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'calendar.ics';
+        link.click();
+      });
+
     onMounted(async () => {
         await getEvents(Today.value);
 		await getActivities(Today.value);
     });
+	}
 </script>
 
 
@@ -637,7 +675,7 @@
         }
 		.date-grid-week{
             display: grid;
-            //grid-template-columns: repeat(7, 1fr);
+            /*grid-template-columns: repeat(7, 1fr);*/
             justify-content: space-between;
             align-items: center;
             row-gap: 10px;
@@ -654,7 +692,7 @@
                     text-align: center;
                     /*border-radius: 50%;*/
                     /*display: flex;*/
-                    //align-items: center;
+                    /*align-items: center;*/
                     /*justify-content: center;*/
                     padding: 15px;
                     position: relative;
