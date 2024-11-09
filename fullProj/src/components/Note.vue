@@ -33,13 +33,13 @@
 </template>
 
 <script setup>
-    import {ref, onMounted} from "vue";
+    import {ref, onMounted, inject} from "vue";
     import axios from "axios";
     import {useRouter} from "vue-router";
     const router = useRouter();
     const props = defineProps(['id']);
     var note = ref(null);
-    const api_url = "http://localhost:3000/";
+    const api_url = inject('api_url');
 
     async function duplicate(id){
         const res = await axios.post(api_url + "duplicateNote/" + id);
