@@ -47,7 +47,7 @@
     import {useRouter} from "vue-router";
 
     const router = useRouter();
-    const api_url = "http://localhost:3000/";
+    const api_url = inject('api_url');
     var loggedIn = inject('loggedIn');
     var token = inject('IDtoken');
 
