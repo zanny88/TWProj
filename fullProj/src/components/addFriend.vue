@@ -17,13 +17,14 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
+import {ref,inject} from "vue";
 import axios from "axios";
 import {useRouter} from "vue-router";
 
 var friendName = ref('');
 const router = useRouter();
 const api_url = "http://localhost:3000/";
+//const api_url = inject('api_url');
 const user = atob(localStorage.getItem('token').split('.')[1]);
 
 async function addFriend(){
