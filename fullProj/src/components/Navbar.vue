@@ -84,7 +84,7 @@
     import axios from "axios";
     import { useRouter, useRoute } from "vue-router";
 
-    const api_url = "http://localhost:3000/";
+    const api_url =inject('api_url');
     const router = useRouter();
     const route = useRoute();
 
@@ -130,13 +130,15 @@
     }
 
     setInterval(async () => {
-        var newMessage = await axios.get(`${api_url}user/checkInbox?user=${atob(token.value.split('.')[1])}`);
-        if(newMessage.message){
-            handleNewMessage();
-        }else{
-            handleNoMessage();
+        if(token.value != null){
+            var newMessage = await axios.get(`${api_url}user/checkInbox?user=${atob(token.value.split('.')[1])}`);
+            if(newMessage.message){
+                handleNewMessage();
+            }else{
+                handleNoMessage();
+            }
         }
-    },10000);
+    },5000);
 
 
     watch(token,(newValue) => {
