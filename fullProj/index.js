@@ -28,6 +28,7 @@ app.use(passport.initialize());
 
 const mongoDBUri = "mongodb+srv://marcostignani9:qpalzmQP8@clusternote.yd03buh.mongodb.net/?retryWrites=true&w=majority&appName=ClusterNote";
 //const mongoDBUri = "mongodb+srv://giarrussolorenzo:t1otEqlgBECuv4NL@cluster0.hqzaedi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+//const mongoDBUri = "mongodb://site232415:eib8PaiP@mongo_site232415/?authSource=admin&writeConcern=majority";
 mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 app.use(bodyParser.json());
@@ -107,6 +108,23 @@ const Event = mongoose.model("Event", eventSchema);
 const Activity = mongoose.model("Activity", activitySchema);
 
 var currentUser = null;
+
+/*[SETUP PER SERVER DISI]
+global.rootDir = __dirname;
+
+app.use('/js',express.static(global.rootDir + '/public/js'));
+app.use('/css',express.static(global.rootDir + '/public/css'));
+app.use('/fonts',express.static(global.rootDir + '/public/fonts'));
+app.use('/img',express.static(global.rootDir + '/public/img'));
+
+app.get('/',async function (req,res){
+    res.sendFile(path.join(__dirname,'public','index.html'));
+});
+
+app.get('*',async function (req,res){
+    res.sendFile(path.join(__dirname,'public','index.html'));
+});
+*/
 
 app.post("/getUser", (req, res) => {
     if (currentUser)
@@ -533,43 +551,7 @@ app.post("/duplicateNote/:id", async (req, res) => {
     }
 });
 
-//gestione richiesta post per il login/register di un utente
-//la tipologia della registrazione viene passata nell'URL della richiesta
-//alla fine della gestione della richiesta se non ci sono stati errori l'utente viene salvato nella variabile currentUser utilizzata per le operazioni e i display dei post
-app.post("/user/:regType", async (req, res, next) => {
-    var newUser = null;
-    var user = null;
 
-    if (req.params.regType == "Login") {
-        passport.authenticate('local', (err, user, info) => {
-            if (err) return next(err);
-            if (!user) return res.status(400).send(info.message);
-            const token = jwt.sign(user.name, 'SECRET_KEY');
-            currentUser = user.name;
-            return res.json({ token });
-        })(req, res, next);
-    } else {
-        x = await User.findOne({ name: req.body.username });
-        //se viene effettuata una registrazione di un nuovo utente ma è già presente un utente con quel nome nel database la richiesta non viene effettuata
-        if (x) {
-            res.json({
-                message: "already user"
-            });
-        } else {
-            var password = await bcrypt.hash(req.body.password, 10);
-            var newUser = new User({
-                name: req.body.username,
-                passw: password
-            });
-            try {
-                newUser.save();
-                res.json({ message: "OK" });
-            } catch (error) {
-                res.status(500).send("Error saving new user");
-            }
-        }
-    }
-});
 
 app.get("/user/checkLogged", (req, res) => {
     res.json({ message: currentUser != null ? "true" : "false" });
@@ -623,6 +605,119 @@ app.get("/user/checkInbox", async (req, res) => {
         }
     } catch (error) {
         console.log("Error fetching user for inbox check: ", error);
+    }
+});
+
+app.get("/user/getMessages",async (req,res) => {
+    var username = req.query.user;
+    try{
+        var user = await User.findOne({name: username});
+        if(!user){
+            res.status(404).send("User not found");
+        }
+
+        res.json(user.inbox);
+    }catch(error){
+        res.status(500).send("Error fetching user for messages");
+    }
+});
+
+app.post("/user/checkMessages",async (req,res) => {
+    var username = req.body.u;
+    var messages = req.body.messages;
+
+    var user = await User.findOne({name: username});
+
+    user.inbox.map(msg => msg.seen = true);
+    await user.save();
+
+    messages.forEach(async (msg) => {
+        var m = await Message.findOne({_id: msg._id});
+        m.seen = true;
+        await m.save();
+    });
+    res.send({message: "OK"});
+});
+
+/*function delete_msg(ID){
+
+}*/
+
+app.post("/user/messages/:msgID/accept",async (req,res) => {
+    try{
+        var msg = await Message.findOne({_id: req.params.msgID});
+        var fromUser = await User.findOne({name: msg.from});
+        var toUser = await User.findOne({name: msg.to});
+        if(msg.type == "amicizia"){
+            fromUser.friends.push(toUser.name);
+            toUser.friends.push(fromUser.name);
+        }
+
+        toUser.inbox.pop(toUser.inbox.findIndex((m) => {
+            return m._id == msg._id;
+        }));
+
+        await Message.findByIdAndDelete({_id: msg._id});
+        await toUser.save();
+        await fromUser.save();
+
+        res.send({message: "OK"});
+    }catch(error){
+        res.status(500).send("Error while fetching msg and users for accepting message");
+    }
+});
+
+app.post("/user/messages/:msgID/delete",async (req,res) => {
+    try{
+        var msg = await Message.findOne({_id: req.params.msgID});
+        var toUser = await User.findOne({name: msg.to});
+
+        toUser.inbox.pop(toUser.inbox.findIndex((m) => {
+            return m._id == msg._id;
+        }));
+        await Message.findByIdAndDelete({_id: msg._id});
+        await toUser.save();
+        res.send({message: "OK"});
+    }catch(error){
+        res.status(500).send("Error while fetching msg and user for message deleting");
+    }
+});
+
+//gestione richiesta post per il login/register di un utente
+//la tipologia della registrazione viene passata nell'URL della richiesta
+//alla fine della gestione della richiesta se non ci sono stati errori l'utente viene salvato nella variabile currentUser utilizzata per le operazioni e i display dei post
+app.post("/user/:regType", async (req, res, next) => {
+    var newUser = null;
+    var user = null;
+
+    if (req.params.regType == "Login") {
+        passport.authenticate('local', (err, user, info) => {
+            if (err) return next(err);
+            if (!user) return res.status(400).send(info.message);
+            const token = jwt.sign(user.name, 'SECRET_KEY');
+            currentUser = user.name;
+            return res.json({ token });
+        })(req, res, next);
+    } else {
+        x = await User.findOne({ name: req.body.username });
+        //se viene effettuata una registrazione di un nuovo utente ma è già presente un utente con quel nome nel database la richiesta non viene effettuata
+        if (x) {
+            res.json({
+                message: "already user"
+            });
+        } else {
+            var password = await bcrypt.hash(req.body.password, 10);
+            var newUser = new User({
+                name: req.body.username,
+                passw: password
+            });
+            try {
+                newUser.save();
+                res.json({ message: "OK" });
+            } catch (error) {
+                res.status(500).send("Error saving new user");
+            }
+        }
     }
 });
 
