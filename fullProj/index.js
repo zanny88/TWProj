@@ -41,6 +41,7 @@ const noteSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now() },
     place: String,
     tags: [String],
+    view_list: [String],
     todo_children: { type: [String], default: [] },//array dove salvare gli id dei to-do creati nel corpo della nota per eventuali modifiche
     el_type: { type: String, default: "notes" }
 });
@@ -203,8 +204,44 @@ app.post("/getTodos/:limit", async (req, res) => {
 
 //gestione richiesta post per aggiungere o modificare note e to-do
 app.post("/compose", async (req, res) => {
-    const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author } = req.body;
+    const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author, share } = req.body;
     var savedDocument;
+    var user;
+
+    try{
+        user = await User.findOne({name: author});
+        if(!user){
+            res.status(404).send("Error user creating post not found");
+        }
+    }catch(error){
+        res.status(500).send("Error while fetching user who create post");
+    }
+
+    var friends = [];
+
+    if(share.length > 0){
+        friends = share.split('-');
+        friends.forEach(async (friend) => {
+            if(!(user.friends.includes(friend))){
+                try{
+                    var f = await User.findOne({name: friend});
+                    if(!f){
+                        res.status(404).send("New friend not found");
+                    }
+                }catch(error){
+                    res.status(500).send("Error fetching new friend while compose");
+                }
+                var m = new Message({
+                    from: user.name,
+                    to: f.name,
+                    type: 'amicizia',
+                });
+                f.inbox.push(m);
+                await f.save();
+                await m.save();
+            }
+        })
+    }
 
     //la tipologia del post viene riconosciuta con il valore di post_type (0 per le  e 1 per i to-do)
     if (post_type == 0) {
@@ -231,7 +268,8 @@ app.post("/compose", async (req, res) => {
                 heading: heading,
                 content: content,
                 place: place,
-                tags: tags.split(',').map(tag => tag.trim())
+                tags: tags.split(',').map(tag => tag.trim()),
+		view_list: friends
             });
         }
     } else {
@@ -582,6 +620,7 @@ app.get('/user/addFriend', async (req, res) => {
         old_inbox.push(newMessage);
 
         const r = await User.findByIdAndUpdate({ _id: friend._id }, { inbox: old_inbox });
+	await newMessage.save();
         res.send("OK");
     } catch (error) {
         console.log("Errore nell'agigunta di un amico: ", error);
@@ -593,16 +632,22 @@ app.get("/user/checkInbox", async (req, res) => {
     var username = req.query.user;
 
     try {
-        var user = User.findOne({ name: username });
+	try{
+            var user = User.findOne({ name: username });
+	    if(!user){
+ 	        res.status(404).send("User not found");
+	    }
+	}catch(error){
+	    res.status(500).send("Error while fetching user for messages");
+	    console.log("ERRORE: ",error);
+	}
 
-        if (user && user.inbox) {
-            var newMessages = user.inbox.filter(msg => msg.seen == false);
-            if (newMessages.length > 0) {
-                res.send({ message: true });
-            } else {
-                res.send({ message: false });
-            }
-        }
+	var newMessages = user.inbox.filter(msg => msg.seen == false);
+	if (newMessages.length > 0) {
+	    res.send({ message: true });
+	} else {
+	    res.send({ message: false });
+	}
     } catch (error) {
         console.log("Error fetching user for inbox check: ", error);
     }
@@ -712,7 +757,7 @@ app.post("/user/:regType", async (req, res, next) => {
                 passw: password
             });
             try {
-                newUser.save();
+                await newUser.save();
                 res.json({ message: "OK" });
             } catch (error) {
                 res.status(500).send("Error saving new user");
@@ -724,13 +769,13 @@ app.post("/user/:regType", async (req, res, next) => {
 //---------------------------------------------------------------
 //funzioni per la gestione della ricerca 
 //!!!NOTA!!! --> NON TESTATE
-async function realSearch(u, filter, query) {
+async function realSearch(u, filter, query, searchUser) {
     let results = [];
     if (filter == "tag") {
         const allNote = await Note.find({ user: u });
         //aggiungere todo
         allNote.forEach(item => {
-            if (item.tags.includes(query)) {
+            if (item.tags.includes(query) && item.view_list.includes(searchUser) {
                 results.push(item);
             }
         });
@@ -739,7 +784,7 @@ async function realSearch(u, filter, query) {
             name: { $reges: new RegExp(query, 'i') }
         });
         users.forEach(user => {
-            if (u in user.friends) {
+            if (user.friends.includes(u)) {
                 results.push(user);
             }
         });
@@ -749,18 +794,18 @@ async function realSearch(u, filter, query) {
             [filter]: { $regex: new RegExp(query, 'i') }
         });
         //aggiungere todo
-        results = resultsNote;
+        results = resultsNote.filter(note => note.view_list.includes(searchUser));
     }
     return results;
 }
 
-async function asyncFunc(user, filter, query) {
-    const results = await realSearch(user, filter, query);
+async function asyncFunc(user, filter, query, searchUser) {
+    const results = await realSearch(user, filter, query, searchUser);
     return results;
 }
 
-async function processUsers(users, filter, query) {
-    const promises = users.map(user => asyncFunc(user, filter, query));
+async function processUsers(users, filter, query, searchUser) {
+    const promises = users.map(user => asyncFunc(user, filter, query, searchUser));
     const results = await Promise.all(promises);
     return results.flat();
 }
@@ -776,13 +821,15 @@ app.post('/search', async (req, res) => {
         const user = await User.findOne({ name: req.body.user });
 
         var users;
+	var searchUser = "";
         if (friends == "true") {
             users = user.friends;
+	    searchUser = user.name;
         } else {
             users = [user.name];
         }
 
-        const searchResults = await processUsers(users, filter, query);
+        const searchResults = await processUsers(users, filter, query, searchUser);
 
         res.json(searchResults);
     } catch (error) {
