@@ -2,69 +2,78 @@
     <h1>Compose</h1>
     <div class="compose-container">
         <div class="form-container">
-            <form @submit.prevent="submit">
-                <div id="row" style="text-align: center;">
-                    <label for="noteB">Note:</label>
-                    <input type="radio" id="noteB" name="typeNote" value="note" checked @click="typeI = 0"/><!--@click indica l'azione da compiere quando il bottone viene cliccato, ovvero cambiare la visualizzazione della label per la textarea del body del post-->
-                    <label for="todoB">ToDo:</label>
-                    <input type="radio" id="todoB" name="typeNote" value="todo" @click="typeI = 1"/>
-                    <label for="publicCheck">Public:</label>
-                    <input type="checkbox" id="public" v-model="publicCheck"/>
-                </div>
-                <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                    <div class="col-lg-4 col-md-4 col-sm-4">
-                        <div class="form-floating">
-                            <input type="text" v-model="title" class="form-control" id="notetitle"/>
-                            <label for="notetitle" id="titleLabel">Title</label>
-                        </div>
+            <div id="row" style="text-align: center;">
+                <label for="noteB">Note:</label>
+                <input type="radio" id="noteB" name="typeNote" value="note" checked @click="typeI = 0"/><!--@click indica l'azione da compiere quando il bottone viene cliccato, ovvero cambiare la visualizzazione della label per la textarea del body del post-->
+                <label for="todoB">ToDo:</label>
+                <input type="radio" id="todoB" name="typeNote" value="todo" @click="typeI = 1"/>
+                <label for="publicCheck">Public:</label>
+                <input type="checkbox" id="public" v-model="publicCheck"/>
+            </div>
+            <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                <div class="col-lg-4 col-md-4 col-sm-4">
+                    <div class="form-floating">
+                        <input type="text" v-model="title" class="form-control" id="notetitle"/>
+                        <label for="notetitle" id="titleLabel">Title</label>
                     </div>
                 </div>
-                <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                    <div class="col-lg-4 col-md-4 col-sm-4">
-                        <div class="form-floating">
-                            <textarea v-model="post" class="form-control" placeholder="Write note here" id="textArea" style="height: 100px; white-space: pre-wrap;" wrap="off" required></textarea>
-                            <label for="textArea">{{ insertType[typeI] }}</label>
-                        </div>
+            </div>
+            <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                <div class="col-lg-4 col-md-4 col-sm-4">
+                    <div class="form-floating">
+                        <textarea v-model="post" class="form-control" placeholder="Write note here" id="textArea" style="height: 100px; white-space: pre-wrap;" wrap="off" required></textarea>
+                        <label for="textArea">{{ insertType[typeI] }}</label>
                     </div>
                 </div>
-                <div class="row" style="position: relative; align-items: center; justify-content: center;">
-                    <div class="col-lg-4 col-md-4 col-sm-4">
-                        <div class="form-floating">
-                            <textarea v-model="tags" class="form-control" placeholder="Write tags" id="tagsArea"></textarea>
-                            <label for="tagsArea">Tags</label>
-                        </div>
+            </div>
+            <div class="row" style="position: relative; align-items: center; justify-content: center;">
+                <div class="col-lg-4 col-md-4 col-sm-4">
+                    <div class="form-floating">
+                        <textarea v-model="tags" class="form-control" placeholder="Write tags" id="tagsArea"></textarea>
+                        <label for="tagsArea">Tags</label>
                     </div>
                 </div>
-                <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                    <div class="col-lg-4 col-md-4 col-sm-4">
-                        <div class="form-floating">
-                            <input type="text" v-model="place" class="form-control" id="placeArea"/>
-                            <label for="placeArea">Place</label>
-                        </div>
+            </div>
+            <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                <div class="col-lg-4 col-md-4 col-sm-4">
+                    <div class="form-floating">
+                        <input type="text" v-model="place" class="form-control" id="placeArea"/>
+                        <label for="placeArea">Place</label>
                     </div>
                 </div>
-                <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                    <div class="col-lg-4 col-md-4 col-sm-4">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="share" @input="searchFriend()" v-model="friendName"/>
-                            <label for="share">Friends to share</label>
-                        </div>
+            </div>
+            <div class="row d-flex position-relative" style="justify-content: center; align-items: center;" id="input_friends">
+                <div class="col-lg-4 col-md-4 col-sm-4 position-relative">
+                    <div class="form-floating">
+                        <textarea type="text" class="form-control" id="share" @input="searchFriend()" @keydown.enter.prevent="appendFriend(friendName)" v-model="friendName" style="width: 100%;"></textarea>
+                        <label for="search">Add friends:</label>
                     </div>
                 </div>
-                <div id="friends" v-if="friendName.length > 0 && friendsFound">
+                <div class="list-group position-absolute w-100" style="top: calc(100% + 5px); z-index: 1050; width: 100%;" id="friends" v-if="friendName.length > 0 && friendFound">
                     <div
                         v-for="(el,index) in friends"
-                        :key="index"
+                        :key = "index"
+                        class="list-group-item list-group-item-action"
+                        @click="appendFriend(el.name)"
                     >
                         {{ el.name }}
                     </div>
                 </div>
-                <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                    <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
-                        <button type="submit" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" :disabled="!publishDisabled">Publish</button>
+                <div class="col-lg-4 col-md-4 col-sm-4" v-if="friendsToShare.length > 0">
+                    <div v-for="(friend,index) in friendsToShare" :key="index" class="d-inline-block me-2">
+                        <span>{{ friend }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x" id="del_friend" viewBox="0 0 16 16" @click="deleteFriend(index)">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                        </svg>
                     </div>
                 </div>
-            </form>
+            </div>
+            
+            <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
+                    <button type="button" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" :disabled="!publishDisabled" @click.prevent="submit">Publish</button>
+                </div>
+            </div>
         </div>
         <div class="preview-container">
             <h2>Preview</h2>
@@ -76,10 +85,10 @@
 </template>
 
 <script setup>
-    import {ref,onMounted,computed} from "vue";
+    import {ref,onMounted,computed,inject} from "vue";
     import axios from 'axios';
     import {useRouter,useRoute} from "vue-router";
-    const api_url = "http://localhost:3000/";
+    const api_url = inject('api_url');
     const router = useRouter();//oggetto utilizzato per spostarsi tra i diversi componenti
     const route = useRoute();//oggetto utilizzato per utilizzare i dati passati come payload da un altro componente (funzione note_modify in Note.vue)
     var sent_to_modify = ref(null);//oggetto dove viene salvato il post da modificare quando viene richiesta una modifica
@@ -100,6 +109,19 @@
 
     var start_todo_index = 0;
     var final_todo_index = 0;
+
+    var friendsToShare = ref([]);
+    function appendFriend(friend_name){
+        console.log("appending friend");
+        friendName.value = '';
+        friendFound.value = false;
+        friendsToShare.value.push(friend_name);
+    }
+
+    async function deleteFriend(index){
+        friendsToShare.value.pop(index);
+        await nextTick();
+    }
 
     function convertToHTML(data){
         return data
@@ -211,7 +233,8 @@
             public: publicCheck.value,
             post_type: typeI.value,
             todo_children: todo_objs.length > 0,
-            author: user
+            author: user,
+            share: [...friendsToShare.value].join('-')
         };
         console.log(`Main post obj:\n${newPost}`);
         var res = await axios.post(`${api_url}compose`,newPost);
