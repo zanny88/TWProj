@@ -109,7 +109,7 @@ const Activity = mongoose.model("Activity", activitySchema);
 
 var currentUser = null;
 
-/*[SETUP PER SERVER DISI]
+/*[SETUP PER SERVER DISI] !!!!!CAMBIARE PORTA DEL SERVER DA 3000 A 8000!!!!!!!!!!!!!!!
 global.rootDir = __dirname;
 
 app.use('/js',express.static(global.rootDir + '/public/js'));
