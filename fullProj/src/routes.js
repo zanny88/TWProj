@@ -10,6 +10,7 @@ import Calendar from "./components/Calendar.vue";
 import ActivityPage from "./components/ActivityPage.vue";
 import EventPage from "./components/EventPage.vue";
 import AddFriend from "./components/AddFriend.vue";
+import inbox from './components/inbox.vue';
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -26,7 +27,8 @@ const router = createRouter({
         { path: '/editActivity/:id/:callback', component: ActivityPage, props: true },
         { path: '/editEvent/:id/:callback/:eventDate', component: EventPage, props: true },
         { path: '/calendar/:mode/:calDate', component: Calendar, props: true },
-        { path: '/addFriend', component: AddFriend }
+        { path: '/addFriend', component: AddFriend },
+        { path: '/inbox', component: inbox }
     ]
 });
 export default router;
