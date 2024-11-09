@@ -99,10 +99,10 @@
 </template>
 
 <script setup>
-    import { onMounted, computed, ref, nextTick } from "vue";
+    import { onMounted, computed, ref, nextTick, inject} from "vue";
     import axios from 'axios';
     import {useRouter} from "vue-router";
-    const api_url = "http://localhost:3000/";
+    const api_url = inject('api_url');
     const router = useRouter();
     const token = localStorage.getItem('token');
     var sorting = true;
