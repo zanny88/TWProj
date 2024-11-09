@@ -51,8 +51,9 @@
     import {useRouter} from "vue-router";
     import VueDatePicker from '@vuepic/vue-datepicker';
     import '@vuepic/vue-datepicker/dist/main.css';
-  
-    const api_url = inject('api_url');
+
+    //const api_url = inject('api_url');
+    const api_url = 'http://localhost:3000/;
     const router = useRouter();
 	const props = defineProps(['id','callback']);
 
