@@ -633,7 +633,7 @@ app.get("/user/checkInbox", async (req, res) => {
 
     try {
 	try{
-            var user = User.findOne({ name: username });
+            var user = await User.findOne({ name: username });
 	    if(!user){
  	        res.status(404).send("User not found");
 	    }
@@ -692,19 +692,20 @@ app.post("/user/messages/:msgID/accept",async (req,res) => {
     try{
         var msg = await Message.findOne({_id: req.params.msgID});
         var fromUser = await User.findOne({name: msg.from});
-        var toUser = await User.findOne({name: msg.to});
-        if(msg.type == "amicizia"){
+        var toUser = await User.findOne({name: req.body.u});
+
+        if(msg.type == "friend"){
             fromUser.friends.push(toUser.name);
             toUser.friends.push(fromUser.name);
         }
 
         toUser.inbox.pop(toUser.inbox.findIndex((m) => {
-            return m._id == msg._id;
+            return String(m._id) == String(msg._id);
         }));
 
         await Message.findByIdAndDelete({_id: msg._id});
-        await toUser.save();
-        await fromUser.save();
+        await User.findByIdAndUpdate({_id: toUser._id},{friends: toUser.friends, inbox: toUser.inbox});
+        await User.findByIdAndUpdate({_id: fromUser._id},{friends: fromUser.friends});
 
         res.send({message: "OK"});
     }catch(error){
@@ -728,6 +729,20 @@ app.post("/user/messages/:msgID/delete",async (req,res) => {
     }
 });
 
+app.get("/user/info/:user",async (req,res) => {
+    try{
+        var u = await User.findOne({name: req.params.user});
+
+        if(!u){
+            res.status(404).send("Utente non trovato");
+        }
+
+        res.json(u);
+    }catch(error){
+        res.status(500).send("Errore (nel server) durante il fetch dell'utente per le info");
+    }
+});
+
 //gestione richiesta post per il login/register di un utente
 //la tipologia della registrazione viene passata nell'URL della richiesta
 //alla fine della gestione della richiesta se non ci sono stati errori l'utente viene salvato nella variabile currentUser utilizzata per le operazioni e i display dei post
@@ -737,7 +752,10 @@ app.post("/user/:regType", async (req, res, next) => {
 
     if (req.params.regType == "Login") {
         passport.authenticate('local', (err, user, info) => {
-            if (err) return next(err);
+            if (err){
+                console.log("errore login in index");
+                return next(err);
+            }
             if (!user) return res.status(400).send(info.message);
             const token = jwt.sign(user.name, 'SECRET_KEY');
             currentUser = user.name;
@@ -775,7 +793,7 @@ async function realSearch(u, filter, query, searchUser) {
         const allNote = await Note.find({ user: u });
         //aggiungere todo
         allNote.forEach(item => {
-            if (item.tags.includes(query) && item.view_list.includes(searchUser) {
+            if (item.tags.includes(query) && item.view_list.includes(searchUser)) {
                 results.push(item);
             }
         });
