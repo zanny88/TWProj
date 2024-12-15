@@ -28,8 +28,10 @@
                         <div class="row h-75">
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothCalendar1.png" class="img-fluid preview-img"/></div>
                             <div class="col d-flex flex-column preview-info">
-                                <div>Calendar preview</div>
-                                <div id="calendar-preview-info">(Eventi di oggi)</div>
+                                <div>Calendar preview:</div>
+                                <div id="calendar-preview-info">
+									<p v-html="today_events" />
+								</div>
                             </div>
                         </div>
                     </div>
@@ -170,6 +172,10 @@ Palette 1:
 }
 
 #pomodoro-preview-info{
+    font-size: 0.8em;
+}
+
+#calendar-preview-info{
     font-size: 0.8em;
 }
 
@@ -370,8 +376,14 @@ Palette 1:
 
 <script setup>
 import {inject, ref, onMounted} from "vue";
-
 import axios from 'axios';
+import { nextTick } from 'vue';
+import { Calendar } from '@fullcalendar/core';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import rrulePlugin from '@fullcalendar/rrule';
+import { prepareCalendarEvents } from './calendarUtils';
+import dayjs from 'dayjs';
+
 
 const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
@@ -382,6 +394,7 @@ let latestPomodoroSession = ref('');
 let latestNoteId =  ref('');
 let latestNoteHeading =  ref('');
 let latestNoteContent = ref('');
+const today_events = ref('');
 
 async function get_latest_pomodoro_stats(){
     const target = document.getElementById("pomodoro-preview-info");
@@ -427,9 +440,83 @@ async function get_latest_note_heading(){
     }
 }
 
+
+
+
+
+async function get_today_events(){
+	const Events = ref([]);
+	const Activities = ref([]);
+	today_events.value = '';
+	
+	// Crea un elemento DOM temporaneo e non aggiungerlo al DOM visibile
+    const tempEl = document.createElement('div');
+
+    // Inizializza FullCalendar sull'elemento temporaneo
+    const calendar = new Calendar(tempEl, {
+        plugins: [dayGridPlugin, rrulePlugin]
+    });
+
+    // Renderizza il calendario (anche se non è visibile)
+    calendar.render();
+	
+	try{
+		var user;
+		if(token != null){
+			user = atob(token.split('.')[1]);
+		}
+		let res = await axios.get(api_url + "getEvents/" + user + "/-1");    //Carica gli eventi
+		Events.value = res.data;
+		await nextTick();
+		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
+		Activities.value = res.data;
+		await nextTick();
+		//alert("Events.value="+JSON.stringify(Events.value));
+		//alert("Activities.value="+JSON.stringify(Activities.value));
+		const calendarEvents = prepareCalendarEvents(Events.value, Activities.value);
+		//alert("CalendarEvents.value="+JSON.stringify(calendarEvents));
+		calendar.addEventSource(calendarEvents);
+		
+		
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+        // Filtra gli eventi per oggi utilizzando FullCalendar
+        const eventsToday = calendar.getEvents().filter(event => {
+            const eventDate = new Date(event.start);
+            return eventDate >= startOfDay && eventDate < endOfDay;
+        }).slice(0, 6);            //Prendo fino a 6 elementi
+		//alert("eventsToday="+JSON.stringify(eventsToday));
+		//Lista ordinata per data iniziale crescente
+		eventsToday.sort((a, b) => {
+			const dataA = new Date(a.start);
+			const dataB = new Date(b.start);
+			return dataA - dataB;
+		});
+		for (let i = 0; i < eventsToday.length; i++){
+			const ev = eventsToday[i];
+			let title = '';
+			if (!ev.allDay){
+				title = dayjs(ev.start).format('HH:mm') + " - " + dayjs(ev.end).format('HH:mm') + ' ';
+			}
+			title += ev.title;
+			//console.log("ev="+title);
+			today_events.value += title + "<br/>";
+		}
+	}catch(error){
+		//alert('Error: '+error);
+		console.error("Error fetching events and activities: ",error);
+	} finally{
+        // Distruggi l'istanza di FullCalendar per liberare risorse
+        calendar.destroy();
+    }
+}
+
 onMounted(() => {
     get_latest_pomodoro_stats();
     get_latest_note_heading();
+	get_today_events();
 });
 
 </script>
