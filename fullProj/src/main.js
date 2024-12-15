@@ -17,7 +17,7 @@ app.use(router);
 const loggedIn = ref();
 app.provide('loggedIn', loggedIn);
 
-const api_url = "http://localhost:3000";
+const api_url = "http://localhost:3000/";
 //const api_url = "https://site232415.tw.cs.unibo.it/";
 app.provide('api_url', api_url);
 
