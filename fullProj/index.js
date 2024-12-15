@@ -76,11 +76,8 @@ const eventSchema = new mongoose.Schema({
     title: String,
     date_start: Date,                      /* data e ora di inizio */
     date_end: Date,                        /* data e ora di fine */
-    repetitions: Number,                   /* 0 per infinite */
-    interval_period: Number,
-    interval_days_in_week: [Number],       /* giorni nella settimana */
-    interval_n_day_in_month: [Number],     /* n esimo giorno del mese */
-    interval_n_of_day_in_month: [Number],  /* n esimo giorno della settimana nel mese, codifica "n, giorno" */
+	is_recurring: Boolean,                 /* Vero se l'evento è ricorrente */
+	recurring_rule: String,                /* Stringa che descrive la ricorrenza, in standard iCalendar(RFC 5545) */
     all_day: Boolean,
     place: String,
     notification_advance: Number,           /* anticipo in minuti nella notifica */
@@ -632,22 +629,22 @@ app.get("/user/checkInbox", async (req, res) => {
     var username = req.query.user;
 
     try {
-	try{
-            var user = await User.findOne({ name: username });
-	    if(!user){
- 	        res.status(404).send("User not found");
-	    }
-	}catch(error){
-	    res.status(500).send("Error while fetching user for messages");
-	    console.log("ERRORE: ",error);
-	}
+		try{
+			var user = await User.findOne({ name: username });
+			if(!user){
+				res.status(404).send("User not found");
+			}
+		}catch(error){
+			res.status(500).send("Error while fetching user for messages");
+			console.log("ERRORE: ",error);
+		}
 
-	var newMessages = user.inbox.filter(msg => msg.seen == false);
-	if (newMessages.length > 0) {
-	    res.send({ message: true });
-	} else {
-	    res.send({ message: false });
-	}
+		var newMessages = user.inbox.filter(msg => msg.seen == false);
+		if (newMessages.length > 0) {
+			res.send({ message: true });
+		} else {
+			res.send({ message: false });
+		}
     } catch (error) {
         console.log("Error fetching user for inbox check: ", error);
     }
@@ -868,13 +865,17 @@ app.get("/getEvents/:userName/:eventId", async (req, res) => {
     } else {
         events = await Event.find({ owner: userName, _id: eventId });
     }
-    console.log("return=" + events);
+    console.log("return #" + events.length + " events");
     res.send(events);
 });
+
+
+	
+	
 //gestione richiesta post per l'aggiunta di un'evento
 app.post("/addEvent", async (req, res) => {
     console.log("/addEvent " + req.body);
-    const { userName, title, date_start, date_end, place, participants, all_day } = req.body;
+    const { userName, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
     const NewEvent = new Event({
         owner: userName,
         title: title,
@@ -882,20 +883,24 @@ app.post("/addEvent", async (req, res) => {
         date_end: date_end,
         place: place,
         participants: participants,
-        all_day: all_day
+        all_day: all_day,
+		is_recurring: is_recurring,
+		recurring_rule: recurring_rule,
+		ev_type: ev_type
     });
     try {
-        NewEvent.save();
-        console.log("added event=" + NewEvent);
+        await NewEvent.save();
+        console.log("added event= " + NewEvent);
         res.json({ message: "OK" });
     } catch (error) {
+		console.error("Errore nella creazione dell'evento: ", error);
         res.status(500).send("Error saving new activity");
     }
 });
 //gestione richiesta post per la modifica di un'evento
 app.post("/editEvent", async (req, res) => {
     console.log("/editEvent " + req.body);
-    const { userName, eventId, title, date_start, date_end, place, participants, all_day } = req.body;
+    const { userName, eventId, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
     console.log("ricerca di eventId=" + req.body.eventId);
     var event_ = await Event.findOne({ _id: eventId, owner: userName });
     if (!event_) {
@@ -909,11 +914,15 @@ app.post("/editEvent", async (req, res) => {
         event_.place = place;
         event_.participants = participants;
         event_.all_day = all_day;
+		event_.is_recurring = is_recurring;
+		event_.recurring_rule = recurring_rule;
+		event_.ev_type = ev_type;
         try {
-            event_.save();
+            await event_.save();
             res.json({ message: "OK" });
-            console.log("salvato:" + event_);
+            console.log("saved: " + event_);
         } catch (error) {
+			console.error("Errore nel salvataggio dell'evento: ", error);
             res.status(500).send("Error modifying event");
         }
     }
@@ -954,7 +963,7 @@ app.get("/getActivities/:userName/:activityId", async (req, res) => {
     } else {
         activities = await Activity.find({ owner: userName, _id: activityId });
     }
-    console.log("return=" + activities);
+    console.log("return #" + activities.length + " activities");
     res.send(activities);
 });
 //gestione richiesta post per l'aggiunta di un'attività
@@ -965,6 +974,7 @@ app.post("/addActivity", async (req, res) => {
         owner: userName,
         title: title,
         end: end,
+		has_deadline: (end != null),
         participants: participants,
         is_completed: is_completed,
         creation_date: Date.now()
@@ -974,6 +984,7 @@ app.post("/addActivity", async (req, res) => {
         console.log("added activity=" + NewActivity);
         res.json({ message: "OK" });
     } catch (error) {
+		console.error("Errore nella crazione dell'attività: ", error);
         res.status(500).send("Error saving new activity");
     }
 });
@@ -990,6 +1001,7 @@ app.post("/editActivity", async (req, res) => {
     } else {
         activity.title = title;
         activity.end = end;
+		activity.has_deadline = (end != null);
         activity.participants = participants;
         activity.is_completed = is_completed;
         try {
@@ -997,6 +1009,7 @@ app.post("/editActivity", async (req, res) => {
             res.json({ message: "OK" });
             console.log("salvato:" + activity);
         } catch (error) {
+			console.error("Errore nel salvataggio dell'attività: ", error);
             res.status(500).send("Error modifying activity");
         }
     }
