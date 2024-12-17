@@ -75,8 +75,8 @@ const eventSchema = new mongoose.Schema({
     participants_state: { type: [String], default: [] },          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
     title: String,
     date_start: Date,                      /* data e ora di inizio */
-    date_end: Date,                        /* data e ora di fine */
-	is_recurring: Boolean,                 /* Vero se l'evento è ricorrente */
+    date_end: Date,
+    is_recurring: Boolean,                 /* Vero se l'evento è ricorrente */
 	recurring_rule: String,                /* Stringa che descrive la ricorrenza, in standard iCalendar(RFC 5545) */
     all_day: Boolean,
     place: String,
@@ -230,7 +230,6 @@ app.post("/compose", async (req, res) => {
                 }
                 var m = new Message({
                     from: user.name,
-                    to: f.name,
                     type: 'amicizia',
                 });
                 f.inbox.push(m);
@@ -610,7 +609,7 @@ app.get('/user/addFriend', async (req, res) => {
 
         var newMessage = new Message({
             from: user,
-            type: 'friend',
+            type: 'amicizia',
             action: 'add'
         });
 
@@ -629,22 +628,22 @@ app.get("/user/checkInbox", async (req, res) => {
     var username = req.query.user;
 
     try {
-		try{
-			var user = await User.findOne({ name: username });
-			if(!user){
-				res.status(404).send("User not found");
-			}
-		}catch(error){
-			res.status(500).send("Error while fetching user for messages");
-			console.log("ERRORE: ",error);
-		}
+        try{
+                var user = await User.findOne({ name: username });
+            if(!user){
+                res.status(404).send("User not found");
+            }
+        }catch(error){
+            res.status(500).send("Error while fetching user for messages");
+            console.log("ERRORE: ",error);
+        }
 
-		var newMessages = user.inbox.filter(msg => msg.seen == false);
-		if (newMessages.length > 0) {
-			res.send({ message: true });
-		} else {
-			res.send({ message: false });
-		}
+        var newMessages = user.inbox.filter(msg => msg.seen == false);
+        if (newMessages.length > 0) {
+            res.send({ message: true });
+        } else {
+            res.send({ message: false });
+        }
     } catch (error) {
         console.log("Error fetching user for inbox check: ", error);
     }
@@ -691,7 +690,7 @@ app.post("/user/messages/:msgID/accept",async (req,res) => {
         var fromUser = await User.findOne({name: msg.from});
         var toUser = await User.findOne({name: req.body.u});
 
-        if(msg.type == "friend"){
+        if(msg.type == "amicizia"){
             fromUser.friends.push(toUser.name);
             toUser.friends.push(fromUser.name);
         }
@@ -711,15 +710,21 @@ app.post("/user/messages/:msgID/accept",async (req,res) => {
 });
 
 app.post("/user/messages/:msgID/delete",async (req,res) => {
+    console.log(req.body.u);
     try{
         var msg = await Message.findOne({_id: req.params.msgID});
-        var toUser = await User.findOne({name: msg.to});
+        var toUser = await User.findOne({name: req.body.u});
+
+        console.log("UTENTE DA CUI ELIMINARE IL MESSAGGIO: ",toUser.name);
+        console.log("INBOX UTENTE: ",toUser.inbox);
+        console.log("MESSAGGIO DA ELIMINARE: ",msg);
 
         toUser.inbox.pop(toUser.inbox.findIndex((m) => {
             return m._id == msg._id;
         }));
+        console.log("NUOVA INBOX DELL'UTENTE: ",toUser.inbox);
         await Message.findByIdAndDelete({_id: msg._id});
-        await toUser.save();
+        await User.findByIdAndUpdate({_id: toUser._id},{inbox: toUser.inbox});
         res.send({message: "OK"});
     }catch(error){
         res.status(500).send("Error while fetching msg and user for message deleting");
@@ -796,7 +801,7 @@ async function realSearch(u, filter, query, searchUser) {
         });
     } else if (filter == "friends") {
         const users = await User.find({
-            name: { $reges: new RegExp(query, 'i') }
+            name: { $regex: new RegExp(query, 'i') }
         });
         users.forEach(user => {
             if (user.friends.includes(u)) {
@@ -836,10 +841,10 @@ app.post('/search', async (req, res) => {
         const user = await User.findOne({ name: req.body.user });
 
         var users;
-	var searchUser = "";
+	    var searchUser = "";
         if (friends == "true") {
             users = user.friends;
-	    searchUser = user.name;
+	        searchUser = user.name;
         } else {
             users = [user.name];
         }
@@ -868,10 +873,6 @@ app.get("/getEvents/:userName/:eventId", async (req, res) => {
     console.log("return #" + events.length + " events");
     res.send(events);
 });
-
-
-	
-	
 //gestione richiesta post per l'aggiunta di un'evento
 app.post("/addEvent", async (req, res) => {
     console.log("/addEvent " + req.body);
@@ -893,7 +894,7 @@ app.post("/addEvent", async (req, res) => {
         console.log("added event= " + NewEvent);
         res.json({ message: "OK" });
     } catch (error) {
-		console.error("Errore nella creazione dell'evento: ", error);
+        console.error("Errore nella creazione dell'evento: ", error);
         res.status(500).send("Error saving new activity");
     }
 });
@@ -914,15 +915,15 @@ app.post("/editEvent", async (req, res) => {
         event_.place = place;
         event_.participants = participants;
         event_.all_day = all_day;
-		event_.is_recurring = is_recurring;
+        event_.is_recurring = is_recurring;
 		event_.recurring_rule = recurring_rule;
 		event_.ev_type = ev_type;
         try {
             await event_.save();
             res.json({ message: "OK" });
-            console.log("saved: " + event_);
+            console.log("saved:" + event_);
         } catch (error) {
-			console.error("Errore nel salvataggio dell'evento: ", error);
+            console.error("Errore nel salvataggio dell'evento: ", error);
             res.status(500).send("Error modifying event");
         }
     }
@@ -974,7 +975,7 @@ app.post("/addActivity", async (req, res) => {
         owner: userName,
         title: title,
         end: end,
-		has_deadline: (end != null),
+        has_deadline: (end != null),
         participants: participants,
         is_completed: is_completed,
         creation_date: Date.now()
@@ -984,7 +985,7 @@ app.post("/addActivity", async (req, res) => {
         console.log("added activity=" + NewActivity);
         res.json({ message: "OK" });
     } catch (error) {
-		console.error("Errore nella crazione dell'attività: ", error);
+        onsole.error("Errore nella crazione dell'attività: ", error);
         res.status(500).send("Error saving new activity");
     }
 });
@@ -1001,7 +1002,7 @@ app.post("/editActivity", async (req, res) => {
     } else {
         activity.title = title;
         activity.end = end;
-		activity.has_deadline = (end != null);
+        activity.has_deadline = (end != null);
         activity.participants = participants;
         activity.is_completed = is_completed;
         try {
@@ -1009,7 +1010,7 @@ app.post("/editActivity", async (req, res) => {
             res.json({ message: "OK" });
             console.log("salvato:" + activity);
         } catch (error) {
-			console.error("Errore nel salvataggio dell'attività: ", error);
+            console.error("Errore nel salvataggio dell'attività: ", error);
             res.status(500).send("Error modifying activity");
         }
     }
