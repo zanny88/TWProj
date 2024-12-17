@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-    import {ref,onMounted,computed,inject} from "vue";
+    import {ref,onMounted,computed,inject,nextTick} from "vue";
     import axios from 'axios';
     import {useRouter,useRoute} from "vue-router";
     const api_url = inject('api_url');
@@ -306,27 +306,29 @@
     }
 
     async function searchFriend(){
-        var friendPayload = {
-            user: user,
-            query: friendName.value,
-            filter: "friends",
-            friends: false
-        }
-        try{
-            const r = await axios.post(`${api_url}search`,friendPayload);
-            if(r.data.length > 0){
-                friends.value = r.data.map(e => ({
-                    name: e.name
-                }));
-                friendFound.value = true;
-            }else{
-                friends.value = [];
-                friendFound.value = false;
+        if(friendName.value != ""){
+            var friendPayload = {
+                user: user,
+                query: friendName.value,
+                filter: "friends",
+                friends: false
             }
-        }catch(error){
-            console.log("Error while searching for friends: ",error);
-            friendFound.value = false;
-            friends.value = [];
+            try{
+                const r = await axios.post(`${api_url}search`,friendPayload);
+                if(r.data.length > 0){
+                    friends.value = r.data.map(e => ({
+                        name: e.name
+                    }));
+                    friendFound.value = true;
+                }else{
+                    friends.value = [];
+                    friendFound.value = false;
+                }
+            }catch(error){
+                console.log("Error while searching for friends: ",error);
+                friendFound.value = false;
+                friends.value = [];
+            }
         }
     }
 
@@ -343,6 +345,10 @@
 </script>
 
 <style scoped>
+    #del_friend:hover{
+        cursor: pointer;
+        color: red;
+    }
     .compose-container{
         display: flex;
         flex-wrap: wrap;

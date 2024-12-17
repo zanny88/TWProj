@@ -1,5 +1,5 @@
 <template>
-    <h1>Inbox <span v-if="msgs == undefined">empty</span></h1>
+    <h1>Inbox <span v-if="msgs.length <= 0">- empty</span></h1>
     <div class="container" style="justify-content: center; align-items: center;" v-if="msgs.length > 0">
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="row" v-for="(msg,index) in msgs">
@@ -16,10 +16,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref, nextTick } from "vue";
+import { onMounted, ref, nextTick, inject} from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-const api_url = "https://site232415.tw.cs.unibo.it/";
+const api_url = inject('api_url');
 const router = useRouter();
 var token = localStorage.getItem('token');
 var user = atob(token.split('.')[1]);
@@ -39,7 +39,7 @@ async function getMsg(){
 
 async function accept_msg(msg){
     try{
-        var r = await axios.post(`${api_url}user/messages/${msg._id}/accept`);
+        var r = await axios.post(`${api_url}user/messages/${msg._id}/accept`,{u: user});
         router.push({path: '/'});
     }catch(error){
         console.log("Error while accepting message [in vue component]: ",error);
@@ -48,7 +48,7 @@ async function accept_msg(msg){
 
 async function delete_msg(msg){
     try{
-        var r = await axios.post(`${api_url}user/messages/${msg._id}/delete`);
+        var r = await axios.post(`${api_url}user/messages/${msg._id}/delete`,{u: user});
         router.push({path: '/'});
     }catch(error){
         console.log("Error while deleting message [in vue component]: ",error);
