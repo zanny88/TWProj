@@ -25,14 +25,63 @@
                             <router-link class="preview-title col" to="/calendar">CALENDAR</router-link>
                         </div>
 
-                        <div class="row h-75">
+                        <div class="form-check form-switch position-absolute top-0 end-0 me-3 mt-3" style="z-index: 1000;">
+                            <label class="form-check-label" for="flexSwitchCheckCalendar">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
+                                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
+                                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
+                                  </svg>
+                            </label>
+
+                            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckCalendar" v-model="calendarToggle">
+
+                            <label class="form-check-label" for="flexSwitchCheckCalendar">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar-week" viewBox="0 0 16 16">
+                                    <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-5 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
+                                    <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
+                                  </svg>
+                            </label>
+                            
+                        </div>
+                          
+
+                        <div class="hstack h-50">
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothCalendar1.png" class="img-fluid preview-img"/></div>
-                            <div class="col d-flex flex-column preview-info">
-                                <div>Calendar preview:</div>
-                                <div id="calendar-preview-info">
-									<p v-html="today_events" />
-								</div>
-                            </div>
+
+
+                                <div v-if="!calendarToggle" class="col d-flex flex-column preview-info">
+                                    <div>Events today:</div> 
+                                    <div class="calendar-preview-info"> 
+                                        <div v-if="today_events">
+                                            <div v-for="event in today_events.slice(0,2)" :key="event" style="margin-bottom: 0.5rem;">
+                                                {{event.substring(0, 20) + (event.length > 20 ? '...' : '')}}
+                                            </div>
+                                            <div v-if="today_events.length > 2" style="font-style: italic;">...and more</div>
+                                        </div>
+                                        <div v-else style="font-style: italic;">No events today.</div>
+                                    </div>
+                                </div>
+
+                                <div v-if="!calendarToggle" class="col-1 vr ms-3 me-3" style="color: #B8BDB5;"></div>
+
+                                <div v-if="!calendarToggle" class="col d-flex flex-column preview-info">
+                                    <div>Activities today:</div> 
+                                    <div class="calendar-preview-info"> 
+                                        <div v-if="today_activities">
+                                            <div v-for="activity in today_activities.slice(0,2)" :key="activity" style="margin-bottom: 0.5rem;">
+                                                {{activity.substring(0, 20) + (activity.length > 20 ? '...' : '')}}
+                                            </div>
+                                            <div v-if="today_activities.length > 2" style="font-style: italic;">...and more</div>
+                                        </div>
+                                        <div v-else style="font-style: italic;">No activities today.</div>
+                                    </div>
+                                </div>
+
+                                <div v-else class="col d-flex flex-column preview-info">
+                                    <div>Pretend something is here</div> 
+                                    <!-- TODO: Preview for current week -->
+                                </div>
+                                
                         </div>
                     </div>
                 </div>
@@ -73,22 +122,35 @@
                             <router-link class="preview-title col" to="/showNote">NOTES</router-link>
                         </div>
 
+                        <div class="form-check form-switch position-absolute top-0 end-0 me-3 mt-3" style="z-index: 1000;">
+                            <label class="form-check-label" for="flexSwitchCheckNote">
+                                Oldest
+                            </label>
+
+                            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckNote" v-model="latestNoteToggle">
+
+                            <label class="form-check-label" for="flexSwitchCheckNote">
+                                Latest
+                            </label>
+                            
+                        </div>
+
                         <div class="row h-75">
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothStudying.png" class="img-fluid preview-img"/></div>
                             <div class="col d-flex flex-column preview-info align-items-center">
-                                <div style="margin-bottom: 0.5rem">Latest note:</div>
+                                <div style="margin-bottom: 0.5rem">{{latestNoteToggle? 'Latest' : 'Oldest'}} note:</div>
 
-                                <div class="card" style="width: 14rem;" v-if="latestNoteId != ''" id="latest-note-card">
+                                <div class="card" style="width: 14rem;" v-if="displayedNoteId != ''" id="latest-note-card">
                                     <div class="card-body">
                                       <h5 class="card-title">
                                         <router-link 
                                             
                                             id="latest-note-link"
-                                            :to="`/note/${latestNoteId}`">{{latestNoteHeading}}
+                                            :to="`/note/${displayedNoteId}`">{{displayedNoteHeading}}
                                         </router-link>
                                         </h5>
                                         <hr>
-                                      <p class="card-text" v-if="latestNoteContent != ''">{{latestNoteContent}}</p>
+                                      <p class="card-text" v-if="displayedNoteContent != ''">{{displayedNoteContent}}</p>
                                       <p class="card-text" v-else style="font-style: italic;">(no content provided)</p>
                                     </div>
                                   </div>
@@ -175,7 +237,7 @@ Palette 1:
     font-size: 0.8em;
 }
 
-#calendar-preview-info{
+.calendar-preview-info{
     font-size: 0.8em;
 }
 
@@ -261,6 +323,20 @@ Palette 1:
     75%   { transform: translate(0, 0px); }    
     100%   { transform: translate(0, -3px); }    
 }
+
+
+.form-check {
+    display: flex;
+    align-items: center;
+  }
+  
+  .form-check-label:first-of-type {
+    margin-right: 44px; /* Adjust as needed */
+  }
+  
+  .form-check-label:last-of-type {
+    margin-left: 4px; /* Adjust as needed */
+  }
 
 /*****************Animated background credit: https://codepen.io/mohaiman/pen/MQqMyo*************************/
 
@@ -372,10 +448,11 @@ Palette 1:
 }
 
 /*********************************************************************/
+
 </style>
 
 <script setup>
-import {inject, ref, onMounted} from "vue";
+import {inject, ref, onMounted, watch} from "vue";
 import axios from 'axios';
 import { nextTick } from 'vue';
 import { Calendar } from '@fullcalendar/core';
@@ -391,10 +468,23 @@ const notes_api_url = inject('notes_api_url');
 const token = localStorage.getItem('token');
 
 let latestPomodoroSession = ref('');
+
 let latestNoteId =  ref('');
 let latestNoteHeading =  ref('');
 let latestNoteContent = ref('');
-const today_events = ref('');
+
+let oldestNoteId =  ref('');
+let oldestNoteHeading =  ref('');
+let oldestNoteContent = ref('');
+
+let displayedNoteId =  ref('');
+let displayedNoteHeading =  ref('');
+let displayedNoteContent = ref('');
+
+const today_events = ref([]);
+const today_activities = ref([]);
+const calendarToggle = ref(false);
+const latestNoteToggle = ref(true);
 
 async function get_latest_pomodoro_stats(){
     const target = document.getElementById("pomodoro-preview-info");
@@ -418,7 +508,7 @@ async function get_latest_pomodoro_stats(){
         target.innerText = "No session exists.";
 }
 
-async function get_latest_note_heading(){
+async function get_note_preview(){
 
     // const user = (await axios.post(`${api_url}getUser`)).data.name;
     var user;
@@ -427,27 +517,50 @@ async function get_latest_note_heading(){
         user = atob(token.split('.')[1]);
     }
 
-    var note = await axios.post(`${notes_api_url}latest`, {user: user});
+    try{
+        var latestNote = await axios.post(`${notes_api_url}latest`, {user: user});
+        var oldestNote = await axios.post(`${notes_api_url}oldest`, {user: user});
 
-    if(note.data){
-        const data = note.data;
-        latestNoteId.value = data._id;
-        latestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
-        if(data.content){
-            let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
-            latestNoteContent.value = tmpContent;
+        if(latestNote.data){
+            const data = latestNote.data;
+            latestNoteId.value = data._id;
+            latestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
+            if(data.content){
+                let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
+                latestNoteContent.value = tmpContent;
+            }
         }
+
+        if(oldestNote.data){
+            const data = oldestNote.data;
+            oldestNoteId.value = data._id;
+            oldestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
+            if(data.content){
+                let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
+                oldestNoteContent.value = tmpContent;
+            }
+        }
+
+        if(latestNoteToggle.value){
+            displayedNoteId.value = latestNoteId.value;
+            displayedNoteHeading.value = latestNoteHeading.value;
+            displayedNoteContent.value = latestNoteContent.value;
+        }
+        else{
+            displayedNoteId.value = oldestNoteId.value;
+            displayedNoteHeading.value = oldestNoteHeading.value;
+            displayedNoteContent.value = oldestNoteContent.value;
+        }
+    } catch(error) {
+        console.error("Error fetching notes: ",error);
     }
 }
-
-
-
-
 
 async function get_today_events(){
 	const Events = ref([]);
 	const Activities = ref([]);
-	today_events.value = '';
+	today_events.value = [];
+    today_activities.value = [];
 	
 	// Crea un elemento DOM temporaneo e non aggiungerlo al DOM visibile
     const tempEl = document.createElement('div');
@@ -502,7 +615,9 @@ async function get_today_events(){
 			}
 			title += ev.title;
 			//console.log("ev="+title);
-			today_events.value += title + "<br/>";
+			if(ev.extendedProps.class == "activity")
+                today_activities.value.push(title);
+            else today_events.value.push(title);
 		}
 	}catch(error){
 		//alert('Error: '+error);
@@ -515,8 +630,21 @@ async function get_today_events(){
 
 onMounted(() => {
     get_latest_pomodoro_stats();
-    get_latest_note_heading();
+    get_note_preview();
 	get_today_events();
+});
+
+watch(latestNoteToggle, (newVal) => {
+    if(newVal){
+        displayedNoteId.value = latestNoteId.value;
+        displayedNoteHeading.value = latestNoteHeading.value;
+        displayedNoteContent.value = latestNoteContent.value;
+    }
+    else{
+        displayedNoteId.value = oldestNoteId.value;
+        displayedNoteHeading.value = oldestNoteHeading.value;
+        displayedNoteContent.value = oldestNoteContent.value;
+    }
 });
 
 </script>

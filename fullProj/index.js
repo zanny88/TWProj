@@ -77,7 +77,7 @@ const eventSchema = new mongoose.Schema({
     date_start: Date,                      /* data e ora di inizio */
     date_end: Date,
     is_recurring: Boolean,                 /* Vero se l'evento è ricorrente */
-	recurring_rule: String,                /* Stringa che descrive la ricorrenza, in standard iCalendar(RFC 5545) */
+    recurring_rule: String,                /* Stringa che descrive la ricorrenza, in standard iCalendar(RFC 5545) */
     all_day: Boolean,
     place: String,
     notification_advance: Number,           /* anticipo in minuti nella notifica */
@@ -175,6 +175,29 @@ app.post("/getNotes/latest", async (req, res) => {
     }
 });
 
+app.post("/getNotes/oldest", async (req, res) => {
+    const { user } = req.body;
+    try {
+        var userNotes = await Note.find({ user: user }).sort({ date: "ascending" });
+        const now = new Date().getTime();
+        console.log("In /getNotes/oldest, userNotes: ", userNotes);
+
+        //When time machine is implemented, TODO: change initialization of "now" constant above
+
+        //Either no note exists, or none of them are before the time considered as "now"
+        if (userNotes.length == 0 || userNotes[0].date > now) {
+            res.json(undefined);
+        }
+        else {
+            res.send(userNotes[0]);
+        }
+
+    } catch (error) {
+        console.log("Error: ", error);
+        res.status(500).send("Error while reading oldest note");
+    }
+});
+
 //gestione richiesta post per richiedere un numero di note (con limit = -1 si ottengono tutte le note) 
 app.post("/getNotes/:limit", async (req, res) => {
     var lim = Number(req.params.limit);
@@ -205,27 +228,27 @@ app.post("/compose", async (req, res) => {
     var savedDocument;
     var user;
 
-    try{
-        user = await User.findOne({name: author});
-        if(!user){
+    try {
+        user = await User.findOne({ name: author });
+        if (!user) {
             res.status(404).send("Error user creating post not found");
         }
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Error while fetching user who create post");
     }
 
     var friends = [];
 
-    if(share.length > 0){
+    if (share.length > 0) {
         friends = share.split('-');
         friends.forEach(async (friend) => {
-            if(!(user.friends.includes(friend))){
-                try{
-                    var f = await User.findOne({name: friend});
-                    if(!f){
+            if (!(user.friends.includes(friend))) {
+                try {
+                    var f = await User.findOne({ name: friend });
+                    if (!f) {
                         res.status(404).send("New friend not found");
                     }
-                }catch(error){
+                } catch (error) {
                     res.status(500).send("Error fetching new friend while compose");
                 }
                 var m = new Message({
@@ -265,7 +288,7 @@ app.post("/compose", async (req, res) => {
                 content: content,
                 place: place,
                 tags: tags.split(',').map(tag => tag.trim()),
-		view_list: friends
+                view_list: friends
             });
         }
     } else {
@@ -616,7 +639,7 @@ app.get('/user/addFriend', async (req, res) => {
         old_inbox.push(newMessage);
 
         const r = await User.findByIdAndUpdate({ _id: friend._id }, { inbox: old_inbox });
-	await newMessage.save();
+        await newMessage.save();
         res.send("OK");
     } catch (error) {
         console.log("Errore nell'agigunta di un amico: ", error);
@@ -628,14 +651,14 @@ app.get("/user/checkInbox", async (req, res) => {
     var username = req.query.user;
 
     try {
-        try{
-                var user = await User.findOne({ name: username });
-            if(!user){
+        try {
+            var user = await User.findOne({ name: username });
+            if (!user) {
                 res.status(404).send("User not found");
             }
-        }catch(error){
+        } catch (error) {
             res.status(500).send("Error while fetching user for messages");
-            console.log("ERRORE: ",error);
+            console.log("ERRORE: ", error);
         }
 
         var newMessages = user.inbox.filter(msg => msg.seen == false);
@@ -649,48 +672,48 @@ app.get("/user/checkInbox", async (req, res) => {
     }
 });
 
-app.get("/user/getMessages",async (req,res) => {
+app.get("/user/getMessages", async (req, res) => {
     var username = req.query.user;
-    try{
-        var user = await User.findOne({name: username});
-        if(!user){
+    try {
+        var user = await User.findOne({ name: username });
+        if (!user) {
             res.status(404).send("User not found");
         }
 
         res.json(user.inbox);
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Error fetching user for messages");
     }
 });
 
-app.post("/user/checkMessages",async (req,res) => {
+app.post("/user/checkMessages", async (req, res) => {
     var username = req.body.u;
     var messages = req.body.messages;
 
-    var user = await User.findOne({name: username});
+    var user = await User.findOne({ name: username });
 
     user.inbox.map(msg => msg.seen = true);
     await user.save();
 
     messages.forEach(async (msg) => {
-        var m = await Message.findOne({_id: msg._id});
+        var m = await Message.findOne({ _id: msg._id });
         m.seen = true;
         await m.save();
     });
-    res.send({message: "OK"});
+    res.send({ message: "OK" });
 });
 
 /*function delete_msg(ID){
 
 }*/
 
-app.post("/user/messages/:msgID/accept",async (req,res) => {
-    try{
-        var msg = await Message.findOne({_id: req.params.msgID});
-        var fromUser = await User.findOne({name: msg.from});
-        var toUser = await User.findOne({name: req.body.u});
+app.post("/user/messages/:msgID/accept", async (req, res) => {
+    try {
+        var msg = await Message.findOne({ _id: req.params.msgID });
+        var fromUser = await User.findOne({ name: msg.from });
+        var toUser = await User.findOne({ name: req.body.u });
 
-        if(msg.type == "amicizia"){
+        if (msg.type == "amicizia") {
             fromUser.friends.push(toUser.name);
             toUser.friends.push(fromUser.name);
         }
@@ -699,48 +722,48 @@ app.post("/user/messages/:msgID/accept",async (req,res) => {
             return String(m._id) == String(msg._id);
         }));
 
-        await Message.findByIdAndDelete({_id: msg._id});
-        await User.findByIdAndUpdate({_id: toUser._id},{friends: toUser.friends, inbox: toUser.inbox});
-        await User.findByIdAndUpdate({_id: fromUser._id},{friends: fromUser.friends});
+        await Message.findByIdAndDelete({ _id: msg._id });
+        await User.findByIdAndUpdate({ _id: toUser._id }, { friends: toUser.friends, inbox: toUser.inbox });
+        await User.findByIdAndUpdate({ _id: fromUser._id }, { friends: fromUser.friends });
 
-        res.send({message: "OK"});
-    }catch(error){
+        res.send({ message: "OK" });
+    } catch (error) {
         res.status(500).send("Error while fetching msg and users for accepting message");
     }
 });
 
-app.post("/user/messages/:msgID/delete",async (req,res) => {
+app.post("/user/messages/:msgID/delete", async (req, res) => {
     console.log(req.body.u);
-    try{
-        var msg = await Message.findOne({_id: req.params.msgID});
-        var toUser = await User.findOne({name: req.body.u});
+    try {
+        var msg = await Message.findOne({ _id: req.params.msgID });
+        var toUser = await User.findOne({ name: req.body.u });
 
-        console.log("UTENTE DA CUI ELIMINARE IL MESSAGGIO: ",toUser.name);
-        console.log("INBOX UTENTE: ",toUser.inbox);
-        console.log("MESSAGGIO DA ELIMINARE: ",msg);
+        console.log("UTENTE DA CUI ELIMINARE IL MESSAGGIO: ", toUser.name);
+        console.log("INBOX UTENTE: ", toUser.inbox);
+        console.log("MESSAGGIO DA ELIMINARE: ", msg);
 
         toUser.inbox.pop(toUser.inbox.findIndex((m) => {
             return m._id == msg._id;
         }));
-        console.log("NUOVA INBOX DELL'UTENTE: ",toUser.inbox);
-        await Message.findByIdAndDelete({_id: msg._id});
-        await User.findByIdAndUpdate({_id: toUser._id},{inbox: toUser.inbox});
-        res.send({message: "OK"});
-    }catch(error){
+        console.log("NUOVA INBOX DELL'UTENTE: ", toUser.inbox);
+        await Message.findByIdAndDelete({ _id: msg._id });
+        await User.findByIdAndUpdate({ _id: toUser._id }, { inbox: toUser.inbox });
+        res.send({ message: "OK" });
+    } catch (error) {
         res.status(500).send("Error while fetching msg and user for message deleting");
     }
 });
 
-app.get("/user/info/:user",async (req,res) => {
-    try{
-        var u = await User.findOne({name: req.params.user});
+app.get("/user/info/:user", async (req, res) => {
+    try {
+        var u = await User.findOne({ name: req.params.user });
 
-        if(!u){
+        if (!u) {
             res.status(404).send("Utente non trovato");
         }
 
         res.json(u);
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Errore (nel server) durante il fetch dell'utente per le info");
     }
 });
@@ -754,7 +777,7 @@ app.post("/user/:regType", async (req, res, next) => {
 
     if (req.params.regType == "Login") {
         passport.authenticate('local', (err, user, info) => {
-            if (err){
+            if (err) {
                 console.log("errore login in index");
                 return next(err);
             }
@@ -841,10 +864,10 @@ app.post('/search', async (req, res) => {
         const user = await User.findOne({ name: req.body.user });
 
         var users;
-	    var searchUser = "";
+        var searchUser = "";
         if (friends == "true") {
             users = user.friends;
-	        searchUser = user.name;
+            searchUser = user.name;
         } else {
             users = [user.name];
         }
@@ -885,9 +908,9 @@ app.post("/addEvent", async (req, res) => {
         place: place,
         participants: participants,
         all_day: all_day,
-		is_recurring: is_recurring,
-		recurring_rule: recurring_rule,
-		ev_type: ev_type
+        is_recurring: is_recurring,
+        recurring_rule: recurring_rule,
+        ev_type: ev_type
     });
     try {
         await NewEvent.save();
@@ -916,8 +939,8 @@ app.post("/editEvent", async (req, res) => {
         event_.participants = participants;
         event_.all_day = all_day;
         event_.is_recurring = is_recurring;
-		event_.recurring_rule = recurring_rule;
-		event_.ev_type = ev_type;
+        event_.recurring_rule = recurring_rule;
+        event_.ev_type = ev_type;
         try {
             await event_.save();
             res.json({ message: "OK" });
@@ -929,27 +952,27 @@ app.post("/editEvent", async (req, res) => {
     }
 });
 //gestione richiesta post per la cancellazione di un evento
-app.post("/deleteEvent",async (req, res) => {
-	console.log("/deleteEvent " + req.body);
-	const {userName, eventId} = req.body;
-	console.log("ricerca di eventId=" + req.body.eventId);
-	try{
-		var event_ = await Event.findOne({_id: eventId, owner: userName});
-		if(!event_){
-			console.log("Evento non trovato: " + eventId);
-			res.json({
-				message: "event not found"
-			});
-		}else{
-			r = await Event.findByIdAndDelete(eventId);
-			console.log("cancellato:" + eventId);
-			//if(!r){
-			//	return res.status(404).send("Event not found");
-			//}
-			res.json({message: "OK"});
-		}
-    }catch(error){
-        console.log("ERRORE: ",error);
+app.post("/deleteEvent", async (req, res) => {
+    console.log("/deleteEvent " + req.body);
+    const { userName, eventId } = req.body;
+    console.log("ricerca di eventId=" + req.body.eventId);
+    try {
+        var event_ = await Event.findOne({ _id: eventId, owner: userName });
+        if (!event_) {
+            console.log("Evento non trovato: " + eventId);
+            res.json({
+                message: "event not found"
+            });
+        } else {
+            r = await Event.findByIdAndDelete(eventId);
+            console.log("cancellato:" + eventId);
+            //if(!r){
+            //	return res.status(404).send("Event not found");
+            //}
+            res.json({ message: "OK" });
+        }
+    } catch (error) {
+        console.log("ERRORE: ", error);
         res.status(500).send("Error deleting event");
     }
 });
@@ -1015,27 +1038,27 @@ app.post("/editActivity", async (req, res) => {
         }
     }
 });
-app.post("/deleteActivity",async (req, res) => {
-	console.log("/deleteActivity " + req.body);
-	const {userName, activityId} = req.body;
-	console.log("ricerca di activityId=" + req.body.activityId);
-	try{
-		var activity_ = await Activity.findOne({_id: activityId, owner: userName});
-		if(!activity_){
-			console.log("Attivita non trovata: " + activityId);
-			res.json({
-				message: "activity not found"
-			});
-		}else{
-			r = await Activity.findByIdAndDelete(activityId);
-			console.log("cancellato:" + activityId);
-			//if(!r){
-			//	return res.status(404).send("Activity not found");
-			//}
-			res.json({message: "OK"});
-		}
-    }catch(error){
-        console.log("ERRORE: ",error);
+app.post("/deleteActivity", async (req, res) => {
+    console.log("/deleteActivity " + req.body);
+    const { userName, activityId } = req.body;
+    console.log("ricerca di activityId=" + req.body.activityId);
+    try {
+        var activity_ = await Activity.findOne({ _id: activityId, owner: userName });
+        if (!activity_) {
+            console.log("Attivita non trovata: " + activityId);
+            res.json({
+                message: "activity not found"
+            });
+        } else {
+            r = await Activity.findByIdAndDelete(activityId);
+            console.log("cancellato:" + activityId);
+            //if(!r){
+            //	return res.status(404).send("Activity not found");
+            //}
+            res.json({ message: "OK" });
+        }
+    } catch (error) {
+        console.log("ERRORE: ", error);
         res.status(500).send("Error deleting activity");
     }
 });
