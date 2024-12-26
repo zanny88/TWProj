@@ -25,7 +25,7 @@
                             <router-link class="preview-title col" to="/calendar">CALENDAR</router-link>
                         </div>
 
-                        <div class="form-check form-switch position-absolute top-0 end-0 me-3 mt-3" style="z-index: 1000;">
+                        <div class="form-check form-switch position-absolute top-0 end-0 me-3 me-md-5 mt-0" style="z-index: 1000;">
                             <label class="form-check-label" for="flexSwitchCheckCalendar">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
                                     <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
@@ -52,7 +52,7 @@
                                 <div v-if="!calendarToggle" class="col d-flex flex-column preview-info">
                                     <div>Events today:</div> 
                                     <div class="calendar-preview-info"> 
-                                        <div v-if="today_events">
+                                        <div v-if="today_events.length > 0">
                                             <div v-for="event in today_events.slice(0,2)" :key="event" style="margin-bottom: 0.5rem;">
                                                 {{event.substring(0, 20) + (event.length > 20 ? '...' : '')}}
                                             </div>
@@ -67,7 +67,7 @@
                                 <div v-if="!calendarToggle" class="col d-flex flex-column preview-info">
                                     <div>Activities today:</div> 
                                     <div class="calendar-preview-info"> 
-                                        <div v-if="today_activities">
+                                        <div v-if="today_activities.length > 0">
                                             <div v-for="activity in today_activities.slice(0,2)" :key="activity" style="margin-bottom: 0.5rem;">
                                                 {{activity.substring(0, 20) + (activity.length > 20 ? '...' : '')}}
                                             </div>
@@ -94,19 +94,54 @@
                             <router-link class="preview-title col" to="/pomodoro">POMODORO</router-link>
                         </div>
 
+                        <div class="form-check form-switch position-absolute top-0 end-0 me-3 me-md-5 mt-0" style="z-index: 1000;">
+                            <label class="form-check-label" for="flexSwitchCheckPomodoro">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
+                                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
+                                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
+                                </svg>
+                            </label>
+
+                            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckPomodoro" v-model="pomodoroToggle">
+
+                            <label class="form-check-label" for="flexSwitchCheckPomodoro">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07"/>
+                                </svg>
+                            </label>
+                            
+                        </div>
+
                         <div class="hstack h-50">
-                            <div class="col d-flex flex-column preview-info">
+                            <div v-if="!pomodoroToggle" class="col d-flex flex-column preview-info">
                                 <div>Latest:</div>
                                 <div id="pomodoro-preview-info">
-                                    <router-link 
-                                        v-if="latestPomodoroSession != ''"
-                                        id="resume-pomodoro-link"
-                                        :to="`/pomodoro/${latestPomodoroSession}`">
-                                            RESUME
-                                    </router-link>
+
+                                    <div v-if="latestPomodoroSession?._id">
+                                        <div>Study: {{latestPomodoroSession?.studyTime}} min.</div>
+                                        <div>Rest: {{latestPomodoroSession?.restTime}} min.</div>
+                                        <div>Cycles: {{latestPomodoroSession?.completedCycles}}/{{latestPomodoroSession.totCycles}}</div>
+                                    
+                                        <router-link 
+                                            v-if="latestPomodoroSession.completedCycles < latestPomodoroSession.totCycles"
+                                            id="resume-pomodoro-link"
+                                            :to="`/pomodoro/${latestPomodoroSession?._id}`">
+                                                RESUME
+                                        </router-link>
+                                    </div>
                                     <div v-else>No previous session to resume.</div>
                                 </div>
                             </div>
+
+                            <div v-else class="col d-flex flex-column preview-info">
+                                <div>Stats for last week:</div>
+                                <div id="pomodoro-preview-info">
+                                    <div>Sessions completed: {{Math.floor(pomodoroWeekStats.percentOfCompletedSessions)}}% ({{pomodoroWeekStats.completedSessionsCount}}/{{ pomodoroWeekStats.sessionsCount }})</div>
+                                    <div>Cycles completed: {{Math.floor(pomodoroWeekStats.percentOfCompletedCycles)}}% ({{pomodoroWeekStats.completedCyclesCount}}/{{ pomodoroWeekStats.cyclesCount }})</div>
+                                
+                                </div>
+                            </div>
+
                             <div class="col-1 vr ms-3 me-3" style="color: #B8BDB5;"></div>
                             <div class="col"><router-link :to="'/pomodoro'"><button class="btn badge-pill btn-light fw-bold p-2" id="new-session-btn">NEW SESSION</button></router-link></div>
                             <div class="col container preview-img-container d-none d-sm-block"><img src="../assets/slothTomato.png" class="img-fluid preview-img"/></div>
@@ -122,15 +157,15 @@
                             <router-link class="preview-title col" to="/showNote">NOTES</router-link>
                         </div>
 
-                        <div class="form-check form-switch position-absolute top-0 end-0 me-3 mt-3" style="z-index: 1000;">
+                        <div class="form-check form-switch position-absolute top-0 end-0 me-3 me-md-5 mt-0" style="z-index: 1000;">
                             <label class="form-check-label" for="flexSwitchCheckNote">
-                                Oldest
+                                Old
                             </label>
 
                             <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckNote" v-model="latestNoteToggle">
 
                             <label class="form-check-label" for="flexSwitchCheckNote">
-                                Latest
+                                New
                             </label>
                             
                         </div>
@@ -467,94 +502,26 @@ const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const notes_api_url = inject('notes_api_url');
 const token = localStorage.getItem('token');
 
-let latestPomodoroSession = ref('');
+const latestPomodoroSession = ref({});
+const pomodoroWeekStats = ref({});
 
-let latestNoteId =  ref('');
-let latestNoteHeading =  ref('');
-let latestNoteContent = ref('');
+const latestNoteId =  ref('');
+const latestNoteHeading =  ref('');
+const latestNoteContent = ref('');
 
-let oldestNoteId =  ref('');
-let oldestNoteHeading =  ref('');
-let oldestNoteContent = ref('');
+const oldestNoteId =  ref('');
+const oldestNoteHeading =  ref('');
+const oldestNoteContent = ref('');
 
-let displayedNoteId =  ref('');
-let displayedNoteHeading =  ref('');
-let displayedNoteContent = ref('');
+const displayedNoteId =  ref('');
+const displayedNoteHeading =  ref('');
+const displayedNoteContent = ref('');
 
 const today_events = ref([]);
 const today_activities = ref([]);
 const calendarToggle = ref(false);
+const pomodoroToggle = ref(false);
 const latestNoteToggle = ref(true);
-
-async function get_latest_pomodoro_stats(){
-    const target = document.getElementById("pomodoro-preview-info");
-
-    // const user = (await axios.post(`${api_url}getUser`)).data.name;
-    var user;
-
-    if(token != null){
-        user = atob(token.split('.')[1]);
-    }
-
-    var session = await axios.post(`${pomodoro_sessions_api_url}read/latest`, {user: user});
-    if(session.data){
-        const data = session.data;
-        latestPomodoroSession.value = data._id;
-        target.insertAdjacentHTML('afterbegin', `<div>Study: ${data.studyTime} min.</div>
-                            <div>Rest: ${data.restTime} min.</div>
-                            <div>Cycles: ${data.completedCycles}/${data.totCycles}</div>`);
-    }
-    else
-        target.innerText = "No session exists.";
-}
-
-async function get_note_preview(){
-
-    // const user = (await axios.post(`${api_url}getUser`)).data.name;
-    var user;
-
-    if(token != null){
-        user = atob(token.split('.')[1]);
-    }
-
-    try{
-        var latestNote = await axios.post(`${notes_api_url}latest`, {user: user});
-        var oldestNote = await axios.post(`${notes_api_url}oldest`, {user: user});
-
-        if(latestNote.data){
-            const data = latestNote.data;
-            latestNoteId.value = data._id;
-            latestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
-            if(data.content){
-                let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
-                latestNoteContent.value = tmpContent;
-            }
-        }
-
-        if(oldestNote.data){
-            const data = oldestNote.data;
-            oldestNoteId.value = data._id;
-            oldestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
-            if(data.content){
-                let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
-                oldestNoteContent.value = tmpContent;
-            }
-        }
-
-        if(latestNoteToggle.value){
-            displayedNoteId.value = latestNoteId.value;
-            displayedNoteHeading.value = latestNoteHeading.value;
-            displayedNoteContent.value = latestNoteContent.value;
-        }
-        else{
-            displayedNoteId.value = oldestNoteId.value;
-            displayedNoteHeading.value = oldestNoteHeading.value;
-            displayedNoteContent.value = oldestNoteContent.value;
-        }
-    } catch(error) {
-        console.error("Error fetching notes: ",error);
-    }
-}
 
 async function get_today_events(){
 	const Events = ref([]);
@@ -628,8 +595,97 @@ async function get_today_events(){
     }
 }
 
+async function get_latest_pomodoro_stats(){
+    var user;
+
+    if(token != null){
+        user = atob(token.split('.')[1]);
+    }
+
+    try{
+        var session = await axios.post(`${pomodoro_sessions_api_url}read/latest`, {user: user});
+        if(session.data){
+            latestPomodoroSession.value = session.data;
+        }
+        else
+            latestPomodoroSession.value = {};
+    } catch(error) {   
+        console.error("Error fetching latest pomodoro session: ", error);
+    }
+}
+
+async function get_pomodoro_week_stats(){
+    var user;
+
+    if(token != null){
+        user = atob(token.split('.')[1]);
+    }
+
+    try{
+        var weekStats = await axios.post(`${pomodoro_sessions_api_url}read/week_stats`, {user: user});
+        if(weekStats.data){
+            pomodoroWeekStats.value = weekStats.data;
+        }
+        else {
+            pomodoroWeekStats.value = {};
+        }
+        console.log("Pomodoro week stats: ", pomodoroWeekStats.value);
+    } catch(error) {
+        console.error("Error fetching pomodoro weekly stats: ", error);
+    }
+}
+
+async function get_note_preview(){
+
+// const user = (await axios.post(`${api_url}getUser`)).data.name;
+var user;
+
+if(token != null){
+    user = atob(token.split('.')[1]);
+}
+
+try{
+    var latestNote = await axios.post(`${notes_api_url}latest`, {user: user});
+    var oldestNote = await axios.post(`${notes_api_url}oldest`, {user: user});
+
+    if(latestNote.data){
+        const data = latestNote.data;
+        latestNoteId.value = data._id;
+        latestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
+        if(data.content){
+            let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
+            latestNoteContent.value = tmpContent;
+        }
+    }
+
+    if(oldestNote.data){
+        const data = oldestNote.data;
+        oldestNoteId.value = data._id;
+        oldestNoteHeading.value = data.heading.substring(0, 20) + (data.heading.length > 20 ? '...' : '');
+        if(data.content){
+            let tmpContent = data.content.substring(0, 20) + (data.content.length > 20 ? '...' : '');
+            oldestNoteContent.value = tmpContent;
+        }
+    }
+
+    if(latestNoteToggle.value){
+        displayedNoteId.value = latestNoteId.value;
+        displayedNoteHeading.value = latestNoteHeading.value;
+        displayedNoteContent.value = latestNoteContent.value;
+    }
+    else{
+        displayedNoteId.value = oldestNoteId.value;
+        displayedNoteHeading.value = oldestNoteHeading.value;
+        displayedNoteContent.value = oldestNoteContent.value;
+    }
+} catch(error) {
+    console.error("Error fetching notes: ",error);
+}
+}
+
 onMounted(() => {
     get_latest_pomodoro_stats();
+    get_pomodoro_week_stats();
     get_note_preview();
 	get_today_events();
 });

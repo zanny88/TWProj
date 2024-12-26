@@ -1,7 +1,3 @@
-<!-- 
-TODO: centrare bottoni nel coso espandibile se width bassa
--->
-
 <template>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,11 +16,7 @@ TODO: centrare bottoni nel coso espandibile se width bassa
             <li></li>
          </ul>
 
-        <main>
-            <!--
-            <button class="btn" @click.prevent="get_latest">Get latest</button>
-            -->
-            
+        <main>            
             <div class="modal fade" id="notificationModal" tabindex="-1" role="dialog" aria-labelledby="notificationModalTitle" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                   <div class="modal-content">
@@ -163,18 +155,6 @@ let loaded_session = false;
 
 let start_pause_time;
 let end_pause_time;
-
-/*
-const sessionSchema = new mongoose.Schema({
-    user: String,
-    studyTime: Number,
-    restTime: Number,
-    totCycles: Number,
-    completedCycles: Number,
-    state: { type: String, default: "study" },
-    dateTime: { type: Date }
-});
-*/
 
 let currentSession = computed(() => {
     return {

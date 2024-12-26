@@ -7,14 +7,14 @@ npm install
 
 
 ```
-nodemon index.js
+npx nodemon index.js
 ```
 
 2b. In /fullProj/, 
 
 
 ```
-vue serve
+npm run serve
 ```
 
 The app will be available on localhost:8080

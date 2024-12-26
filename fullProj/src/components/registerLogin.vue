@@ -75,8 +75,6 @@
                 password: passwd.value
             }
             const r = await axios.post(api_url + "user/" + formType.value, newUser);
-            console.log(r.data.message);
-            console.log(formType);
 
             if(r.data.message == "already user"){
                 showDismissibleAlert.value = true;
