@@ -45,13 +45,13 @@
             <div class="row d-flex position-relative" style="justify-content: center; align-items: center;" id="input_friends">
                 <div class="col-lg-4 col-md-4 col-sm-4 position-relative">
                     <div class="form-floating">
-                        <textarea type="text" class="form-control" id="share" @input="searchFriend()" @keydown.enter.prevent="appendFriend(friendName)" v-model="friendName" style="width: 100%;"></textarea>
-                        <label for="search">Add friends:</label>
+                        <textarea type="text" class="form-control" id="share" @input="searchUser()" @keydown.enter.prevent="appendUser(userName)" v-model="userName" style="width: 100%;"></textarea>
+                        <label for="search">View List:</label>
                     </div>
                 </div>
-                <div class="list-group position-absolute w-100" style="top: calc(100% + 5px); z-index: 1050; width: 100%;" id="friends" v-if="friendName.length > 0 && friendFound">
+                <div class="list-group position-absolute w-100" style="top: calc(100% + 5px); z-index: 1050; width: 100%;" id="friends" v-if="userName.length > 0 && userFound">
                     <div
-                        v-for="(el,index) in friends"
+                        v-for="(el,index) in users"
                         :key = "index"
                         class="list-group-item list-group-item-action"
                         @click="appendFriend(el.name)"
@@ -59,8 +59,8 @@
                         {{ el.name }}
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-4 col-sm-4" v-if="friendsToShare.length > 0">
-                    <div v-for="(friend,index) in friendsToShare" :key="index" class="d-inline-block me-2">
+                <div class="col-lg-4 col-md-4 col-sm-4" v-if="usersToShare.length > 0">
+                    <div v-for="(friend,index) in usersToShare" :key="index" class="d-inline-block me-2">
                         <span>{{ friend }}</span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x" id="del_friend" viewBox="0 0 16 16" @click="deleteFriend(index)">
                             <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
@@ -103,23 +103,32 @@
     var publicCheck = ref(false);
     var insertType = ref(["Note","To do list, put only one task for line"]);//array utilizzato per il display delle informazioni del tipo di post che si vuole salvare
     //viene utilizzato ref perchè per accedere agli elementi si utilizza come indice typeI altra variabile ref che può cambiare durante la visualizzazione del componente
-    var friendName = ref('');
-    var friendFound = ref(false);
-    var friends = ref([]);
+    var userName = ref('');
+    var userFound = ref(false);
+    var users = ref([]);
 
     var start_todo_index = 0;
     var final_todo_index = 0;
 
-    var friendsToShare = ref([]);
-    function appendFriend(friend_name){
+    var usersToShare = ref([]);
+    function appendUser(friend_name){
         console.log("appending friend");
-        friendName.value = '';
-        friendFound.value = false;
-        friendsToShare.value.push(friend_name);
+        userName.value = '';
+        userFound.value = false;
+        usersToShare.value.push(friend_name);
     }
 
     async function deleteFriend(index){
-        friendsToShare.value.pop(index);
+        console.log(`[DEBUG]: LISTA UTENTI DI SHARE - ${usersToShare.value[0]}`);
+        console.log(`[DEBUG]: INDICE DA ELIMINARE - ${index}`);
+        let new_share = [];
+        usersToShare.value.forEach((e,i) => {
+            if ( i != index ) {
+                new_share.push(e);
+            }
+        });
+        usersToShare.value = new_share;
+        console.log(`[DEBUG]: LISTA DI SHARE DOPO ELIMINAZIONE - ${usersToShare.value}`);
         await nextTick();
     }
 
@@ -234,7 +243,7 @@
             post_type: typeI.value,
             todo_children: todo_objs.length > 0,
             author: user,
-            share: [...friendsToShare.value].join('-')
+            share: [...usersToShare.value].join('-')
         };
         console.log(`Main post obj:\n${newPost}`);
         var res = await axios.post(`${api_url}compose`,newPost);
@@ -301,33 +310,36 @@
             place.value = sent_to_modify.value.place;
             publicCheck.value = sent_to_modify.value.public;
             typeI.value = 0;
+            for(let user of sent_to_modify.value.view_list){
+                usersToShare.value.push(user);
+            }
         }
        
     }
 
-    async function searchFriend(){
-        if(friendName.value != ""){
+    async function searchUser(){
+        if(userName.value != ""){
             var friendPayload = {
                 user: user,
-                query: friendName.value,
+                query: userName.value,
                 filter: "friends",
                 friends: false
             }
             try{
                 const r = await axios.post(`${api_url}search`,friendPayload);
                 if(r.data.length > 0){
-                    friends.value = r.data.map(e => ({
+                    users.value = r.data.map(e => ({
                         name: e.name
                     }));
-                    friendFound.value = true;
+                    userFound.value = true;
                 }else{
-                    friends.value = [];
-                    friendFound.value = false;
+                    users.value = [];
+                    userFound.value = false;
                 }
             }catch(error){
                 console.log("Error while searching for friends: ",error);
-                friendFound.value = false;
-                friends.value = [];
+                userFound.value = false;
+                users.value = [];
             }
         }
     }

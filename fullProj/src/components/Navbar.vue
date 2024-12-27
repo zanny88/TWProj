@@ -56,8 +56,12 @@
                                 :key = "index"
                                 :to = "el.path"
                                 class = "list-group-item list-group-item-action"
+                                style="justify-content: space-between; display: flex;"
+                                @click="searchString = ''"
                             >
-                                {{ el.heading }}
+                                <div>{{ el.heading }}</div>
+                                <div style="color: gray;" v-if="friendFilter == true">{{ el.author }}</div>
+                                <div style="color: gray;" v-if="friendFilter == false && el.author">{{ el.author }}</div>
                             </router-link>
                         </div>
                     </form>
@@ -144,17 +148,21 @@
     }
 
     async function search(q,f,fs){
+        
         var newSearch = {
             user: atob(token.value.split('.')[1]),
             query: q,
             filter: f,
             friends: fs
         };
+        console.log(`faccio una search dalla searchbar nell navbar con payload:`);
+        console.log(newSearch);
         try{
             const r = await axios.post(`${api_url}search`,newSearch);
             if(r.data.length > 0){
                 searchResults.value = r.data.map(e => ({
                     heading: e.heading,
+                    author: e.user != atob(token.value.split('.')[1]) ? e.user : "",
                     path: `/note/${e._id}`
                 }));
                 hasSearchresults.value = true;
