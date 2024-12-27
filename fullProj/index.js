@@ -6,19 +6,17 @@ const path = require("path");
 const { type } = require("os");
 const bodyParser = require("body-parser");
 const { rmSync } = require("fs");
-const { ConnectionClosedEvent } = require("mongodb");
+const { ConnectionClosedEvent, ConnectionPoolClosedEvent } = require("mongodb");
 
 const passport = require('passport');
 const bcrypt = require('bcrypt');
 const initializePassport = require('./passport-config');
 const jwt = require('jsonwebtoken');
 
-require('dotenv').config();
-
-const mongoDBUri = process.env.MONGODB_URI;
-
 const User = require('./userModel');
 const { Message } = require('./messageModel');
+
+let flag = true;
 
 initializePassport(passport);
 
@@ -30,6 +28,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(passport.initialize());
 
+const mongoDBUri = "mongodb+srv://marcostignani9:qpalzmQP8@clusternote.yd03buh.mongodb.net/?retryWrites=true&w=majority&appName=ClusterNote";
+//const mongoDBUri = "mongodb+srv://giarrussolorenzo:t1otEqlgBECuv4NL@cluster0.hqzaedi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+//const mongoDBUri = "mongodb://site232415:eib8PaiP@mongo_site232415/?authSource=admin&writeConcern=majority";
 mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 app.use(bodyParser.json());
@@ -42,7 +43,7 @@ const noteSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now() },
     place: String,
     tags: [String],
-    view_list: [String],
+    view_list: { type: [String], default: []},
     todo_children: { type: [String], default: [] },//array dove salvare gli id dei to-do creati nel corpo della nota per eventuali modifiche
     el_type: { type: String, default: "notes" }
 });
@@ -181,6 +182,7 @@ app.post("/getNotes/oldest", async (req, res) => {
     try {
         var userNotes = await Note.find({ user: user }).sort({ date: "ascending" });
         const now = new Date().getTime();
+        console.log("In /getNotes/oldest, userNotes: ", userNotes);
 
         //When time machine is implemented, TODO: change initialization of "now" constant above
 
@@ -224,9 +226,10 @@ app.post("/getTodos/:limit", async (req, res) => {
 
 //gestione richiesta post per aggiungere o modificare note e to-do
 app.post("/compose", async (req, res) => {
-    const { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author, share } = req.body;
+    var { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author, share } = req.body;
     var savedDocument;
     var user;
+    flag = true;
 
     try {
         user = await User.findOne({ name: author });
@@ -235,31 +238,6 @@ app.post("/compose", async (req, res) => {
         }
     } catch (error) {
         res.status(500).send("Error while fetching user who create post");
-    }
-
-    var friends = [];
-
-    if (share.length > 0) {
-        friends = share.split('-');
-        friends.forEach(async (friend) => {
-            if (!(user.friends.includes(friend))) {
-                try {
-                    var f = await User.findOne({ name: friend });
-                    if (!f) {
-                        res.status(404).send("New friend not found");
-                    }
-                } catch (error) {
-                    res.status(500).send("Error fetching new friend while compose");
-                }
-                var m = new Message({
-                    from: user.name,
-                    type: 'amicizia',
-                });
-                f.inbox.push(m);
-                await f.save();
-                await m.save();
-            }
-        })
     }
 
     //la tipologia del post viene riconosciuta con il valore di post_type (0 per le  e 1 per i to-do)
@@ -277,6 +255,20 @@ app.post("/compose", async (req, res) => {
                 note.public = public;
                 note.tags = tags.split(",").map(tag => tag.trim()).filter(item => item != "");
 
+                if (share.length > 0){
+                    var u = share.split("-");
+                    if (u.length >= note.view_list.length){
+                        u = u.filter(e => !note.view_list.includes(e));
+                        u.forEach(e => note.view_list.push(e));
+                        share = u.join('-');
+                    }else{
+                        del_friends = note.view_list.filter(e => !u.includes(e));
+                        note.view_list = note.view_list.filter(e => !del_friends.includes(e));
+                        share = "";
+                    }
+                }
+
+
             } catch (error) {
                 console.log("Error fetching note to modify: ", error);
             }
@@ -287,8 +279,7 @@ app.post("/compose", async (req, res) => {
                 heading: heading,
                 content: content,
                 place: place,
-                tags: tags.split(',').map(tag => tag.trim()),
-                view_list: friends
+                tags: tags.split(',').map(tag => tag.trim())
             });
         }
     } else {
@@ -356,16 +347,20 @@ app.post("/compose", async (req, res) => {
                     });
                 }
             } else {
+                flag = false;
                 savedDocument = await newNote.save();
                 res.send({ message: "OK" });
             }
-            //se la richiesta era per la creazione di una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
+            //se la richiesta era per la creazione d    i una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
             //servirà durante la creazione dei to-do (se presenti)
             if (todo_children && !savedDocument.todo_children.length) {
                 res.json({
                     message: "Add todo children",
                     id: savedDocument._id
                 });
+            }
+            if (!todo_children && flag){
+                res.send({message: "OK"});
             }
         } else {
             //uguale divisione per creazione e modifica
@@ -382,12 +377,44 @@ app.post("/compose", async (req, res) => {
                 }
                 res.json({ message: "fine" });
             }
-        }
+        }        
     } catch (error) {
         console.log(error);
         res.status(500).send("Error saving Note");
     }
 
+    var friends = [];
+
+    if (share.length > 0) {
+        friends = share.split('-');
+        friends.forEach(async (friend) => {
+            try {
+                var f = await User.findOne({ name: friend });
+                if (!f) {
+                    res.status(404).send("New friend not found");
+                }
+            } catch (error) {
+                res.status(500).send("Error fetching new friend while compose");
+            }
+            var m;
+            if (!(user.friends.includes(friend))) {
+                m = new Message({
+                    from: user.name,
+                    type: 'amicizia',
+                });
+                f.inbox.push(m);
+                await m.save();
+            }
+            m = new Message({
+                from: user.name,
+                type: 'condivisione',
+                data: savedDocument._id
+            });
+            f.inbox.push(m);
+            await m.save();
+            await f.save();          
+        });
+    }
 });
 
 //gestione richiesta post per contrassegnare un task come completato
@@ -505,46 +532,12 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
         for (const session of userSessions) {
             if (session.dateTime < now) {
                 res.json(session);
-                return;
             }
         }
 
         //Either no previous session exists, or none of them are before the time considered as "now"
         res.json(undefined);
 
-    } catch (error) {
-        console.log("Error while reading latest pomodoro session: ", error);
-        res.json(undefined);
-    }
-});
-
-// POST request to get informations on the stats of the last week of pomodoro sessions. Note: to access the information, read the .data field of the received JSON.
-app.post("/pomodoro/sessions/read/week_stats", async (req, res) => {
-    const { user } = req.body;
-    const weekStats = {
-        sessionsCount: 0,
-        cyclesCount: 0,
-        completedSessionsCount: 0,
-        completedCyclesCount: 0,
-        percentOfCompletedSessions: 0,
-        percentOfCompletedCycles: 0,
-    };
-    try {
-        var userSessions = await Session.find({ user: user });
-        const now = new Date().getTime();
-        const weekAgo = now - 604800000; //604800000 milliseconds = 1 week
-
-        const weekSessions = userSessions.filter(session => session.dateTime >= weekAgo && session.dateTime <= now);
-        for (const session of weekSessions) {
-            weekStats.sessionsCount++;
-            weekStats.cyclesCount += session.totCycles;
-            if (session.completedCycles == session.totCycles) weekStats.completedSessionsCount++;
-            weekStats.completedCyclesCount += session.completedCycles;
-        }
-        weekStats.percentOfCompletedSessions = weekStats.sessionsCount > 0 ? weekStats.completedSessionsCount / weekStats.sessionsCount * 100 : 100;
-        weekStats.percentOfCompletedCycles = weekStats.cyclesCount > 0 ? weekStats.completedCyclesCount / weekStats.cyclesCount * 100 : 100;
-
-        res.json(weekStats);
     } catch (error) {
         console.log("Error: ", error);
         res.status(500).send("Error while reading session");
@@ -654,27 +647,66 @@ app.get("/user/logout", (req, res) => {
 });
 
 app.get('/user/addFriend', async (req, res) => {
+    console.log("GESTISCO RICHIESTE AMICI");
     try {
         console.log("req.query: ", req.query);
         var friend_username = req.query.user;
         var user = req.query.ID;
+        var action = req.query.action;
 
         console.log("aagiungo richiesta di amicizia all'inbox di: ", friend_username);
 
         var friend = await User.findOne({ name: friend_username });
-        var old_inbox = friend.inbox;
+        var me = await User.findOne({name: user});
+        if ( !me.friends.includes(friend.name) ){
+            if (action == "remove"){
+                res.status(404).send("Amico non trovato, impossibile rimuovere");
+            }else{
+                var old_inbox = friend.inbox;
 
-        var newMessage = new Message({
-            from: user,
-            type: 'amicizia',
-            action: 'add'
-        });
+                var newMessage = new Message({
+                    from: user,
+                    type: 'amicizia'
+                });
 
-        old_inbox.push(newMessage);
+                old_inbox.push(newMessage);
 
-        const r = await User.findByIdAndUpdate({ _id: friend._id }, { inbox: old_inbox });
-        await newMessage.save();
-        res.send("OK");
+                const r = await User.findByIdAndUpdate({ _id: friend._id }, { inbox: old_inbox });
+                await newMessage.save();
+                res.send("OK");
+            }
+        }else{
+            if (action == "remove"){
+                console.log("L'AMICO è PRESENTE E VOGLIO ELIMINARLO");
+                console.log("LISTA DI AMICI PRIMA DI ELIMINAZIONE: ");
+                console.log(me.friends);
+                let new_friends = [];
+                me.friends.forEach(f => {
+                    if (f != friend_username){
+                        new_friends.push(f);
+                    }
+                });
+                me.friends = new_friends;
+                console.log("LISTA DI AMICI DOPO ELIMINAZIONE: ");
+                console.log(me.friends);
+                console.log("LISTA DI AMICI AMICO PRIMA DI ELIMINAZIONE: ");
+                console.log(friend.friends);
+
+                new_friends = [];
+                friend.friends.forEach(f => {
+                    if (f != me.name){
+                        new_friends.push(f);
+                    }
+                });
+                friend.friends = new_friends;
+                console.log("LISTA DI AMICI AMICO DOPO ELIMINAZIONE: ");
+                console.log(friend.friends);
+
+                await User.findByIdAndUpdate({_id: me._id},{friends: me.friends});
+                await User.findByIdAndUpdate({_id: friend._id},{friends: friend.friends});
+                res.send("OK");
+            }
+        }
     } catch (error) {
         console.log("Errore nell'agigunta di un amico: ", error);
         res.status(500).send("Errore del server");
@@ -723,6 +755,9 @@ app.get("/user/getMessages", async (req, res) => {
 app.post("/user/checkMessages", async (req, res) => {
     var username = req.body.u;
     var messages = req.body.messages;
+    for(let m of messages){
+        console.log(m);
+    }
 
     var user = await User.findOne({ name: username });
 
@@ -748,13 +783,35 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
         var toUser = await User.findOne({ name: req.body.u });
 
         if (msg.type == "amicizia") {
+            console.log(`accetto richiesta di amicizia`);
             fromUser.friends.push(toUser.name);
             toUser.friends.push(fromUser.name);
+        }else if (msg.type == "condivisione"){
+            console.log("accetto richiesta di condivisione");
+            var note = await Note.findOne({_id: msg.data});
+            note.view_list.push(toUser.name);
+            await note.save();
         }
+        console.log("messaggi dentro l'inbox: ");
+        for(let m of toUser.inbox){
+            console.log(String(m._id));
+            console.log(m);
+        }
+        console.log("id del messaggio da eliminare: ");
+        console.log(String(msg._id));
 
-        toUser.inbox.pop(toUser.inbox.findIndex((m) => {
-            return String(m._id) == String(msg._id);
-        }));
+        let new_inbox = [];
+        toUser.inbox.forEach(m => {
+            if (m.from != fromUser.name || m.type != msg.type){
+                new_inbox.push(m);
+            }
+        })
+        toUser.inbox = new_inbox;
+
+        console.log("messaggio dentro all'inbox dopo eliminazione: ");
+        for(let m of toUser.inbox){
+            console.log(m);
+        }
 
         await Message.findByIdAndDelete({ _id: msg._id });
         await User.findByIdAndUpdate({ _id: toUser._id }, { friends: toUser.friends, inbox: toUser.inbox });
@@ -849,13 +906,18 @@ app.post("/user/:regType", async (req, res, next) => {
 async function realSearch(u, filter, query, searchUser) {
     let results = [];
     if (filter == "tag") {
-        const allNote = await Note.find({ user: u });
+        const allNote = await Note.find();
         //aggiungere todo
         allNote.forEach(item => {
-            if (item.tags.includes(query) && item.view_list.includes(searchUser)) {
+            if (item.tags.includes(query)) {
                 results.push(item);
             }
         });
+        if (searchUser != ""){
+            results = results.filter(item => item.user == u && item.view_list.includes(searchUser));
+        } else {
+            results = results.filter(item => item.user == u || item.view_list.includes(u));
+        }
     } else if (filter == "friends") {
         const users = await User.find({
             name: { $regex: new RegExp(query, 'i') }
@@ -867,11 +929,24 @@ async function realSearch(u, filter, query, searchUser) {
         });
     } else {
         const resultsNote = await Note.find({
-            user: u,
             [filter]: { $regex: new RegExp(query, 'i') }
         });
+        console.log(`[DEBUG] RESULT: ${resultsNote}`);
+        console.log(searchUser);
         //aggiungere todo
-        results = resultsNote.filter(note => note.view_list.includes(searchUser));
+        if (searchUser != ""){
+            resultsNote.forEach(note => {
+                if (note.user == u && note.view_list.includes(searchUser)){
+                    results.push(note);
+                }
+            })
+        } else {
+            resultsNote.forEach(note => {
+                if (note.user == u || note.view_list.includes(u)){
+                    results.push(note);
+                }
+            })
+        }
     }
     return results;
 }
@@ -899,13 +974,14 @@ app.post('/search', async (req, res) => {
 
         var users;
         var searchUser = "";
-        if (friends == "true") {
+        if (friends == true) {
             users = user.friends;
             searchUser = user.name;
         } else {
             users = [user.name];
         }
 
+        console.log(`[DEBUG] FACCIO IL PROCESS DEGLI USERS CON: ${users} - ${filter} - ${query} - ${searchUser}`);
         const searchResults = await processUsers(users, filter, query, searchUser);
 
         res.json(searchResults);
@@ -920,19 +996,19 @@ app.post('/search', async (req, res) => {
 app.get("/getEvents/:userName/:eventId", async (req, res) => {
     var userName = req.params.userName;
     var eventId = req.params.eventId
-    //console.log("/getEvents/:userName/:eventId  " + userName + " " + eventId);
+    console.log("/getEvents/:userName/:eventId  " + userName + " " + eventId);
     var events;
     if (eventId == "-1") {
         events = await Event.find({ owner: userName });
     } else {
         events = await Event.find({ owner: userName, _id: eventId });
     }
-    //console.log("return #" + events.length + " events");
+    console.log("return #" + events.length + " events");
     res.send(events);
 });
 //gestione richiesta post per l'aggiunta di un'evento
 app.post("/addEvent", async (req, res) => {
-    //console.log("/addEvent " + req.body);
+    console.log("/addEvent " + req.body);
     const { userName, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
     const NewEvent = new Event({
         owner: userName,
@@ -948,7 +1024,7 @@ app.post("/addEvent", async (req, res) => {
     });
     try {
         await NewEvent.save();
-        //console.log("added event= " + NewEvent);
+        console.log("added event= " + NewEvent);
         res.json({ message: "OK" });
     } catch (error) {
         console.error("Errore nella creazione dell'evento: ", error);
@@ -957,9 +1033,9 @@ app.post("/addEvent", async (req, res) => {
 });
 //gestione richiesta post per la modifica di un'evento
 app.post("/editEvent", async (req, res) => {
-    //console.log("/editEvent " + req.body);
+    console.log("/editEvent " + req.body);
     const { userName, eventId, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
-    //console.log("ricerca di eventId=" + req.body.eventId);
+    console.log("ricerca di eventId=" + req.body.eventId);
     var event_ = await Event.findOne({ _id: eventId, owner: userName });
     if (!event_) {
         res.json({
@@ -978,7 +1054,7 @@ app.post("/editEvent", async (req, res) => {
         try {
             await event_.save();
             res.json({ message: "OK" });
-            //console.log("saved:" + event_);
+            console.log("saved:" + event_);
         } catch (error) {
             console.error("Errore nel salvataggio dell'evento: ", error);
             res.status(500).send("Error modifying event");
@@ -987,9 +1063,9 @@ app.post("/editEvent", async (req, res) => {
 });
 //gestione richiesta post per la cancellazione di un evento
 app.post("/deleteEvent", async (req, res) => {
-    //console.log("/deleteEvent " + req.body);
+    console.log("/deleteEvent " + req.body);
     const { userName, eventId } = req.body;
-    //console.log("ricerca di eventId=" + req.body.eventId);
+    console.log("ricerca di eventId=" + req.body.eventId);
     try {
         var event_ = await Event.findOne({ _id: eventId, owner: userName });
         if (!event_) {
@@ -999,7 +1075,7 @@ app.post("/deleteEvent", async (req, res) => {
             });
         } else {
             r = await Event.findByIdAndDelete(eventId);
-            //console.log("cancellato:" + eventId);
+            console.log("cancellato:" + eventId);
             //if(!r){
             //	return res.status(404).send("Event not found");
             //}
@@ -1014,19 +1090,19 @@ app.post("/deleteEvent", async (req, res) => {
 app.get("/getActivities/:userName/:activityId", async (req, res) => {
     var userName = req.params.userName;
     var activityId = req.params.activityId
-    //console.log("/getActivities/:userName/:activityId  " + userName + " " + activityId);
+    console.log("/getActivities/:userName/:activityId  " + userName + " " + activityId);
     var activities;
     if (activityId == "-1") {
         activities = await Activity.find({ owner: userName });
     } else {
         activities = await Activity.find({ owner: userName, _id: activityId });
     }
-    //console.log("return #" + activities.length + " activities");
+    console.log("return #" + activities.length + " activities");
     res.send(activities);
 });
 //gestione richiesta post per l'aggiunta di un'attività
 app.post("/addActivity", async (req, res) => {
-    //console.log("/addActivity " + req.body);
+    console.log("/addActivity " + req.body);
     const { userName, title, end, participants, is_completed } = req.body;
     const NewActivity = new Activity({
         owner: userName,
@@ -1039,18 +1115,18 @@ app.post("/addActivity", async (req, res) => {
     });
     try {
         NewActivity.save();
-        //console.log("added activity=" + NewActivity);
+        console.log("added activity=" + NewActivity);
         res.json({ message: "OK" });
     } catch (error) {
-        console.error("Errore nella crazione dell'attività: ", error);
+        onsole.error("Errore nella crazione dell'attività: ", error);
         res.status(500).send("Error saving new activity");
     }
 });
 //gestione richiesta post per la modifica di un'attività
 app.post("/editActivity", async (req, res) => {
-    //console.log("/editActivity " + req.body);
+    console.log("/editActivity " + req.body);
     const { userName, activityId, title, end, participants, is_completed } = req.body;
-    //console.log("ricerca di activityId:" + activityId);
+    console.log("ricerca di activityId:" + activityId);
     var activity = await Activity.findOne({ _id: activityId, owner: userName });
     if (!activity) {
         res.json({
@@ -1065,7 +1141,7 @@ app.post("/editActivity", async (req, res) => {
         try {
             activity.save();
             res.json({ message: "OK" });
-            //console.log("salvato:" + activity);
+            console.log("salvato:" + activity);
         } catch (error) {
             console.error("Errore nel salvataggio dell'attività: ", error);
             res.status(500).send("Error modifying activity");
@@ -1073,9 +1149,9 @@ app.post("/editActivity", async (req, res) => {
     }
 });
 app.post("/deleteActivity", async (req, res) => {
-    //console.log("/deleteActivity " + req.body);
+    console.log("/deleteActivity " + req.body);
     const { userName, activityId } = req.body;
-    //console.log("ricerca di activityId=" + req.body.activityId);
+    console.log("ricerca di activityId=" + req.body.activityId);
     try {
         var activity_ = await Activity.findOne({ _id: activityId, owner: userName });
         if (!activity_) {
@@ -1085,7 +1161,7 @@ app.post("/deleteActivity", async (req, res) => {
             });
         } else {
             r = await Activity.findByIdAndDelete(activityId);
-            //console.log("cancellato:" + activityId);
+            console.log("cancellato:" + activityId);
             //if(!r){
             //	return res.status(404).send("Activity not found");
             //}
