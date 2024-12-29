@@ -1,23 +1,25 @@
 <template>
   <navbar></navbar>
   <router-view></router-view>
+  <TimeMachine />
 </template>
 
 <script setup>
 import Navbar from './components/Navbar.vue';
+import TimeMachine from './components/TimeMachine.vue';
 import axios from "axios";
-import {onMounted, inject, watch, provide} from "vue";
-import {useRouter} from "vue-router";
+import { onMounted, inject, watch, provide } from "vue";
+import { useRouter } from "vue-router";
 
 const router = useRouter();
 const api_url = inject('api_url');
 var loggedIn = inject("loggedIn");
 
-async function checkLogged(){
-  if(localStorage.getItem('token') === null){
+async function checkLogged() {
+  if (localStorage.getItem('token') === null) {
     console.log("fai il login");
     console.log(localStorage.getItem('token'));
-    router.push({path: "/login"});
+    router.push({ path: "/login" });
   }
 }
 
