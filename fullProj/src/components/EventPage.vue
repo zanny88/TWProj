@@ -138,6 +138,99 @@
         <label for="eventTypeNotAvailable" class="form-check-label switch-label-margin">Event type: not available</label>
       </div>
 
+
+		<!-- PRIORITY SECTION START -->
+		<div class="mb-3">
+		  <label for="priority" class="form-label">Priority</label>
+		  <select id="priority" class="form-select w-auto" v-model="event.priority">
+			<option value="1">Low (1)</option>
+			<option value="2">Normal (2)</option>
+			<option value="3">High (3)</option>
+			<option value="4">Highest (4)</option>
+		  </select>
+		</div>
+		<!-- PRIORITY SECTION END -->
+
+		<!-- NOTIFICATION SECTION START -->
+      <div class="mb-3 form-switch mt-4">
+        <input type="checkbox" id="reminderEnabled" class="form-check-input" v-model="reminder.enabled" />
+        <label for="reminderEnabled" class="form-check-label switch-label-margin">Enable notification</label>
+      </div>
+
+      <!-- Se il reminder è abilitato, mostra i parametri di configurazione -->
+      <div v-if="reminder.enabled">
+
+        <!-- Canali di notifica -->
+        <!--<div class="mb-3">
+          <label class="form-label">Notification channels</label>
+          <div class="form-check">
+            <input type="checkbox" id="alertChannel" class="form-check-input" v-model="reminder.channels.alert" />
+            <label for="alertChannel" class="form-check-label">Alert</label>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" id="emailChannel" class="form-check-input" v-model="reminder.channels.email" />
+            <label for="emailChannel" class="form-check-label">Email</label>
+          </div>
+          <div v-if="channelsError" class="text-danger">
+            Please choose at least one channel!
+          </div>
+        </div>-->
+
+        <!-- Offset: in minuti (scelta veloce) oppure orario esatto con DatePicker -->
+        <div class="mb-3">
+          <label class="form-label">Notification offset</label>
+
+          <div class="form-check">
+            <input type="radio" id="offsetTypeMinutes" class="form-check-input" value="minutes" v-model="reminder.offsetType" />
+            <label for="offsetTypeMinutes" class="form-check-label">Offset in minutes</label>
+          </div>
+
+          <div class="ms-4" v-if="reminder.offsetType === 'minutes'">
+            <select v-model="reminder.offsetMinutes" class="form-select w-auto mt-1">
+              <option v-for="opt in offsetOptions" :key="opt" :value="opt">
+                {{ formatOffsetOption(opt) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-check mt-2">
+            <input type="radio" id="offsetTypeExact" class="form-check-input" value="exact" v-model="reminder.offsetType" />
+            <label for="offsetTypeExact" class="form-check-label">Exact time</label>
+          </div>
+
+          <div class="ms-4" v-if="reminder.offsetType === 'exact'">
+            <VueDatePicker v-model="reminder.offsetTime" :format="timeFormat" :enable-time-picker="true" time-picker :auto-apply="true" placeholder="Select offset time" />
+          </div>
+        </div>
+
+        <!-- Ripetizioni -->
+        <div class="mb-3">
+          <label class="form-label">Repetitions</label>
+          <input type="number" class="form-control w-auto" min="0" v-model="reminder.repeatCount" placeholder="0 = indefinite" />
+          <div class="form-text">Use 0 for repetitions until stopped</div>
+        </div>
+
+        <!-- Intervallo tra ripetizioni -->
+        <div class="mb-3">
+          <label class="form-label">Interval between notifications (minutes)</label>
+          <select v-model="reminder.repeatInterval" class="form-select w-auto" @change="checkCustomInterval">
+            <option value="1">1 minute</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="-1">Custom...</option>
+          </select>
+          <div class="mt-2" v-if="reminder.isCustomRepeatInterval">
+            <input type="number" class="form-control w-auto" min="1" v-model="reminder.customRepeatInterval" placeholder="Enter custom minutes" />
+          </div>
+        </div>
+      </div>
+      <!-- NOTIFICATION SECTION END -->
+
+      
+	  
 	  <div class="mt-4 d-flex justify-content-between align-items-center gap-2">
 		  <div class="d-flex gap-2">
 			<button type="button" class="btn btn-outline-primary" @click="saveEvent">{{ formType }}</button>
@@ -171,26 +264,89 @@ const endDateError = ref(false);
 
 // Dati dell'Evento
 const event = reactive({
-  title: '',
-  location: '',
-  startDate: null,
-  startTime: null,
-  endDate: null,
-  endTime: null,
-  allDay: false,
-  //variabili per l'evento ricorrente
-  isRecurring: false,
-  frequency: '',
-  specificDay: null,
-  weekNumber: '',
-  weekday: '',
-  recurringEndOption: 'forever',
-  repeatCount: 1,
-  untilDate: null,
-  //
-  eventTypeNotAvailable: false,
-  recurring_rule: ''
+	title: '',
+	location: '',
+	startDate: null,
+	startTime: null,
+	endDate: null,
+	endTime: null,
+	allDay: false,
+	//variabili per l'evento ricorrente
+	isRecurring: false,
+	frequency: '',
+	specificDay: null,
+	weekNumber: '',
+	weekday: '',
+	recurringEndOption: 'forever',
+	repeatCount: 1,
+	untilDate: null,
+	//
+	eventTypeNotAvailable: false,
+	recurring_rule: '',
+	priority: 2   // default = Normal
 });
+
+
+
+// Dati per le notifiche
+const reminder = reactive({
+	enabled: false,                  // Switch principale
+	channels: {
+		alert: false,
+		email: true
+	},
+	offsetType: 'minutes',          // "minutes" oppure "exact"
+	offsetMinutes: 30,              // Valore selezionato dall’elenco
+	offsetTime: null,               // Data/ora, se si sceglie "exact"
+	repeatCount: 3,                 // 0 = illimitato
+	repeatInterval: 15,              // Intervallo (in minuti)
+	isCustomRepeatInterval: false,  // Flag per mostrare l'input custom
+	customRepeatInterval: null      // Valore personalizzato
+});
+
+// Valori possibili per l’offset in minuti
+const offsetOptions = [1, 5, 10, 15, 30, 60, 120, 1440, 2880];
+
+// Errore se non vengono scelti canali (solo se reminder.enabled = true)
+const channelsError = ref(false);
+
+const formatOffsetOption = (val) => {
+  // Serve a stampare in modo più leggibile i minuti
+  switch(val) {
+    case 1: return '1 minute before';
+    case 5: return '5 minutes before';
+    case 10: return '10 minutes before';
+    case 15: return '15 minutes before';
+    case 30: return '30 minutes before';
+    case 60: return '1 hour before';
+    case 120: return '2 hours before';
+    case 1440: return '1 day before';
+    case 2880: return '2 days before';
+    default: return `${val} min before`;
+  }
+};
+
+// Formato orario per VueDatePicker
+const timeFormat = (date) => {
+  return dayjs(date).format('HH:mm');
+};
+
+// Funzione per gestire cambio nel <select> delle ripetizioni
+const checkCustomInterval = () => {
+  if (reminder.repeatInterval === '-1') {
+    reminder.isCustomRepeatInterval = true;
+    reminder.customRepeatInterval = null; // reset
+  } else {
+    reminder.isCustomRepeatInterval = false;
+  }
+};
+
+
+
+
+
+
+
 
 
 
@@ -228,8 +384,59 @@ async function getEvent(eventId){
 		event.isRecurring = event_.is_recurring;
 		event.recurring_rule = event_.recurring_rule;
 		event.eventTypeNotAvailable = (event_.ev_type === 'notAvailable');
+		event.priority = event_.priority || 2;
 		//alert("event= " + JSON.stringify(event));
 		parseRRule(event.recurring_rule);
+		
+		
+		if (typeof event_.has_notification !== 'undefined') {
+		  reminder.enabled = event_.has_notification;
+		}
+
+		// Imposto i canali
+		if (Array.isArray(event_.notification_modes)) {
+		  reminder.channels.alert = event_.notification_modes.includes('ALERT');
+		  reminder.channels.email = event_.notification_modes.includes('EMAIL');
+		}
+
+		// Se esiste un orario specifico per l’offset (notification_advance_date)
+		// uso quello, altrimenti uso i minuti (notification_advance)
+		if (event_.notification_advance_date) {
+		  reminder.offsetType = 'exact';
+		  // Esempio: converti in data se lato server è stringa
+		  reminder.offsetTime = dayjs(event_.notification_advance_date).toDate();
+		} else {
+		  reminder.offsetType = 'minutes';
+		  // Se il server restituisce un numero di minuti da anticipare
+		  reminder.offsetMinutes = event_.notification_advance || 0;
+		}
+
+		// Numero ripetizioni
+		if (typeof event_.notification_repetitions !== 'undefined') {
+		  reminder.repeatCount = event_.notification_repetitions;
+		}
+
+		// Intervallo tra le ripetizioni
+		if (typeof event_.notification_interval !== 'undefined') {
+		  // Se il valore non è fra quelli standard e non è -1, lo consideriamo "custom"
+		  const validIntervals = ["1","5","10","15","30","60"];
+		  reminder.repeatInterval = event_.notification_interval.toString();
+
+		  if (!validIntervals.includes(reminder.repeatInterval) && reminder.repeatInterval !== "-1") {
+			reminder.isCustomRepeatInterval = true;
+			reminder.customRepeatInterval = parseInt(reminder.repeatInterval, 10);
+			// Imposto il <select> a “Custom…”
+			reminder.repeatInterval = "-1";
+		  } else {
+			// È un valore standard o -1
+			reminder.isCustomRepeatInterval = (reminder.repeatInterval === "-1");
+			if (reminder.isCustomRepeatInterval) {
+			  // Se il server restituisce -1, devi capire se hai un valore custom salvato da qualche parte.
+			  // Altrimenti puoi lasciare null oppure assegnare un default.
+			  reminder.customRepeatInterval = null;
+			}
+		  }
+		}
 	}catch(error){
 		console.log("Error adding event: ",error);
 		alert("error="+error);
@@ -246,8 +453,40 @@ async function submit(rrule){
 	} else{
 		titleError.value = false;
 	}
+	
+  // Controllo fine-data
+  if (event.endDate < event.startDate) {
+    endDateError.value = true;
+    return;
+  } else {
+    endDateError.value = false;
+  }
+
+  // -- VALIDAZIONE SEZIONE NOTIFICA --
+  // Se la notifica è abilitata, almeno un canale deve essere scelto
+  if (reminder.enabled) {
+    if (!reminder.channels.alert && !reminder.channels.email) {
+      channelsError.value = true;
+      return;
+    } else {
+      channelsError.value = false;
+    }
+    // Se l'intervallo è custom, usiamo il valore custom come repeatInterval
+    if (reminder.isCustomRepeatInterval && reminder.customRepeatInterval) {
+      reminder.repeatInterval = reminder.customRepeatInterval;
+    }
+  }
+  
+  
 	if (props.id == "-1"){  //Aggiunta di un evento
 		try{
+			const notif_modes = [];
+			if (reminder.channels.alert) {
+				notif_modes.push('ALERT');
+			}
+			if (reminder.channels.email) {
+				notif_modes.push('EMAIL');
+			}
 			const newevent = {
 				userName: user,
 				title: event.title,
@@ -256,7 +495,15 @@ async function submit(rrule){
 				all_day: event.allDay,
 				is_recurring: event.isRecurring,
 				recurring_rule: rrule,
-				ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event')
+				ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event'),
+				priority: event.priority,
+				has_notification: reminder.enabled,
+				notification_modes: notif_modes,
+				notification_advance: reminder.offsetMinutes,
+				notification_advance_date: (reminder.offsetTime ? dayjs(reminder.offsetTime).toDate() : null),
+				notification_repetitions: reminder.repeatCount,
+				notification_interval: reminder.repeatInterval,
+				notification_num_sent: 0
 			};
 			if (event.allDay){
 				newevent.date_start = new Date(event.startDate.getFullYear(), event.startDate.getMonth(), event.startDate.getDate());
@@ -265,6 +512,7 @@ async function submit(rrule){
 				newevent.date_start = copyTimeToDate(event.startDate, event.startTime);
 				newevent.date_end = copyTimeToDate(event.endDate, event.endTime);
 			}
+			
 			//console.log("bb, newevent=" + JSON.stringify(newevent));
 			//alert("bb, newevent=" + JSON.stringify(newevent));
 			const r = await axios.post(`${api_url}addEvent`, newevent,{timeout: 5000});
@@ -280,6 +528,13 @@ async function submit(rrule){
 		}
 	}else{  //Modifica di un evento
 		try{
+			const notif_modes = [];
+			if (reminder.channels.alert) {
+				notif_modes.push('ALERT');
+			}
+			if (reminder.channels.email) {
+				notif_modes.push('EMAIL');
+			}
 			const event_ = {
 				userName: user,
 				eventId : props.id,
@@ -289,7 +544,15 @@ async function submit(rrule){
 				all_day: event.allDay,
 				is_recurring: event.isRecurring,
 				recurring_rule: rrule,
-				ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event')
+				ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event'),
+				priority: event.priority,
+				has_notification: reminder.enabled,
+				notification_modes: notif_modes,
+				notification_advance: reminder.offsetMinutes,
+				notification_advance_date: (reminder.offsetTime ? dayjs(reminder.offsetTime).toDate() : null),
+				notification_repetitions: reminder.repeatCount,
+				notification_interval: reminder.repeatInterval,
+				notification_num_sent: 0
 			}
 			if (event.allDay){
 				event_.date_start = new Date(event.startDate.getFullYear(), event.startDate.getMonth(), event.startDate.getDate());

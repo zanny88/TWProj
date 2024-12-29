@@ -53,3 +53,8 @@ export function prepareCalendarEvents(Events, Activities){
 
 //Funzione che trasforma una data in una stringa in formato iCalendar
 export const formatToICalendarDate = (date) => dayjs(date).format('YYYYMMDDTHHmmss');
+
+
+export function getAddEventPath(){
+	return "/editEvent/-1/Hp/" + dayjs(new Date()).format('DDMMYYYY');
+}
