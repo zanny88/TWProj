@@ -81,17 +81,21 @@ const eventSchema = new mongoose.Schema({
     recurring_rule: String,                /* Stringa che descrive la ricorrenza, in standard iCalendar(RFC 5545) */
     all_day: Boolean,
     place: String,
+    has_notification: Boolean,
+    notification_modes: [String],
     notification_advance: Number,           /* anticipo in minuti nella notifica */
+    notification_advance_date: Date,        /* data di inizio notifiche */
     notification_repetitions: Number,       /* 0 per infinite*/
     notification_interval: Number,          /* numero di minuti tra una notifica e la successiva */
-    notification_modes: [String],
+    notification_num_sent: Number,          /* numero di notifiche già inviate per l'evento attuale */
+	notification_last_handled: Date,        /* data dell'ultimo evento trattato (per eventi ricorrenti) */
     notification_stop: Boolean,             /* Falso per notifiche non ancora fermate, vero per notifiche fermate */
     ev_type: { type: String, default: "Event" }                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
 });
 
 const activitySchema = new mongoose.Schema({
     owner: String,
-    participants: [String],
+    participants: { type: [String], default: [] },
     participants_state: { type: [String], default: [] },          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
     title: String,
     end: Date,
@@ -1039,7 +1043,8 @@ app.get("/getEvents/:userName/:eventId", async (req, res) => {
 //gestione richiesta post per l'aggiunta di un'evento
 app.post("/addEvent", async (req, res) => {
     console.log("/addEvent " + req.body);
-    const { userName, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
+    const { userName, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type, priority,
+		    has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent } = req.body;
     const NewEvent = new Event({
         owner: userName,
         title: title,
@@ -1050,7 +1055,15 @@ app.post("/addEvent", async (req, res) => {
         all_day: all_day,
         is_recurring: is_recurring,
         recurring_rule: recurring_rule,
-        ev_type: ev_type
+        ev_type: ev_type,
+		priority: priority,
+		has_notification: has_notification,
+		notification_modes: notification_modes,
+		notification_advance: notification_advance,
+		notification_advance_date: notification_advance_date,
+		notification_repetitions: notification_repetitions,
+		notification_interval: notification_interval,
+		notification_num_sent: notification_num_sent
     });
     try {
         await NewEvent.save();
@@ -1064,7 +1077,8 @@ app.post("/addEvent", async (req, res) => {
 //gestione richiesta post per la modifica di un'evento
 app.post("/editEvent", async (req, res) => {
     console.log("/editEvent " + req.body);
-    const { userName, eventId, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
+    const { userName, eventId, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type, priority,
+			has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent } = req.body;
     console.log("ricerca di eventId=" + req.body.eventId);
     var event_ = await Event.findOne({ _id: eventId, owner: userName });
     if (!event_) {
@@ -1081,6 +1095,14 @@ app.post("/editEvent", async (req, res) => {
         event_.is_recurring = is_recurring;
         event_.recurring_rule = recurring_rule;
         event_.ev_type = ev_type;
+		event_.priority = priority;
+		event_.has_notification = has_notification;
+		event_.notification_modes = notification_modes;
+		event_.notification_advance = notification_advance;
+		event_.notification_advance_date = notification_advance_date;
+		event_.notification_repetitions = notification_repetitions;
+		event_.notification_interval = notification_interval;
+		event_.notification_num_sent = notification_num_sent;
         try {
             await event_.save();
             res.json({ message: "OK" });
