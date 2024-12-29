@@ -13,6 +13,10 @@ const bcrypt = require('bcrypt');
 const initializePassport = require('./passport-config');
 const jwt = require('jsonwebtoken');
 
+require('dotenv').config();
+const mongoDBUri = process.env.MONGODB_URI;
+mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
+
 const User = require('./userModel');
 const { Message } = require('./messageModel');
 
@@ -28,11 +32,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(passport.initialize());
 
-const mongoDBUri = "mongodb+srv://marcostignani9:qpalzmQP8@clusternote.yd03buh.mongodb.net/?retryWrites=true&w=majority&appName=ClusterNote";
-//const mongoDBUri = "mongodb+srv://giarrussolorenzo:t1otEqlgBECuv4NL@cluster0.hqzaedi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-//const mongoDBUri = "mongodb://site232415:eib8PaiP@mongo_site232415/?authSource=admin&writeConcern=majority";
-mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
-
 app.use(bodyParser.json());
 
 const noteSchema = new mongoose.Schema({
@@ -43,7 +42,7 @@ const noteSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now() },
     place: String,
     tags: [String],
-    view_list: { type: [String], default: []},
+    view_list: { type: [String], default: [] },
     todo_children: { type: [String], default: [] },//array dove salvare gli id dei to-do creati nel corpo della nota per eventuali modifiche
     el_type: { type: String, default: "notes" }
 });
@@ -182,7 +181,6 @@ app.post("/getNotes/oldest", async (req, res) => {
     try {
         var userNotes = await Note.find({ user: user }).sort({ date: "ascending" });
         const now = new Date().getTime();
-        console.log("In /getNotes/oldest, userNotes: ", userNotes);
 
         //When time machine is implemented, TODO: change initialization of "now" constant above
 
@@ -255,13 +253,13 @@ app.post("/compose", async (req, res) => {
                 note.public = public;
                 note.tags = tags.split(",").map(tag => tag.trim()).filter(item => item != "");
 
-                if (share.length > 0){
+                if (share.length > 0) {
                     var u = share.split("-");
-                    if (u.length >= note.view_list.length){
+                    if (u.length >= note.view_list.length) {
                         u = u.filter(e => !note.view_list.includes(e));
                         u.forEach(e => note.view_list.push(e));
                         share = u.join('-');
-                    }else{
+                    } else {
                         del_friends = note.view_list.filter(e => !u.includes(e));
                         note.view_list = note.view_list.filter(e => !del_friends.includes(e));
                         share = "";
@@ -351,7 +349,7 @@ app.post("/compose", async (req, res) => {
                 savedDocument = await newNote.save();
                 res.send({ message: "OK" });
             }
-            //se la richiesta era per la creazione d    i una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
+            //se la richiesta era per la creazione di una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
             //servirà durante la creazione dei to-do (se presenti)
             if (todo_children && !savedDocument.todo_children.length) {
                 res.json({
@@ -359,8 +357,8 @@ app.post("/compose", async (req, res) => {
                     id: savedDocument._id
                 });
             }
-            if (!todo_children && flag){
-                res.send({message: "OK"});
+            if (!todo_children && flag) {
+                res.send({ message: "OK" });
             }
         } else {
             //uguale divisione per creazione e modifica
@@ -377,7 +375,7 @@ app.post("/compose", async (req, res) => {
                 }
                 res.json({ message: "fine" });
             }
-        }        
+        }
     } catch (error) {
         console.log(error);
         res.status(500).send("Error saving Note");
@@ -412,7 +410,7 @@ app.post("/compose", async (req, res) => {
             });
             f.inbox.push(m);
             await m.save();
-            await f.save();          
+            await f.save();
         });
     }
 });
@@ -532,12 +530,44 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
         for (const session of userSessions) {
             if (session.dateTime < now) {
                 res.json(session);
+                return;
             }
         }
 
         //Either no previous session exists, or none of them are before the time considered as "now"
         res.json(undefined);
 
+    } catch (error) {
+        console.log("Error while reading latest pomodoro session: ", error);
+        res.json(undefined);
+    }
+});
+
+// POST request to get informations on the stats of the last week of pomodoro sessions. Note: to access the information, read the .data field of the received JSON.
+app.post("/pomodoro/sessions/read/week_stats", async (req, res) => {
+    const { user } = req.body;
+    const weekStats = {
+        sessionsCount: 0,
+        cyclesCount: 0,
+        completedSessionsCount: 0,
+        completedCyclesCount: 0,
+        percentOfCompletedSessions: 0,
+        percentOfCompletedCycles: 0,
+    };
+    try {
+        var userSessions = await Session.find({ user: user });
+        const now = new Date().getTime();
+        const weekAgo = now - 604800000; //604800000 milliseconds = 1 week
+        const weekSessions = userSessions.filter(session => session.dateTime >= weekAgo && session.dateTime <= now);
+        for (const session of weekSessions) {
+            weekStats.sessionsCount++;
+            weekStats.cyclesCount += session.totCycles;
+            if (session.completedCycles == session.totCycles) weekStats.completedSessionsCount++;
+            weekStats.completedCyclesCount += session.completedCycles;
+        }
+        weekStats.percentOfCompletedSessions = weekStats.sessionsCount > 0 ? weekStats.completedSessionsCount / weekStats.sessionsCount * 100 : 100;
+        weekStats.percentOfCompletedCycles = weekStats.cyclesCount > 0 ? weekStats.completedCyclesCount / weekStats.cyclesCount * 100 : 100;
+        res.json(weekStats);
     } catch (error) {
         console.log("Error: ", error);
         res.status(500).send("Error while reading session");
@@ -657,11 +687,11 @@ app.get('/user/addFriend', async (req, res) => {
         console.log("aagiungo richiesta di amicizia all'inbox di: ", friend_username);
 
         var friend = await User.findOne({ name: friend_username });
-        var me = await User.findOne({name: user});
-        if ( !me.friends.includes(friend.name) ){
-            if (action == "remove"){
+        var me = await User.findOne({ name: user });
+        if (!me.friends.includes(friend.name)) {
+            if (action == "remove") {
                 res.status(404).send("Amico non trovato, impossibile rimuovere");
-            }else{
+            } else {
                 var old_inbox = friend.inbox;
 
                 var newMessage = new Message({
@@ -675,14 +705,14 @@ app.get('/user/addFriend', async (req, res) => {
                 await newMessage.save();
                 res.send("OK");
             }
-        }else{
-            if (action == "remove"){
+        } else {
+            if (action == "remove") {
                 console.log("L'AMICO è PRESENTE E VOGLIO ELIMINARLO");
                 console.log("LISTA DI AMICI PRIMA DI ELIMINAZIONE: ");
                 console.log(me.friends);
                 let new_friends = [];
                 me.friends.forEach(f => {
-                    if (f != friend_username){
+                    if (f != friend_username) {
                         new_friends.push(f);
                     }
                 });
@@ -694,7 +724,7 @@ app.get('/user/addFriend', async (req, res) => {
 
                 new_friends = [];
                 friend.friends.forEach(f => {
-                    if (f != me.name){
+                    if (f != me.name) {
                         new_friends.push(f);
                     }
                 });
@@ -702,8 +732,8 @@ app.get('/user/addFriend', async (req, res) => {
                 console.log("LISTA DI AMICI AMICO DOPO ELIMINAZIONE: ");
                 console.log(friend.friends);
 
-                await User.findByIdAndUpdate({_id: me._id},{friends: me.friends});
-                await User.findByIdAndUpdate({_id: friend._id},{friends: friend.friends});
+                await User.findByIdAndUpdate({ _id: me._id }, { friends: me.friends });
+                await User.findByIdAndUpdate({ _id: friend._id }, { friends: friend.friends });
                 res.send("OK");
             }
         }
@@ -755,7 +785,7 @@ app.get("/user/getMessages", async (req, res) => {
 app.post("/user/checkMessages", async (req, res) => {
     var username = req.body.u;
     var messages = req.body.messages;
-    for(let m of messages){
+    for (let m of messages) {
         console.log(m);
     }
 
@@ -786,14 +816,14 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
             console.log(`accetto richiesta di amicizia`);
             fromUser.friends.push(toUser.name);
             toUser.friends.push(fromUser.name);
-        }else if (msg.type == "condivisione"){
+        } else if (msg.type == "condivisione") {
             console.log("accetto richiesta di condivisione");
-            var note = await Note.findOne({_id: msg.data});
+            var note = await Note.findOne({ _id: msg.data });
             note.view_list.push(toUser.name);
             await note.save();
         }
         console.log("messaggi dentro l'inbox: ");
-        for(let m of toUser.inbox){
+        for (let m of toUser.inbox) {
             console.log(String(m._id));
             console.log(m);
         }
@@ -802,14 +832,14 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
 
         let new_inbox = [];
         toUser.inbox.forEach(m => {
-            if (m.from != fromUser.name || m.type != msg.type){
+            if (m.from != fromUser.name || m.type != msg.type) {
                 new_inbox.push(m);
             }
         })
         toUser.inbox = new_inbox;
 
         console.log("messaggio dentro all'inbox dopo eliminazione: ");
-        for(let m of toUser.inbox){
+        for (let m of toUser.inbox) {
             console.log(m);
         }
 
@@ -913,7 +943,7 @@ async function realSearch(u, filter, query, searchUser) {
                 results.push(item);
             }
         });
-        if (searchUser != ""){
+        if (searchUser != "") {
             results = results.filter(item => item.user == u && item.view_list.includes(searchUser));
         } else {
             results = results.filter(item => item.user == u || item.view_list.includes(u));
@@ -934,15 +964,15 @@ async function realSearch(u, filter, query, searchUser) {
         console.log(`[DEBUG] RESULT: ${resultsNote}`);
         console.log(searchUser);
         //aggiungere todo
-        if (searchUser != ""){
+        if (searchUser != "") {
             resultsNote.forEach(note => {
-                if (note.user == u && note.view_list.includes(searchUser)){
+                if (note.user == u && note.view_list.includes(searchUser)) {
                     results.push(note);
                 }
             })
         } else {
             resultsNote.forEach(note => {
-                if (note.user == u || note.view_list.includes(u)){
+                if (note.user == u || note.view_list.includes(u)) {
                     results.push(note);
                 }
             })
@@ -1118,7 +1148,7 @@ app.post("/addActivity", async (req, res) => {
         console.log("added activity=" + NewActivity);
         res.json({ message: "OK" });
     } catch (error) {
-        onsole.error("Errore nella crazione dell'attività: ", error);
+        console.error("Errore nella crazione dell'attività: ", error);
         res.status(500).send("Error saving new activity");
     }
 });

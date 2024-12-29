@@ -1,4 +1,3 @@
-// userModel.js
 const mongoose = require("mongoose");
 const { messageSchema } = require('./messageModel');
 require('dotenv').config();
