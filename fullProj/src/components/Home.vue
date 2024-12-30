@@ -575,16 +575,17 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import rrulePlugin from '@fullcalendar/rrule';
 import { prepareCalendarEvents } from './calendarUtils';
 import dayjs from 'dayjs';
-import { useTimeMachineStore } from '../stores/timeMachine';
 
+import { useTimeMachineStore } from '../stores/timeMachine';
+const timeMachineStore = useTimeMachineStore();
 
 const api_url = inject('api_url');
-const timeMachineStore = useTimeMachineStore();
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const notes_api_url = inject('notes_api_url');
 const token = localStorage.getItem('token');
 
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
+const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf());
 
 const latestPomodoroSession = ref({});
 const pomodoroWeekStats = ref({});
@@ -698,7 +699,7 @@ async function get_latest_pomodoro_stats() {
     }
 
     try {
-        var session = await axios.post(`${pomodoro_sessions_api_url}read/latest`, { user: user });
+        var session = await axios.post(`${pomodoro_sessions_api_url}read/latest`, { user: user, now: currentTimeAsMs.value });
         if (session.data) {
             latestPomodoroSession.value = session.data;
         }
@@ -717,7 +718,7 @@ async function get_pomodoro_week_stats() {
     }
 
     try {
-        var weekStats = await axios.post(`${pomodoro_sessions_api_url}read/week_stats`, { user: user });
+        var weekStats = await axios.post(`${pomodoro_sessions_api_url}read/week_stats`, { user: user, now: currentTimeAsMs.value });
         if (weekStats.data) {
             pomodoroWeekStats.value = weekStats.data;
         }
@@ -739,8 +740,8 @@ async function get_note_preview() {
     }
 
     try {
-        var latestNote = await axios.post(`${notes_api_url}latest`, { user: user });
-        var oldestNote = await axios.post(`${notes_api_url}oldest`, { user: user });
+        var latestNote = await axios.post(`${notes_api_url}latest`, { user: user, now: currentTimeAsMs.value });
+        var oldestNote = await axios.post(`${notes_api_url}oldest`, { user: user, now: currentTimeAsMs.value });
 
         if (latestNote.data) {
             const data = latestNote.data;
