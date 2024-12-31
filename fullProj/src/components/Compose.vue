@@ -54,9 +54,9 @@
                         v-for="(el,index) in users"
                         :key = "index"
                         class="list-group-item list-group-item-action"
-                        @click="appendFriend(el.name)"
+                        @click="appendFriend(el.username)"
                     >
-                        {{ el.name }}
+                        {{ el.username }}
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-4" v-if="usersToShare.length > 0">
@@ -329,7 +329,7 @@
                 const r = await axios.post(`${api_url}search`,friendPayload);
                 if(r.data.length > 0){
                     users.value = r.data.map(e => ({
-                        name: e.name
+                        name: e.username
                     }));
                     userFound.value = true;
                 }else{

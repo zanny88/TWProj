@@ -13,10 +13,6 @@ const bcrypt = require('bcrypt');
 const initializePassport = require('./passport-config');
 const jwt = require('jsonwebtoken');
 
-require('dotenv').config();
-const mongoDBUri = process.env.MONGODB_URI;
-mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
-
 const User = require('./userModel');
 const { Message } = require('./messageModel');
 
@@ -32,6 +28,11 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(passport.initialize());
 
+const mongoDBUri = "mongodb+srv://marcostignani9:qpalzmQP8@clusternote.yd03buh.mongodb.net/?retryWrites=true&w=majority&appName=ClusterNote";
+//const mongoDBUri = "mongodb+srv://giarrussolorenzo:t1otEqlgBECuv4NL@cluster0.hqzaedi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+//const mongoDBUri = "mongodb://site232415:eib8PaiP@mongo_site232415/?authSource=admin&writeConcern=majority";
+mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
+
 app.use(bodyParser.json());
 
 const noteSchema = new mongoose.Schema({
@@ -42,7 +43,7 @@ const noteSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now() },
     place: String,
     tags: [String],
-    view_list: { type: [String], default: [] },
+    view_list: { type: [String], default: []},
     todo_children: { type: [String], default: [] },//array dove salvare gli id dei to-do creati nel corpo della nota per eventuali modifiche
     el_type: { type: String, default: "notes" }
 });
@@ -81,21 +82,17 @@ const eventSchema = new mongoose.Schema({
     recurring_rule: String,                /* Stringa che descrive la ricorrenza, in standard iCalendar(RFC 5545) */
     all_day: Boolean,
     place: String,
-    has_notification: Boolean,
-    notification_modes: [String],
     notification_advance: Number,           /* anticipo in minuti nella notifica */
-    notification_advance_date: Date,        /* data di inizio notifiche */
     notification_repetitions: Number,       /* 0 per infinite*/
     notification_interval: Number,          /* numero di minuti tra una notifica e la successiva */
-    notification_num_sent: Number,          /* numero di notifiche già inviate per l'evento attuale */
-	notification_last_handled: Date,        /* data dell'ultimo evento trattato (per eventi ricorrenti) */
+    notification_modes: [String],
     notification_stop: Boolean,             /* Falso per notifiche non ancora fermate, vero per notifiche fermate */
     ev_type: { type: String, default: "Event" }                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
 });
 
 const activitySchema = new mongoose.Schema({
     owner: String,
-    participants: { type: [String], default: [] },
+    participants: [String],
     participants_state: { type: [String], default: [] },          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
     title: String,
     end: Date,
@@ -185,6 +182,7 @@ app.post("/getNotes/oldest", async (req, res) => {
     try {
         var userNotes = await Note.find({ user: user }).sort({ date: "ascending" });
         const now = new Date().getTime();
+        console.log("In /getNotes/oldest, userNotes: ", userNotes);
 
         //When time machine is implemented, TODO: change initialization of "now" constant above
 
@@ -234,7 +232,7 @@ app.post("/compose", async (req, res) => {
     flag = true;
 
     try {
-        user = await User.findOne({ name: author });
+        user = await User.findOne({ username: author });
         if (!user) {
             res.status(404).send("Error user creating post not found");
         }
@@ -257,13 +255,13 @@ app.post("/compose", async (req, res) => {
                 note.public = public;
                 note.tags = tags.split(",").map(tag => tag.trim()).filter(item => item != "");
 
-                if (share.length > 0) {
+                if (share.length > 0){
                     var u = share.split("-");
-                    if (u.length >= note.view_list.length) {
+                    if (u.length >= note.view_list.length){
                         u = u.filter(e => !note.view_list.includes(e));
                         u.forEach(e => note.view_list.push(e));
                         share = u.join('-');
-                    } else {
+                    }else{
                         del_friends = note.view_list.filter(e => !u.includes(e));
                         note.view_list = note.view_list.filter(e => !del_friends.includes(e));
                         share = "";
@@ -353,7 +351,7 @@ app.post("/compose", async (req, res) => {
                 savedDocument = await newNote.save();
                 res.send({ message: "OK" });
             }
-            //se la richiesta era per la creazione di una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
+            //se la richiesta era per la creazione d    i una nuova nota allora nella risposta dal server viene aggiunto l'ID della nota appena creata 
             //servirà durante la creazione dei to-do (se presenti)
             if (todo_children && !savedDocument.todo_children.length) {
                 res.json({
@@ -361,8 +359,8 @@ app.post("/compose", async (req, res) => {
                     id: savedDocument._id
                 });
             }
-            if (!todo_children && flag) {
-                res.send({ message: "OK" });
+            if (!todo_children && flag){
+                res.send({message: "OK"});
             }
         } else {
             //uguale divisione per creazione e modifica
@@ -379,7 +377,7 @@ app.post("/compose", async (req, res) => {
                 }
                 res.json({ message: "fine" });
             }
-        }
+        }        
     } catch (error) {
         console.log(error);
         res.status(500).send("Error saving Note");
@@ -391,7 +389,7 @@ app.post("/compose", async (req, res) => {
         friends = share.split('-');
         friends.forEach(async (friend) => {
             try {
-                var f = await User.findOne({ name: friend });
+                var f = await User.findOne({ username: friend });
                 if (!f) {
                     res.status(404).send("New friend not found");
                 }
@@ -400,21 +398,9 @@ app.post("/compose", async (req, res) => {
             }
             var m;
             if (!(user.friends.includes(friend))) {
-                m = new Message({
-                    from: user.name,
-                    type: 'amicizia',
-                });
-                f.inbox.push(m);
-                await m.save();
+                sendMessageSupport(f,user,"amicizia");
             }
-            m = new Message({
-                from: user.name,
-                type: 'condivisione',
-                data: savedDocument._id
-            });
-            f.inbox.push(m);
-            await m.save();
-            await f.save();
+            sendMessageSupport(f,user,"condivisione",savedDocument._id);          
         });
     }
 });
@@ -534,44 +520,12 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
         for (const session of userSessions) {
             if (session.dateTime < now) {
                 res.json(session);
-                return;
             }
         }
 
         //Either no previous session exists, or none of them are before the time considered as "now"
         res.json(undefined);
 
-    } catch (error) {
-        console.log("Error while reading latest pomodoro session: ", error);
-        res.json(undefined);
-    }
-});
-
-// POST request to get informations on the stats of the last week of pomodoro sessions. Note: to access the information, read the .data field of the received JSON.
-app.post("/pomodoro/sessions/read/week_stats", async (req, res) => {
-    const { user } = req.body;
-    const weekStats = {
-        sessionsCount: 0,
-        cyclesCount: 0,
-        completedSessionsCount: 0,
-        completedCyclesCount: 0,
-        percentOfCompletedSessions: 0,
-        percentOfCompletedCycles: 0,
-    };
-    try {
-        var userSessions = await Session.find({ user: user });
-        const now = new Date().getTime();
-        const weekAgo = now - 604800000; //604800000 milliseconds = 1 week
-        const weekSessions = userSessions.filter(session => session.dateTime >= weekAgo && session.dateTime <= now);
-        for (const session of weekSessions) {
-            weekStats.sessionsCount++;
-            weekStats.cyclesCount += session.totCycles;
-            if (session.completedCycles == session.totCycles) weekStats.completedSessionsCount++;
-            weekStats.completedCyclesCount += session.completedCycles;
-        }
-        weekStats.percentOfCompletedSessions = weekStats.sessionsCount > 0 ? weekStats.completedSessionsCount / weekStats.sessionsCount * 100 : 100;
-        weekStats.percentOfCompletedCycles = weekStats.cyclesCount > 0 ? weekStats.completedCyclesCount / weekStats.cyclesCount * 100 : 100;
-        res.json(weekStats);
     } catch (error) {
         console.log("Error: ", error);
         res.status(500).send("Error while reading session");
@@ -669,8 +623,6 @@ app.post("/duplicateNote/:id", async (req, res) => {
     }
 });
 
-
-
 app.get("/user/checkLogged", (req, res) => {
     res.json({ message: currentUser != null ? "true" : "false" });
 });
@@ -679,71 +631,68 @@ app.get("/user/logout", (req, res) => {
     currentUser = null;
     res.json({ message: "OK" });
 });
-
-app.get('/user/addFriend', async (req, res) => {
-    console.log("GESTISCO RICHIESTE AMICI");
+//crea nuova route per la gestione dei messaggi (add amico e condivisione)
+//dato che la condivisione la si fa lato server la funzione per la'aggiunta del mesaggio non deve essere una route e deve essere 
+//richiamata dalla route indicata alla prima riga
+app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il remove
     try {
-        console.log("req.query: ", req.query);
-        var friend_username = req.query.user;
-        var user = req.query.ID;
-        var action = req.query.action;
+        var {friend_username, user} = req.body;
 
         console.log("aagiungo richiesta di amicizia all'inbox di: ", friend_username);
 
-        var friend = await User.findOne({ name: friend_username });
-        var me = await User.findOne({ name: user });
-        if (!me.friends.includes(friend.name)) {
-            if (action == "remove") {
-                res.status(404).send("Amico non trovato, impossibile rimuovere");
-            } else {
-                var old_inbox = friend.inbox;
+        var friend = await User.findOne({ username: friend_username });
+        var me = await User.findOne({username: user});
+        if ( !me.friends.includes(friend.username) ){
+            res.status(404).send("Amico non trovato, impossibile rimuovere");
+        }else{
+            let new_friends = [];
+            me.friends.forEach(f => {
+                if (f != friend_username){
+                    new_friends.push(f);
+                }
+            });
+            me.friends = new_friends;
 
-                var newMessage = new Message({
-                    from: user,
-                    type: 'amicizia'
-                });
+            new_friends = [];
+            friend.friends.forEach(f => {
+                if (f != me.username){
+                    new_friends.push(f);
+                }
+            });
+            friend.friends = new_friends;
 
-                old_inbox.push(newMessage);
-
-                const r = await User.findByIdAndUpdate({ _id: friend._id }, { inbox: old_inbox });
-                await newMessage.save();
-                res.send("OK");
-            }
-        } else {
-            if (action == "remove") {
-                console.log("L'AMICO è PRESENTE E VOGLIO ELIMINARLO");
-                console.log("LISTA DI AMICI PRIMA DI ELIMINAZIONE: ");
-                console.log(me.friends);
-                let new_friends = [];
-                me.friends.forEach(f => {
-                    if (f != friend_username) {
-                        new_friends.push(f);
-                    }
-                });
-                me.friends = new_friends;
-                console.log("LISTA DI AMICI DOPO ELIMINAZIONE: ");
-                console.log(me.friends);
-                console.log("LISTA DI AMICI AMICO PRIMA DI ELIMINAZIONE: ");
-                console.log(friend.friends);
-
-                new_friends = [];
-                friend.friends.forEach(f => {
-                    if (f != me.name) {
-                        new_friends.push(f);
-                    }
-                });
-                friend.friends = new_friends;
-                console.log("LISTA DI AMICI AMICO DOPO ELIMINAZIONE: ");
-                console.log(friend.friends);
-
-                await User.findByIdAndUpdate({ _id: me._id }, { friends: me.friends });
-                await User.findByIdAndUpdate({ _id: friend._id }, { friends: friend.friends });
-                res.send("OK");
-            }
+            await User.findByIdAndUpdate({_id: me._id},{friends: me.friends});
+            await User.findByIdAndUpdate({_id: friend._id},{friends: friend.friends});
+            res.send("OK");
         }
     } catch (error) {
         console.log("Errore nell'agigunta di un amico: ", error);
         res.status(500).send("Errore del server");
+    }
+});
+
+async function sendMessageSupport(to,from,text,data=""){
+    var newMessage = new Message({
+        from: from.username,
+        type: text,
+        data: data
+    });
+    to.inbox.push(newMessage);
+    await newMessage.save();
+    await User.findByIdAndUpdate({_id: to._id},{inbox: to.inbox});
+}
+
+app.post("/user/sendMessage",async (req,res) => {
+    const msg = req.body;
+
+    try{
+        var toUser = await User.findOne({username: msg.toUser});
+        var fromUser = await User.findOne({username: msg.fromUser});
+
+        await sendMessageSupport(toUser,fromUser,msg.message);
+        res.send({message: "Messaggio inviato"});
+    }catch(error){
+        res.status(500).send("Errore del server nell'invio del messaggio");
     }
 });
 
@@ -752,7 +701,7 @@ app.get("/user/checkInbox", async (req, res) => {
 
     try {
         try {
-            var user = await User.findOne({ name: username });
+            var user = await User.findOne({ username: username });
             if (!user) {
                 res.status(404).send("User not found");
             }
@@ -775,7 +724,7 @@ app.get("/user/checkInbox", async (req, res) => {
 app.get("/user/getMessages", async (req, res) => {
     var username = req.query.user;
     try {
-        var user = await User.findOne({ name: username });
+        var user = await User.findOne({ username: username });
         if (!user) {
             res.status(404).send("User not found");
         }
@@ -789,11 +738,11 @@ app.get("/user/getMessages", async (req, res) => {
 app.post("/user/checkMessages", async (req, res) => {
     var username = req.body.u;
     var messages = req.body.messages;
-    for (let m of messages) {
+    for(let m of messages){
         console.log(m);
     }
 
-    var user = await User.findOne({ name: username });
+    var user = await User.findOne({ username: username });
 
     user.inbox.map(msg => msg.seen = true);
     await user.save();
@@ -813,21 +762,21 @@ app.post("/user/checkMessages", async (req, res) => {
 app.post("/user/messages/:msgID/accept", async (req, res) => {
     try {
         var msg = await Message.findOne({ _id: req.params.msgID });
-        var fromUser = await User.findOne({ name: msg.from });
-        var toUser = await User.findOne({ name: req.body.u });
+        var fromUser = await User.findOne({ username: msg.from });
+        var toUser = await User.findOne({ username: req.body.u });
 
         if (msg.type == "amicizia") {
             console.log(`accetto richiesta di amicizia`);
-            fromUser.friends.push(toUser.name);
-            toUser.friends.push(fromUser.name);
-        } else if (msg.type == "condivisione") {
+            fromUser.friends.push(toUser.username);
+            toUser.friends.push(fromUser.username);
+        }else if (msg.type == "condivisione"){
             console.log("accetto richiesta di condivisione");
-            var note = await Note.findOne({ _id: msg.data });
-            note.view_list.push(toUser.name);
+            var note = await Note.findOne({_id: msg.data});
+            note.view_list.push(toUser.username);
             await note.save();
         }
         console.log("messaggi dentro l'inbox: ");
-        for (let m of toUser.inbox) {
+        for(let m of toUser.inbox){
             console.log(String(m._id));
             console.log(m);
         }
@@ -836,14 +785,14 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
 
         let new_inbox = [];
         toUser.inbox.forEach(m => {
-            if (m.from != fromUser.name || m.type != msg.type) {
+            if (m.from != fromUser.username || m.type != msg.type){
                 new_inbox.push(m);
             }
         })
         toUser.inbox = new_inbox;
 
         console.log("messaggio dentro all'inbox dopo eliminazione: ");
-        for (let m of toUser.inbox) {
+        for(let m of toUser.inbox){
             console.log(m);
         }
 
@@ -861,7 +810,7 @@ app.post("/user/messages/:msgID/delete", async (req, res) => {
     console.log(req.body.u);
     try {
         var msg = await Message.findOne({ _id: req.params.msgID });
-        var toUser = await User.findOne({ name: req.body.u });
+        var toUser = await User.findOne({ username: req.body.u });
 
         console.log("UTENTE DA CUI ELIMINARE IL MESSAGGIO: ", toUser.name);
         console.log("INBOX UTENTE: ", toUser.inbox);
@@ -881,7 +830,7 @@ app.post("/user/messages/:msgID/delete", async (req, res) => {
 
 app.get("/user/info/:user", async (req, res) => {
     try {
-        var u = await User.findOne({ name: req.params.user });
+        var u = await User.findOne({ username: req.params.user });
 
         if (!u) {
             res.status(404).send("Utente non trovato");
@@ -907,12 +856,12 @@ app.post("/user/:regType", async (req, res, next) => {
                 return next(err);
             }
             if (!user) return res.status(400).send(info.message);
-            const token = jwt.sign(user.name, 'SECRET_KEY');
-            currentUser = user.name;
+            const token = jwt.sign(user.username, 'SECRET_KEY');
+            currentUser = user.username;
             return res.json({ token });
         })(req, res, next);
     } else {
-        x = await User.findOne({ name: req.body.username });
+        x = await User.findOne({ username: req.body.username });
         //se viene effettuata una registrazione di un nuovo utente ma è già presente un utente con quel nome nel database la richiesta non viene effettuata
         if (x) {
             res.json({
@@ -921,8 +870,10 @@ app.post("/user/:regType", async (req, res, next) => {
         } else {
             var password = await bcrypt.hash(req.body.password, 10);
             var newUser = new User({
-                name: req.body.username,
-                passw: password
+                username: req.body.username,
+                passw: password,
+                name: req.body.name.first.concat(" ",req.body.name.last),
+                mail: req.body.email
             });
             try {
                 await newUser.save();
@@ -947,14 +898,14 @@ async function realSearch(u, filter, query, searchUser) {
                 results.push(item);
             }
         });
-        if (searchUser != "") {
+        if (searchUser != ""){
             results = results.filter(item => item.user == u && item.view_list.includes(searchUser));
         } else {
             results = results.filter(item => item.user == u || item.view_list.includes(u));
         }
     } else if (filter == "friends") {
         const users = await User.find({
-            name: { $regex: new RegExp(query, 'i') }
+            username: { $regex: new RegExp(query, 'i') }
         });
         users.forEach(user => {
             if (user.friends.includes(u)) {
@@ -968,15 +919,15 @@ async function realSearch(u, filter, query, searchUser) {
         console.log(`[DEBUG] RESULT: ${resultsNote}`);
         console.log(searchUser);
         //aggiungere todo
-        if (searchUser != "") {
+        if (searchUser != ""){
             resultsNote.forEach(note => {
-                if (note.user == u && note.view_list.includes(searchUser)) {
+                if (note.user == u && note.view_list.includes(searchUser)){
                     results.push(note);
                 }
             })
         } else {
             resultsNote.forEach(note => {
-                if (note.user == u || note.view_list.includes(u)) {
+                if (note.user == u || note.view_list.includes(u)){
                     results.push(note);
                 }
             })
@@ -1004,15 +955,15 @@ app.post('/search', async (req, res) => {
         const query = req.body.query;
         const filter = req.body.filter;
         const friends = req.body.friends;
-        const user = await User.findOne({ name: req.body.user });
+        const user = await User.findOne({ username: req.body.user });
 
         var users;
         var searchUser = "";
         if (friends == true) {
             users = user.friends;
-            searchUser = user.name;
+            searchUser = user.username;
         } else {
-            users = [user.name];
+            users = [user.username];
         }
 
         console.log(`[DEBUG] FACCIO IL PROCESS DEGLI USERS CON: ${users} - ${filter} - ${query} - ${searchUser}`);
@@ -1043,8 +994,7 @@ app.get("/getEvents/:userName/:eventId", async (req, res) => {
 //gestione richiesta post per l'aggiunta di un'evento
 app.post("/addEvent", async (req, res) => {
     console.log("/addEvent " + req.body);
-    const { userName, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type, priority,
-		    has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent } = req.body;
+    const { userName, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
     const NewEvent = new Event({
         owner: userName,
         title: title,
@@ -1055,15 +1005,7 @@ app.post("/addEvent", async (req, res) => {
         all_day: all_day,
         is_recurring: is_recurring,
         recurring_rule: recurring_rule,
-        ev_type: ev_type,
-		priority: priority,
-		has_notification: has_notification,
-		notification_modes: notification_modes,
-		notification_advance: notification_advance,
-		notification_advance_date: notification_advance_date,
-		notification_repetitions: notification_repetitions,
-		notification_interval: notification_interval,
-		notification_num_sent: notification_num_sent
+        ev_type: ev_type
     });
     try {
         await NewEvent.save();
@@ -1077,8 +1019,7 @@ app.post("/addEvent", async (req, res) => {
 //gestione richiesta post per la modifica di un'evento
 app.post("/editEvent", async (req, res) => {
     console.log("/editEvent " + req.body);
-    const { userName, eventId, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type, priority,
-			has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent } = req.body;
+    const { userName, eventId, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type } = req.body;
     console.log("ricerca di eventId=" + req.body.eventId);
     var event_ = await Event.findOne({ _id: eventId, owner: userName });
     if (!event_) {
@@ -1095,14 +1036,6 @@ app.post("/editEvent", async (req, res) => {
         event_.is_recurring = is_recurring;
         event_.recurring_rule = recurring_rule;
         event_.ev_type = ev_type;
-		event_.priority = priority;
-		event_.has_notification = has_notification;
-		event_.notification_modes = notification_modes;
-		event_.notification_advance = notification_advance;
-		event_.notification_advance_date = notification_advance_date;
-		event_.notification_repetitions = notification_repetitions;
-		event_.notification_interval = notification_interval;
-		event_.notification_num_sent = notification_num_sent;
         try {
             await event_.save();
             res.json({ message: "OK" });

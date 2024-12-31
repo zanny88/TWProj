@@ -20,6 +20,7 @@
 import {ref,inject,onMounted,watch} from "vue";
 import axios from "axios";
 import {useRouter,useRoute} from "vue-router";
+import { sendMessage } from "./messageUtils.js";
 
 var friendName = ref('');
 const router = useRouter();
@@ -32,7 +33,11 @@ var formType = ref('');
 async function addFriend(){
     console.log("richiesta api per aggiunta amico");
     try{
-        var res = await axios.get(`${api_url}user/addFriend?user=${friendName.value}&ID=${user}&action=${route.query.action}`);
+        if (formType.value == "Add"){
+            await sendMessage(friendName.value,user,"amicizia");
+        }else{
+            await axios.get(`${api_url}user/deleteFriend`,{friend: friendName.value, me: user});
+        }
     }catch(error){
         console.log("Errore con l'aggiunta di un amico");
         console.log(error);
@@ -40,6 +45,7 @@ async function addFriend(){
 
     router.push({path: "/"});
 }
+
 function updateFormType(action) {
     if (action === 'add') {
         formType.value = "Add";
