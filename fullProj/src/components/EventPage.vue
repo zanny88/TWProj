@@ -151,7 +151,7 @@
 
 
 <script setup>
-import { onMounted, ref, nextTick, inject, reactive, watch } from 'vue';
+import { onMounted, ref, nextTick, inject, reactive, watch, computed } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import VueDatePicker from '@vuepic/vue-datepicker';
@@ -159,6 +159,8 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';  
 dayjs.extend(customParseFormat);
+import { useTimeMachineStore } from '../stores/timeMachine';
+const timeMachineStore = useTimeMachineStore();
 
 const api_url = inject('api_url');
 const user = atob(localStorage.getItem('token').split('.')[1]);
@@ -167,6 +169,16 @@ const props = defineProps(['id','callback','eventDate']);
 const titleError = ref(false);
 const endDateError = ref(false);
 
+
+//********************************************************************************************************************
+//TIME MACHINE
+const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
+const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
+watch(currentTime, async() => {
+	await nextTick();
+	console.log("currentTime changed: ", currentTime.value);
+});
+//********************************************************************************************************************
 
 
 // Dati dell'Evento
@@ -200,7 +212,7 @@ var formType = ref('');
 if (props.id == '-1'){
 	event.startDate = dayjs(props.eventDate, 'DDMMYYYY', true).toDate();
 	event.endDate = event.startDate;
-	event.startTime = new Date().getTime();
+	event.startTime = new Date(currentTime.value).getTime();
 	event.endTime = dayjs(event.startTime).add(1, 'hour').toDate().getTime();
 	//date_start.value = dayjs(props.eventDate, 'DDMMYYYY', true).format('YYYY-MM-DD');
 	//alert("event.startDate="+event.startDate+", event.endDate="+event.endDate +", date_start.value=" +date_start.value);

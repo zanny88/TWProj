@@ -39,7 +39,7 @@ const noteSchema = new mongoose.Schema({
     public: Boolean,
     heading: String,
     content: String,
-    date: { type: Date, default: Date.now() },
+    date: { type: Date },
     place: String,
     tags: [String],
     view_list: { type: [String], default: [] },
@@ -53,7 +53,7 @@ const todoSchema = new mongoose.Schema({
     public: Boolean,
     heading: String,
     tasks: [String],
-    date: { type: Date, default: Date.now() },
+    date: { type: Date },
     completed: [Boolean],
     place: String,
     tags: [String],
@@ -160,7 +160,7 @@ app.post("/getNotes/latest", async (req, res) => {
         //Check each note from the most recent to the oldest. If the currently checked note was the latest session before "now", send its info.
         //Necessary in order to account for time machine (otherwise it would have just sent userNotes[0]).
         for (const note of userNotes) {
-            if (note.el_type == "notes" && note.date < now) {
+            if (note.el_type == "notes" && note.date <= now) {
                 res.send(note);
                 done = true;
                 break;
@@ -222,7 +222,7 @@ app.post("/getTodos/:limit", async (req, res) => {
 
 //gestione richiesta post per aggiungere o modificare note e to-do
 app.post("/compose", async (req, res) => {
-    var { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author, share } = req.body;
+    var { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author, share, date } = req.body;
     var savedDocument;
     var user;
     flag = true;
@@ -249,6 +249,7 @@ app.post("/compose", async (req, res) => {
                 note.content = content;
                 note.place = place;
                 note.public = public;
+
                 note.tags = tags.split(",").map(tag => tag.trim()).filter(item => item != "");
 
                 if (share.length > 0) {
@@ -275,7 +276,8 @@ app.post("/compose", async (req, res) => {
                 heading: heading,
                 content: content,
                 place: place,
-                tags: tags.split(',').map(tag => tag.trim())
+                tags: tags.split(',').map(tag => tag.trim()),
+                date: date
             });
         }
     } else {
@@ -321,6 +323,7 @@ app.post("/compose", async (req, res) => {
                 tasks: content.split("\n").map(task => task.trim()).filter(item => item !== ""),
                 completed: Array(content.split("\n").length).fill(false),
                 place: place,
+                date: date,
                 tags: tags.split(",").map(tag => tag.trim())
             });
         }

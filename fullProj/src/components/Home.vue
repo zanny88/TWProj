@@ -586,6 +586,9 @@ const token = localStorage.getItem('token');
 
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
 const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf());
+watch(currentTime, () => {
+    update_previews();
+});
 
 const latestPomodoroSession = ref({});
 const pomodoroWeekStats = ref({});
@@ -607,10 +610,6 @@ const today_activities = ref([]);
 const calendarToggle = ref(false);
 const pomodoroToggle = ref(false);
 const latestNoteToggle = ref(true);
-
-watch(currentTime, () => {
-    update_previews();
-});
 
 async function update_previews() {
     get_latest_pomodoro_stats(); //Must manage time server-side in index.js

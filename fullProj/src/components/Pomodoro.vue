@@ -143,6 +143,8 @@
 <script setup>
 import { inject, computed, watch, ref, onUnmounted, onMounted } from "vue";
 import axios from 'axios';
+import { useTimeMachineStore } from '../stores/timeMachine';
+const timeMachineStore = useTimeMachineStore();
 
 const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
@@ -170,6 +172,17 @@ let loaded_session = false;
 
 let start_pause_time;
 let end_pause_time;
+
+
+//********************************************************************************************************************
+//TIME MACHINE
+const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
+const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
+watch(currentTime, async() => {
+    console.log("Current time changed: ", currentTime.value);
+	await nextTick();
+});
+//********************************************************************************************************************
 
 let currentSession = computed(() => {
     return {
@@ -290,7 +303,7 @@ onUnmounted(() => {
 
 function defaultInit() {
     setDisplayed(30, 5, 5);
-    dateTime.value = new Date().getTime();
+    dateTime.value = new Date(currentTime.value).getTime();
 }
 
 async function get_latest() {
