@@ -141,7 +141,7 @@
 </template>
 
 <script setup>
-import { inject, computed, watch, ref, onUnmounted, onMounted } from "vue";
+import { inject, computed, watch, ref, onUnmounted, onMounted, nextTick } from "vue";
 import axios from 'axios';
 import { useTimeMachineStore } from '../stores/timeMachine';
 const timeMachineStore = useTimeMachineStore();

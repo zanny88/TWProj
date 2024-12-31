@@ -1,19 +1,21 @@
 <template>
   <navbar></navbar>
   <router-view></router-view>
-  <TimeMachine />
+  <TimeMachine ref="timeMachine" />
 </template>
 
 <script setup>
 import Navbar from './components/Navbar.vue';
 import TimeMachine from './components/TimeMachine.vue';
 import axios from "axios";
-import { onMounted, inject, watch, provide } from "vue";
+import { onMounted, inject, watch, provide, ref, nextTick, useTemplateRef } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
 const api_url = inject('api_url');
 var loggedIn = inject("loggedIn");
+
+const timeMachineRef = useTemplateRef('timeMachine');
 
 async function checkLogged() {
   if (localStorage.getItem('token') === null) {
@@ -23,11 +25,23 @@ async function checkLogged() {
   }
 }
 
-//appena App.vue viene caricata si controlla se l'utente è loggato in caso negativo si carica la pagina di login
+// Watch for route changes and set expanded to false
+watch(router.currentRoute, async() => {
+  await nextTick();
+  if (timeMachineRef.value) {
+    timeMachineRef.value.setExpanded(false);
+    if(router.currentRoute.value.path.includes("/pomodoro")) {
+      timeMachineRef.value.setDisabled(true);
+    } else {
+      timeMachineRef.value.setDisabled(false);
+    }
+  }
+});
+
+// Check if the user is logged in when the component is mounted
 onMounted(() => {
   checkLogged();
-})
-
+});
 </script>
 
 <style scoped>
