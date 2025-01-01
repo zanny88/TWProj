@@ -88,11 +88,20 @@
     import {ref,onMounted,computed,inject,nextTick} from "vue";
     import axios from 'axios';
     import {useRouter,useRoute} from "vue-router";
+    import { useTimeMachineStore } from '../stores/timeMachine';
+    const timeMachineStore = useTimeMachineStore();
+
     const api_url = inject('api_url');
     const router = useRouter();//oggetto utilizzato per spostarsi tra i diversi componenti
     const route = useRoute();//oggetto utilizzato per utilizzare i dati passati come payload da un altro componente (funzione note_modify in Note.vue)
     var sent_to_modify = ref(null);//oggetto dove viene salvato il post da modificare quando viene richiesta una modifica
     const user = atob(localStorage.getItem('token').split('.')[1]);
+
+    //********************************************************************************************************************
+    //TIME MACHINE
+    const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
+    //********************************************************************************************************************
+
 
     //variabili collegate ai diversi tag input con v-modal per ottenere il valore inserito nel tag
     var typeI = ref(0);
@@ -239,6 +248,7 @@
             content: post.value,
             tags: tags.value,
             place: place.value,
+            date: currentTime.value,
             public: publicCheck.value,
             post_type: typeI.value,
             todo_children: todo_objs.length > 0,

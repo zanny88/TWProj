@@ -8,11 +8,15 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import {
     BIconPlayFill
 } from "bootstrap-icons-vue";
+import { createPinia } from 'pinia';
+
 
 
 const app = createApp(App);
+const pinia = createPinia();
 
 app.use(router);
+app.use(pinia);
 
 const loggedIn = ref();
 app.provide('loggedIn', loggedIn);
@@ -28,7 +32,7 @@ const notes_api_url = `${api_url}getNotes/`;
 app.provide('notes_api_url', notes_api_url);
 
 const token = ref(localStorage.getItem('token'));
-app.provide('IDtoken',token);
+app.provide('IDtoken', token);
 
 app.component('VueDatePicker', VueDatePicker);
 

@@ -40,7 +40,7 @@ const noteSchema = new mongoose.Schema({
     public: Boolean,
     heading: String,
     content: String,
-    date: { type: Date, default: Date.now() },
+    date: { type: Date },
     place: String,
     tags: [String],
     view_list: { type: [String], default: []},
@@ -54,7 +54,7 @@ const todoSchema = new mongoose.Schema({
     public: Boolean,
     heading: String,
     tasks: [String],
-    date: { type: Date, default: Date.now() },
+    date: { type: Date },
     completed: [Boolean],
     place: String,
     tags: [String],
@@ -151,17 +151,17 @@ app.post("/:blogType/get", async (req, res) => {
 });
 
 app.post("/getNotes/latest", async (req, res) => {
-    const { user } = req.body;
+    const user = req.body.user;
+    const now = req.body.now ? req.body.now : new Date().getTime();
+
     try {
         var userNotes = await Note.find({ user: user }).sort({ date: "descending" });
-        const now = new Date().getTime();
         let done = false;
 
         //Check each note from the most recent to the oldest. If the currently checked note was the latest session before "now", send its info.
         //Necessary in order to account for time machine (otherwise it would have just sent userNotes[0]).
-        //When time machine is implemented, TODO: change initialization of "now" constant above
         for (const note of userNotes) {
-            if (note.el_type == "notes" && note.date < now) {
+            if (note.el_type == "notes" && note.date <= now) {
                 res.send(note);
                 done = true;
                 break;
@@ -178,13 +178,10 @@ app.post("/getNotes/latest", async (req, res) => {
 });
 
 app.post("/getNotes/oldest", async (req, res) => {
-    const { user } = req.body;
+    const user = req.body.user;
+    const now = req.body.now ? req.body.now : new Date().getTime();
     try {
         var userNotes = await Note.find({ user: user }).sort({ date: "ascending" });
-        const now = new Date().getTime();
-        console.log("In /getNotes/oldest, userNotes: ", userNotes);
-
-        //When time machine is implemented, TODO: change initialization of "now" constant above
 
         //Either no note exists, or none of them are before the time considered as "now"
         if (userNotes.length == 0 || userNotes[0].date > now) {
@@ -226,7 +223,7 @@ app.post("/getTodos/:limit", async (req, res) => {
 
 //gestione richiesta post per aggiungere o modificare note e to-do
 app.post("/compose", async (req, res) => {
-    var { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author, share } = req.body;
+    var { ID, parent_id, heading, content, tags, place, public, post_type, todo_children, author, share, date } = req.body;
     var savedDocument;
     var user;
     flag = true;
@@ -253,6 +250,7 @@ app.post("/compose", async (req, res) => {
                 note.content = content;
                 note.place = place;
                 note.public = public;
+
                 note.tags = tags.split(",").map(tag => tag.trim()).filter(item => item != "");
 
                 if (share.length > 0){
@@ -279,7 +277,8 @@ app.post("/compose", async (req, res) => {
                 heading: heading,
                 content: content,
                 place: place,
-                tags: tags.split(',').map(tag => tag.trim())
+                tags: tags.split(',').map(tag => tag.trim()),
+                date: date
             });
         }
     } else {
@@ -325,6 +324,7 @@ app.post("/compose", async (req, res) => {
                 tasks: content.split("\n").map(task => task.trim()).filter(item => item !== ""),
                 completed: Array(content.split("\n").length).fill(false),
                 place: place,
+                date: date,
                 tags: tags.split(",").map(tag => tag.trim())
             });
         }
@@ -509,10 +509,15 @@ app.post("/pomodoro/sessions/read", async (req, res) => {
 // POST request to get informations on the latest pomodoro session. Note: to access the information, read the .data field of the received JSON.
 // Sends undefined if there are no previously created sessions for the current user.
 app.post("/pomodoro/sessions/read/latest", async (req, res) => {
-    const { user } = req.body;
+    const user = req.body.user;
+    const now = req.body.now ? req.body.now : new Date().getTime();
+    //console.log("req.body: ", req.body);
+    //console.log("user: ", user);
+    //console.log("now: ", now);
+
     try {
         var userSessions = await Session.find({ user: user }).sort({ dateTime: "descending" });
-        const now = new Date().getTime();
+
 
         //Check each session from the most recent to the oldest. If the currently checked session was the latest session before "now", send its info.
         //Necessary in order to account for time machine (otherwise it would have just sent userSession[0]).
@@ -526,6 +531,38 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
         //Either no previous session exists, or none of them are before the time considered as "now"
         res.json(undefined);
 
+    } catch (error) {
+        console.log("Error while reading latest pomodoro session: ", error);
+        res.json(undefined);
+    }
+});
+
+// POST request to get informations on the stats of the last week of pomodoro sessions. Note: to access the information, read the .data field of the received JSON.
+app.post("/pomodoro/sessions/read/week_stats", async (req, res) => {
+    const user = req.body.user;
+    const now = req.body.now ? req.body.now : new Date().getTime();
+
+    const weekStats = {
+        sessionsCount: 0,
+        cyclesCount: 0,
+        completedSessionsCount: 0,
+        completedCyclesCount: 0,
+        percentOfCompletedSessions: 0,
+        percentOfCompletedCycles: 0,
+    };
+    try {
+        var userSessions = await Session.find({ user: user });
+        const weekAgo = now - 604800000; //604800000 milliseconds = 1 week
+        const weekSessions = userSessions.filter(session => session.dateTime >= weekAgo && session.dateTime <= now);
+        for (const session of weekSessions) {
+            weekStats.sessionsCount++;
+            weekStats.cyclesCount += session.totCycles;
+            if (session.completedCycles == session.totCycles) weekStats.completedSessionsCount++;
+            weekStats.completedCyclesCount += session.completedCycles;
+        }
+        weekStats.percentOfCompletedSessions = weekStats.sessionsCount > 0 ? weekStats.completedSessionsCount / weekStats.sessionsCount * 100 : 100;
+        weekStats.percentOfCompletedCycles = weekStats.cyclesCount > 0 ? weekStats.completedCyclesCount / weekStats.cyclesCount * 100 : 100;
+        res.json(weekStats);
     } catch (error) {
         console.log("Error: ", error);
         res.status(500).send("Error while reading session");
