@@ -459,21 +459,6 @@ async function getEvent(eventId){
 
 
 async function submit(rrule){
-	if (event.title.trim() === ''){
-		titleError.value = true;
-		return;
-	} else{
-		titleError.value = false;
-	}
-	
-  // Controllo fine-data
-  if (event.endDate < event.startDate) {
-    endDateError.value = true;
-    return;
-  } else {
-    endDateError.value = false;
-  }
-
   // -- VALIDAZIONE SEZIONE NOTIFICA --
   // Se la notifica è abilitata, almeno un canale deve essere scelto
   if (reminder.enabled) {
@@ -515,7 +500,8 @@ async function submit(rrule){
 				notification_advance_date: (reminder.offsetTime ? dayjs(reminder.offsetTime).toDate() : null),
 				notification_repetitions: reminder.repeatCount,
 				notification_interval: reminder.repeatInterval,
-				notification_num_sent: 0
+				notification_num_sent: 0,
+				notification_stop: []
 			};
 			if (event.allDay){
 				newevent.date_start = new Date(event.startDate.getFullYear(), event.startDate.getMonth(), event.startDate.getDate());
@@ -564,7 +550,8 @@ async function submit(rrule){
 				notification_advance_date: (reminder.offsetTime ? dayjs(reminder.offsetTime).toDate() : null),
 				notification_repetitions: reminder.repeatCount,
 				notification_interval: reminder.repeatInterval,
-				notification_num_sent: 0
+				notification_num_sent: 0,
+				notification_stop: []
 			}
 			if (event.allDay){
 				event_.date_start = new Date(event.startDate.getFullYear(), event.startDate.getMonth(), event.startDate.getDate());
@@ -661,7 +648,8 @@ const saveEvent = () => {
 	}
 
 	// Controllo delle date
-	if (event.endDate < event.startDate) {
+    if (event.endDate && event.startDate && dayjs(event.endDate).isBefore(dayjs(event.startDate), 'day')) {
+	//if (event.endDate < event.startDate) {
 		endDateError.value = true;
 		return;
 	} else {
@@ -822,7 +810,8 @@ watch(() => event.startDate, (newStartDate) => {
 	}
 
 	// Reset dell'errore se necessario
-	if (event.endDate < event.startDate) {
+    if (event.endDate && event.startDate && dayjs(event.endDate).isBefore(dayjs(event.startDate), 'day')) {
+	//if (event.endDate < event.startDate) {
 		endDateError.value = true;
 	} else {
 		endDateError.value = false;
@@ -831,7 +820,8 @@ watch(() => event.startDate, (newStartDate) => {
 
 //Watch per validare End Date
 watch(() => event.endDate, (newEndDate) => {
-  if (newEndDate && event.startDate && newEndDate < event.startDate) {
+  //if (newEndDate && event.startDate && newEndDate < event.startDate) {
+  if (newEndDate && event.startDate && dayjs(newEndDate).isBefore(dayjs(event.startDate), 'day')) {
 	endDateError.value = true;
   } else {
 	endDateError.value = false;

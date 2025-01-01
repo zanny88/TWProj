@@ -79,12 +79,12 @@
 		</div>
 		</div>
 
-		<!-- Attivitï¿½ -->
+		<!-- Attività -->
 		<div class="section activities-section mt-5">
 		<div class="d-flex justify-content-between align-items-center">
-		<!-- Titolo e pulsante per aggiungere attivitï¿½ -->
+		<!-- Titolo e pulsante per aggiungere attività -->
 		<h3 class="d-flex align-items-center mb-0">
-			<!-- Pulsante per aggiungere un'attivitï¿½ -->
+			<!-- Pulsante per aggiungere un'attività -->
 			<button type="button" class="btn btn-primary task-icon arrow me-2" @click="addActivity" title="Add activity">
 			<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
 				<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z" />
@@ -92,7 +92,7 @@
 			</button>
 			Activities
 		</h3>
-		<!-- Switch per mostrare le attivitï¿½ completate -->
+		<!-- Switch per mostrare le attività completate -->
 		<div class="form-check form-switch">
 			<input class="form-check-input" type="checkbox" id="completedSwitch" v-model="Activities_completed" />
 			<label class="form-check-label" for="completedSwitch">
@@ -101,7 +101,7 @@
 		</div>
 		</div>
 
-		<!-- Lista delle attivitï¿½ -->
+		<!-- Lista delle attività -->
 		<div class="activity-list mt-3" v-if="isActivityLoaded">
 			<div v-for="activity in CalDateActivities" :key="activity.id" class="activity-item mb-2 d-flex align-items-center">
 				<div v-if="activity.is_completed" class="me-1">
@@ -149,7 +149,7 @@ const VIEW_MODE_DAY = "timeGridDay";
 const api_url = inject('api_url');
 const router = useRouter();
 const props = defineProps(['mode','calDate']);
-const CalViewMode = ref(                                    //Modalitï¿½ di visualizzazione del calendario
+const CalViewMode = ref(                                    //Modalità di visualizzazione del calendario
 	props.mode === "CW" ? VIEW_MODE_WEEK :
 	props.mode === "CD" ? VIEW_MODE_DAY :
 	VIEW_MODE_MONTH
@@ -183,7 +183,7 @@ if (props.calDate != undefined && props.calDate != "0"){
 	if (parsedDate.isValid()) {
 		ActiveCalDate.value = parsedDate.toDate();
 	} else {
-		console.error("La stringa di data fornita non ï¿½ valida.");
+		console.error("La stringa di data fornita non è valida.");
 	}
 }
 
@@ -275,7 +275,7 @@ const CalDateEvents = computed(() => {
 
 
 
-//Elenco attivitï¿½
+//Elenco attività
 const CalDateActivities = computed(() => {
 	//alert("CalDateActivities");
 	const act = [];
@@ -291,7 +291,7 @@ const CalDateActivities = computed(() => {
 				item.end = dayjs(activity.end).toDate();
 				item.title = 'End date: ' + dayjs(activity.end).format('DD/MM/YYYY') + ' - ';
 			} else {
-				item.end = dayjs('9999-12-31').toDate();          //Metto data massima cosï¿½ nell'ordinamento vanno dopo
+				item.end = dayjs('9999-12-31').toDate();          //Metto data massima così nell'ordinamento vanno dopo
 			}
 			item.title += activity.title;
 			//alert("item="+JSON.stringify(item));
@@ -327,7 +327,7 @@ async function loadEventsAndActivities(){
 		Events.value = res.data;
 		await nextTick();
 		//alert("ris event=" + Events.value);
-		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attivitï¿½
+		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
 		Activities.value = res.data;
 		await nextTick();
 		//alert("ris activity=" + Activities.value +" - #"+Activities.value.length);
@@ -406,9 +406,9 @@ const calendarOptions = reactive/*ref*/({
 	FullCalDate.value = info.startStr;
 	ActiveCalDate.value = dayjs(FullCalDate.value).toDate();
   },
-  firstDay: 1,     //La settimana inizia dal lunedï¿½
+  firstDay: 1,     //La settimana inizia dal lunedì
   datesSet: (info) => {
-	// Verifica se la vista corrente ï¿½ la vista giornaliera
+	// Verifica se la vista corrente è la vista giornaliera
 	if (CalViewMode.value === VIEW_MODE_DAY) {
 	  // Ottieni la data corrente visualizzata
 	  const currentDate = info.start; // In day view, start dovrebbe essere la data del giorno
@@ -468,7 +468,7 @@ watch(FullCalDate, (newDate) => {
 	}
 });
 
-//Funzione che indica se un'attivitï¿½ ï¿½ scaduta ma non ancora completata
+//Funzione che indica se un'attività è scaduta ma non ancora completata
 function isActivityExpired(activity) {
 	if (!activity.end || activity.is_completed) return false;
 	const now = new Date(currentTime.value);
