@@ -22,7 +22,10 @@
                             <small class="text-muted">Written by {{ note.user }} in {{ note.place }} on {{ new Date(note.date).toDateString() }}</small>
                         </p>
                         <p class="card-text">
-                            <small class="text-muted">Tags: {{ note.tags.map(tag => "#"+tag).join(', ') }}</small>
+                            <div style="display: flex; justify-content: space-between;">
+                                <small class="text-muted">Tags: {{ note.tags.map(tag => "#"+tag).join(', ') }}</small>
+                                <small class="text-muted">Last modify: {{ new Date(note.last_modify).toDateString() }}</small>
+                            </div>
                         </p>
                         <!--<button type="button" class="btn-close" aria-label="Close" @click="deleteNote(note._id)"></button>-->
                     </div>

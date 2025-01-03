@@ -2,10 +2,24 @@
     <div class="container" style="text-align: center; margin-top: 10px;">
         <h5 id="title"> {{ formType }} form</h5>
         <form id="mainForm">
+            <div class="row" style="position: relative; justify-content: center; align-items: center;" v-if="formType == 'Register'">
+                <div class="col-lg-2 col-md-2 col-sm-4">
+                    <div class="form-floating">
+                        <input type="text" v-model="firstName" id="firstName" name="firstName" class="form-control" required/>
+                        <label for="firstName">First name: </label>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-2 col-sm-4">
+                    <div class="form-floating">
+                        <input type="text" v-model="lastName" id="lastName" name="lastName" class="form-control" required/>
+                        <label for="lastName">Last name: </label>
+                    </div>
+                </div>
+            </div>
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="form-floating">
-                        <input type="text" v-model="name" id="username" name="username" class="form-control" @input="hideDiv()"/>
+                        <input type="text" v-model="name" id="username" name="username" class="form-control" @input="hideDiv()" required/>
                         <label for="username">Username: </label>
                     </div>
                 </div>
@@ -16,8 +30,16 @@
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="form-floating">
-                        <input type="password" v-model="passwd" id="passwd" name="passwd" class="form-control"/>
+                        <input type="password" v-model="passwd" id="passwd" name="passwd" class="form-control" required/>
                         <label for="passwd">Password:</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="position: relative; justify-content: center; align-items: center;" v-if="formType == 'Register'">
+                <div class="col-lg-4 col-md-4 col-sm-12" >
+                    <div class="form-floating">
+                        <input type="email" v-model="mail" id="mail" name="mail" class="form-control" required/>
+                        <label for="mail">Mail: </label>
                     </div>
                 </div>
             </div>
@@ -53,6 +75,9 @@
 
     var name = ref('');
     var passwd = ref('');
+    var firstName = ref('');
+    var lastName = ref('');
+    var mail = ref('');
     var showDismissibleAlert = ref(false);
 
     //ho utilizzato una srtinga invece di un indice perchè riutilizzerò il valore di formType per la richiesta al server 
@@ -72,9 +97,13 @@
         try{
             const newUser = {
                 username: name.value,
-                password: passwd.value
+                password: passwd.value,
+                name: {first: firstName,last: lastName},
+                email: mail
             }
             const r = await axios.post(api_url + "user/" + formType.value, newUser);
+            console.log(r.data.message);
+            console.log(formType);
 
             if(r.data.message == "already user"){
                 showDismissibleAlert.value = true;

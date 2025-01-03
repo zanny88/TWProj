@@ -36,7 +36,7 @@ async function addFriend(){
         if (formType.value == "Add"){
             await sendMessage(friendName.value,user,"amicizia");
         }else{
-            await axios.get(`${api_url}user/deleteFriend`,{friend: friendName.value, me: user});
+            await axios.get(`${api_url}user/deleteFriend?friend=${friendName.value}&me=${user}`);
         }
     }catch(error){
         console.log("Errore con l'aggiunta di un amico");

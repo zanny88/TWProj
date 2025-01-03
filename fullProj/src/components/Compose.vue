@@ -54,9 +54,9 @@
                         v-for="(el,index) in users"
                         :key = "index"
                         class="list-group-item list-group-item-action"
-                        @click="appendFriend(el.username)"
+                        @click="appendUser(el.name)"
                     >
-                        {{ el.username }}
+                        {{ el.name }}
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-4" v-if="usersToShare.length > 0">
@@ -342,6 +342,7 @@
                         name: e.username
                     }));
                     userFound.value = true;
+                    console.log("PORCO DIO: ",users.value);
                 }else{
                     users.value = [];
                     userFound.value = false;
