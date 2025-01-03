@@ -41,6 +41,7 @@ const noteSchema = new mongoose.Schema({
     heading: String,
     content: String,
     date: { type: Date },
+    last_modify: {type: Date},
     place: String,
     tags: [String],
     view_list: { type: [String], default: []},
@@ -256,6 +257,7 @@ app.post("/compose", async (req, res) => {
                 note.public = public;
 
                 note.tags = tags.split(",").map(tag => tag.trim()).filter(item => item != "");
+                note.last_modify = date;
 
                 if (share.length > 0){
                     var u = share.split("-");
@@ -282,7 +284,8 @@ app.post("/compose", async (req, res) => {
                 content: content,
                 place: place,
                 tags: tags.split(',').map(tag => tag.trim()),
-                date: date
+                date: date,
+                last_modify: date
             });
         }
     } else {
@@ -677,13 +680,15 @@ app.get("/user/logout", (req, res) => {
 //richiamata dalla route indicata alla prima riga
 app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il remove
     try {
-        var {friend_username, user} = req.body;
+        var friend_username = req.query.friend;
+        var user = req.query.me;
 
         console.log("aagiungo richiesta di amicizia all'inbox di: ", friend_username);
 
         var friend = await User.findOne({ username: friend_username });
         var me = await User.findOne({username: user});
         if ( !me.friends.includes(friend.username) ){
+            console.log(friend.username);
             res.status(404).send("Amico non trovato, impossibile rimuovere");
         }else{
             let new_friends = [];

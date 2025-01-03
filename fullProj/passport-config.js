@@ -6,7 +6,7 @@ const User = require('./userModel');
 // Funzione che configura la strategia locale.
 function initialize(passport) {
   const authenticateUser = async (username, password, done) => {
-    const user = await User.findOne({name: username});
+    const user = await User.findOne({username: username});
     if (user == null) {
       return done(null, false, { message: 'No user with that name' });
     }
@@ -23,9 +23,9 @@ function initialize(passport) {
   };
 
   passport.use(new LocalStrategy({ usernameField: 'username' }, authenticateUser));
-  passport.serializeUser((user, done) => done(null, user.name));
+  passport.serializeUser((user, done) => done(null, user.username));
   passport.deserializeUser((username, done) => {
-    const user = User.findOne({name: username});
+    const user = User.findOne({username: username});
     done(null, user);
   });
 }
