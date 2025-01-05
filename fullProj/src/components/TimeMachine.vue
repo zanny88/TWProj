@@ -32,12 +32,12 @@ const toggleExpanded = () => {
     expanded.value = !expanded.value;
 };
 
-const updateTime = () => {
-    timeMachineStore.setTime(newTime.value);
+const updateTime = async () => {
+    await timeMachineStore.setTime(newTime.value);
 };
 
-const resetTime = () => {
-    timeMachineStore.resetTime();
+const resetTime = async () => {
+    await timeMachineStore.resetTime();
     newTime.value = timeMachineStore.getCurrentTime.format('YYYY-MM-DDTHH:mm');
 };
 
