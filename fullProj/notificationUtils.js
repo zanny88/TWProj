@@ -1,11 +1,12 @@
 const { /*RRule, RRuleSet,*/ rrulestr } = require('rrule');
-
+const axios = require('axios');
+const api_url = 'http://localhost:3000/';
 /**
  * Funzione che, ogni N secondi, controlla tutti gli eventi con has_notification=true
  * e verifica se è il momento di inviare la notifica, considerando anche le ricorrenze.
  * MongoDBEvent è l'archivio di eventi MongoDB mappati con Mongoose.
  */
-async function checkAndSendNotifications(MongoDBEvent) {
+async function checkAndSendNotifications(MongoDBEvent,time) {
     //console.log("checkAndSendNotifications-START");
     try {
         const events = await MongoDBEvent.find({
@@ -13,7 +14,7 @@ async function checkAndSendNotifications(MongoDBEvent) {
             $or: [{ is_recurring: true }, { $expr: { $not: { $in: [ "$owner", "$notification_stop" ] } } }]       //Ricorrenti oppure owner NON presente in notification_stop
         });
 
-        const now = new Date();
+        const now = time;
 
         for (const ev of events) {
             //console.log("gestione evento: "+JSON.stringify(ev));
@@ -175,7 +176,14 @@ async function sendNotification(event, occurrenceDate) {
   // Esempio: potresti avere un array di "notification_modes" con i canali di invio
   if (event.notification_modes && event.notification_modes.length > 0) {
 	  if (event.notification_modes.includes('EMAIL')) {
-		  console.log("Email");
+      console.log("event.owner="+event.owner);
+      console.log("event.title="+event.title);
+		  const payload = {
+        to: event.owner,
+        subject: event.title,
+        text: `Ciao ${event.owner}, ti ricordiamo che l'evento "${event.title}" è in programma per il giorno ${occurrenceDate || event.date_end}.`
+      }
+      await axios.post(`${api_url}sendNotification`, payload);
 	  }
     //for (const mode of event.notification_modes) {
     //  switch (mode) {

@@ -17,6 +17,18 @@ const User = require('./userModel');
 const { Message } = require('./messageModel');
 const checkAndSendNotifications = require('./notificationUtils');
 
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    host: 'in-v3.mailjet.com',
+    port: 587,
+    secure: false,
+    auth: {
+        user: '975b5c4995d053fa22c0286eabb39a9b',
+        pass: '862210377b666f67170d1477c47fc4a0'
+    },
+});
+
 let flag = true;
 
 initializePassport(passport);
@@ -113,6 +125,8 @@ const Event = mongoose.model("Event", eventSchema);
 const Activity = mongoose.model("Activity", activitySchema);
 
 var currentUser = null;
+
+var now = new Date();
 
 /*[SETUP PER SERVER DISI] !!!!!CAMBIARE PORTA DEL SERVER DA 3000 A 8000!!!!!!!!!!!!!!!
 global.rootDir = __dirname;
@@ -1231,9 +1245,42 @@ if (notificationEnabled) {
     const notificationPollingInterval = process.env.NOTIFICATION_POLLING_INTERVAL;
     // Controlla notifiche ogni notificationPollingInterval secondi
     setInterval(() => {
-      checkAndSendNotifications(Event);
+      checkAndSendNotifications(Event,now);
     }, notificationPollingInterval * 1000);
 }
+
+app.post('/sendNotification', async (req, res) => {
+    const {to,sub,text} = req.body;
+    console.log(req.body);
+    try {
+        const user = await User.findOne({ username: to});
+        if (!user) {
+            res.status(404).send("User not found");
+        }
+
+        const mailOptions = {
+            from: 'marcostignani9@gmail.com', // Mittente
+            to: user.mail,                    // Destinatario
+            subject: `Avviso di scadenza per l'evento: ${sub}`,        // Oggetto
+            text: text, // Corpo del messaggio in formato testo
+        };
+        
+        // Invia la mail
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                return console.error('Errore durante l\'invio:', error);
+            }
+            console.log('Email inviata:', info.response);
+        });
+    }catch(error){
+        res.status(500).send("Error while sending notification");
+    }
+});
+
+app.get("/setTime",(req,res) => {
+    now = new Date(req.query.time);
+    res.send("OK");
+});
 
 
 
