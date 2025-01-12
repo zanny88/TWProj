@@ -5,9 +5,7 @@ import '../node_modules/bootstrap/dist/js/bootstrap';
 import router from './routes';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import {
-    BIconPlayFill
-} from "bootstrap-icons-vue";
+import { BIconPlayFill, BIconHourglassSplit, BIconCheckCircle, BIconXCircle } from "bootstrap-icons-vue";
 import { createPinia } from 'pinia';
 
 
@@ -22,6 +20,7 @@ const loggedIn = ref();
 app.provide('loggedIn', loggedIn);
 
 const api_url = "http://localhost:3000/";
+//const api_url = "http://192.168.1.196:3000/";
 //const api_url = "https://site232415.tw.cs.unibo.it/";
 app.provide('api_url', api_url);
 
@@ -38,5 +37,8 @@ app.component('VueDatePicker', VueDatePicker);
 
 //Bootstrap Icons
 app.component("BIconPlayFill", BIconPlayFill);
+app.component("BIconHourglassSplit", BIconHourglassSplit);
+app.component("BIconCheckCircle", BIconCheckCircle);
+app.component("BIconXCircle", BIconXCircle);
 
 app.mount('#app');
