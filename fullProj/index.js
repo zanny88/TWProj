@@ -16,8 +16,10 @@ const jwt = require('jsonwebtoken');
 const User = require('./userModel');
 const { Message } = require('./messageModel');
 const checkAndSendNotifications = require('./notificationUtils');
+const { generateEventInviteHTML, eventsOverlap } = require('./eventUtils');
 
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 
 const transporter = nodemailer.createTransport({
     host: 'in-v3.mailjet.com',
@@ -86,8 +88,6 @@ const sessionSchema = new mongoose.Schema({
 
 const eventSchema = new mongoose.Schema({
     owner: String,
-    participants: { type: [String], default: [] },
-    participants_state: { type: [String], default: [] },          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
     title: String,
     date_start: Date,                      /* data e ora di inizio */
     date_end: Date,
@@ -96,7 +96,7 @@ const eventSchema = new mongoose.Schema({
     all_day: Boolean,
     place: String,
     has_notification: Boolean,
-    notification_modes: [String],
+    notification_modes: { type: [String], default: ['EMAIL'] },
     notification_advance: Number,           /* anticipo in minuti nella notifica */
     notification_advance_date: Date,        /* data di inizio notifiche */
     notification_repetitions: Number,       /* 0 per infinite*/
@@ -104,18 +104,28 @@ const eventSchema = new mongoose.Schema({
     notification_num_sent: Number,          /* numero di notifiche già inviate per l'evento attuale */
 	notification_last_handled: Date,        /* data dell'ultimo evento trattato (per eventi ricorrenti) */
     notification_stop: { type: [String], default: [] },                    /* lista degli utenti con notifiche fermate */
-    ev_type: { type: String, default: "Event" }                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
+    ev_type: { type: String, default: "Event" },                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
+    priority: Number,                       /* Priorità 1=Low, 2=Normal, 3=High, 4=Highest */
+    addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
+    selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
+    participants_waiting : { type: [String], default: [] },       /* partecipanti in attesa di accettazione/rifiuto */
+    participants_accepted : { type: [String], default: [] },      /* partecipanti che hanno accettato */
+    participants_refused : { type: [String], default: [] },       /* partecipanti che hanno rifiutato */
+    timezone: { type: String, default: 'UTC' }                    /* fuso orario */
 });
 
 const activitySchema = new mongoose.Schema({
     owner: String,
-    participants: { type: [String], default: [] },
-    participants_state: { type: [String], default: [] },          /* "waiting" per non ha ancora accettato, "refused" per ha rifiutato e "accepted" per ha accettato */
     title: String,
     end: Date,
     creation_date: Date,
     has_deadline: Boolean,
-    is_completed: Boolean
+    is_completed: Boolean,
+    addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
+    selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
+    participants_waiting : { type: [String], default: [] },       /* partecipanti in attesa di accettazione/rifiuto */
+    participants_accepted : { type: [String], default: [] },      /* partecipanti che hanno accettato */
+    participants_refused : { type: [String], default: [] }        /* partecipanti che hanno rifiutato */
 });
 
 const Note = mongoose.model("Note", noteSchema);
@@ -1039,102 +1049,198 @@ app.post('/search', async (req, res) => {
 
 //gestione richiesta post per richiedere un evento di un utente (con eventId = -1 si ottengono tutti gli eventi di quell'utente)
 app.get("/getEvents/:userName/:eventId", async (req, res) => {
-    var userName = req.params.userName;
-    var eventId = req.params.eventId
-    console.log("/getEvents/:userName/:eventId  " + userName + " " + eventId);
-    var events;
-    if (eventId == "-1") {
-        events = await Event.find({ owner: userName });
-    } else {
-        events = await Event.find({ owner: userName, _id: eventId });
-    }
-    console.log("return #" + events.length + " events");
-    res.send(events);
-});
-//gestione richiesta post per l'aggiunta di un'evento
-app.post("/addEvent", async (req, res) => {
-    console.log("/addEvent " + req.body);
-    const { userName, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type, priority,
-		    has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop } = req.body;
-    const NewEvent = new Event({
-        owner: userName,
-        title: title,
-        date_start: date_start,
-        date_end: date_end,
-        place: place,
-        participants: participants,
-        all_day: all_day,
-        is_recurring: is_recurring,
-        recurring_rule: recurring_rule,
-        ev_type: ev_type,
-		priority: priority,
-		has_notification: has_notification,
-		notification_modes: notification_modes,
-		notification_advance: notification_advance,
-		notification_advance_date: notification_advance_date,
-		notification_repetitions: notification_repetitions,
-		notification_interval: notification_interval,
-		notification_num_sent: notification_num_sent,
-		notification_stop: notification_stop
-    });
     try {
+        const userName = req.params.userName;
+        const eventId = req.params.eventId
+        console.log("/getEvents/:userName/:eventId  " + userName + " " + eventId);
+        let events;
+        if (eventId == '-1') {
+            events = await Event.find({ owner: userName });
+        } else if (userName == '-1') {
+            events = await Event.find({ _id: eventId });
+        } else {
+            events = await Event.find({ owner: userName, _id: eventId });
+        }
+        console.log("return #" + events.length + " events");
+        res.send(events);
+    } catch (error) {
+        console.error("ERRORE: ", error);
+        res.status(500).send("Error reading events");
+    }
+});
+//gestione richiesta post per richiedere gli eventuali eventi condivisi che l'utente ha accettato
+app.get("/getSharedEvents/:userName", async (req, res) => {
+    try {
+        const userName = req.params.userName;
+        console.log("/getSharedEvents/:userName " + userName);
+        let events;
+        events = await Event.find({ participants_accepted: userName });
+        console.log("return #" + events.length + " shared events");
+        res.send(events);
+    } catch (error) {
+        console.error("ERRORE: ", error);
+        res.status(500).send("Error reading shared events");
+    }
+});
+//gestione richiesta post per l'aggiunta di un evento
+app.post("/addEvent", async (req, res) => {
+    try {
+        console.log("/addEvent " + req.body);
+        const { userName, title, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, priority,
+                has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
+                addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
+        const NewEvent = new Event({
+            owner: userName,
+            title: title,
+            date_start: date_start,
+            date_end: date_end,
+            place: place,
+            all_day: all_day,
+            is_recurring: is_recurring,
+            recurring_rule: recurring_rule,
+            ev_type: ev_type,
+            priority: priority,
+            has_notification: has_notification,
+            notification_modes: notification_modes,
+            notification_advance: notification_advance,
+            notification_advance_date: notification_advance_date,
+            notification_repetitions: notification_repetitions,
+            notification_interval: notification_interval,
+            notification_num_sent: notification_num_sent,
+            notification_stop: notification_stop,
+            addParticipants: addParticipants,
+            selectedParticipants: selectedParticipants,
+            participants_waiting: participants_waiting,
+            participants_accepted: participants_accepted,
+            participants_refused: participants_refused,
+            timezone: timezone
+        });
         await NewEvent.save();
         console.log("added event= " + NewEvent);
+        manageEventParticipants(NewEvent);
         res.json({ message: "OK" });
     } catch (error) {
         console.error("Errore nella creazione dell'evento: ", error);
-        res.status(500).send("Error saving new activity");
+        res.status(500).send("Error saving new event");
     }
 });
-//gestione richiesta post per la modifica di un'evento
+//gestione richiesta post per la modifica di un evento
 app.post("/editEvent", async (req, res) => {
-    console.log("/editEvent " + req.body);
-    const { userName, eventId, title, date_start, date_end, place, participants, all_day, is_recurring, recurring_rule, ev_type, priority,
-			has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop } = req.body;
-    console.log("ricerca di eventId=" + req.body.eventId);
-    var event_ = await Event.findOne({ _id: eventId, owner: userName });
-    if (!event_) {
-        res.json({
-            message: "event not found"
-        });
-    } else {
-        event_.title = title;
-        event_.date_start = date_start;
-        event_.date_end = date_end;
-        event_.place = place;
-        event_.participants = participants;
-        event_.all_day = all_day;
-        event_.is_recurring = is_recurring;
-        event_.recurring_rule = recurring_rule;
-        event_.ev_type = ev_type;
-		event_.priority = priority;
-		event_.has_notification = has_notification;
-		event_.notification_modes = notification_modes;
-		event_.notification_advance = notification_advance;
-		event_.notification_advance_date = notification_advance_date;
-		event_.notification_repetitions = notification_repetitions;
-		event_.notification_interval = notification_interval;
-		event_.notification_num_sent = notification_num_sent;
-		event_.notification_stop= notification_stop;
-        try {
+    try {
+        console.log("/editEvent " + req.body);
+        const { userName, eventId, title, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, priority,
+                has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
+                addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
+        console.log("ricerca di eventId=" + req.body.eventId);
+        const event_ = await Event.findOne({ _id: eventId, owner: userName });
+        if (!event_) {
+            res.json({
+                message: "event not found"
+            });
+        } else {
+            event_.title = title;
+            event_.date_start = date_start;
+            event_.date_end = date_end;
+            event_.place = place;
+            event_.all_day = all_day;
+            event_.is_recurring = is_recurring;
+            event_.recurring_rule = recurring_rule;
+            event_.ev_type = ev_type;
+            event_.priority = priority;
+            event_.has_notification = has_notification;
+            event_.notification_modes = notification_modes;
+            event_.notification_advance = notification_advance;
+            event_.notification_advance_date = notification_advance_date;
+            event_.notification_repetitions = notification_repetitions;
+            event_.notification_interval = notification_interval;
+            event_.notification_num_sent = notification_num_sent;
+            event_.notification_stop= notification_stop;
+            event_.addParticipants = addParticipants;
+            event_.selectedParticipants = selectedParticipants;
+            event_.participants_waiting = participants_waiting;
+            event_.participants_accepted = participants_accepted;
+            event_.participants_refused = participants_refused;
+            event_.timezone = timezone;
             await event_.save();
+            manageEventParticipants(event_);
             res.json({ message: "OK" });
             console.log("saved:" + event_);
-        } catch (error) {
-            console.error("Errore nel salvataggio dell'evento: ", error);
-            res.status(500).send("Error modifying event");
         }
+    } catch (error) {
+        console.error("Errore nel salvataggio dell'evento: ", error);
+        res.status(500).send("Error modifying event");
     }
 });
+//gestione degli eventuali partecipanti all'evento condiviso
+async function manageEventParticipants(event) {
+    try {
+        if (!event || !event.selectedParticipants || event.selectedParticipants.length == 0) {
+            return;  //nulla da fare --> esco
+        }
+        const part_waiting = event.participants_waiting || [];
+        const part_accepted = event.participants_accepted || [];
+        const part_refused = event.participants_refused || [];
+        for (let i = 0; i < event.selectedParticipants.length; i++) {
+            const user = event.selectedParticipants[i];
+            if (part_waiting.includes(user) || part_accepted.includes(user) || part_refused.includes(user)) {
+                continue;
+            }
+            //Controllo se ci sono eventi di tipo "notAvailable" sovrapposti
+            const eventsNotAvailable = await Event.find({ owner: user, ev_type: 'notAvailable' });
+            if (!eventsNotAvailable) {
+                continue;
+            }
+            let overlapped = false;
+            for (let k = 0; k < eventsNotAvailable.length; k++) {
+                const ev = eventsNotAvailable[k];
+                if (eventsOverlap(event, ev)) {  //Evento "notAvailable" sovrapposto --> rifiuto in automatico l'invito
+                    overlapped = true;
+                    console.log("INVITO a " + user + ": Rifiuto automatico per sovrapposizione con evento 'notAvailable'.");
+                    event.participants_refused.push(user);
+                    break;
+                }
+            }
+            if (!overlapped) {
+                const userDB = await User.findOne({ username: user });
+                //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
+                if (userDB && userDB.mail) {
+                    const email = userDB.mail;
+                    //mando l'invito
+                    let html = generateEventInviteHTML(event, user);
+                    console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
+                    
+                    try {
+                          const payload = {
+                            to: user,
+                            subject: `Invite for event: ${event.title}`,
+                            html: html
+                          }
+                          await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
+                      } catch (error) {
+                          console.error("Errore: "+error);
+                      }
+                    
+                    event.participants_waiting.push(user);
+                } else {
+                    console.error("Invito non inviato a " + user + " per mancanza di mail configurata!");
+                }
+            }
+            await event.save();
+        }
+    } catch (error) {
+        console.error("Errore nella gestione dei partecipanti all'evento: ", error);
+    }
+}
+
 //gestione richiesta post per la cancellazione di un evento
 app.post("/deleteEvent", async (req, res) => {
-    console.log("/deleteEvent " + req.body);
-    const { userName, eventId } = req.body;
-    console.log("ricerca di eventId=" + req.body.eventId);
     try {
-        var event_ = await Event.findOne({ _id: eventId, owner: userName });
+        console.log("/deleteEvent " + req.body);
+        const { userName, eventId } = req.body;
+        console.log("ricerca di eventId=" + req.body.eventId);
+        const event_ = await Event.findOne({ _id: eventId, owner: userName });
         if (!event_) {
-            console.log("Evento non trovato: " + eventId);
+            console.error("Evento non trovato: " + eventId);
             res.json({
                 message: "event not found"
             });
@@ -1147,38 +1253,159 @@ app.post("/deleteEvent", async (req, res) => {
             res.json({ message: "OK" });
         }
     } catch (error) {
-        console.log("ERRORE: ", error);
+        console.error("ERRORE: ", error);
         res.status(500).send("Error deleting event");
     }
 });
+
+
+
+//gestione richiesta di disabilitazione delle notifiche per un evento per un utente
+app.get("/disableEventNotification/:eventId/:user", async (req, res) => {
+    try {
+        const eventId = req.params.eventId
+        const user = req.params.user
+        console.log("/dismissEventNotification " + eventId + " " + user);
+        //console.log("ricerca di eventId=" + eventId);
+        const event_ = await Event.findOne({ _id: eventId });
+        if (!event_) {
+            console.error("Evento non trovato: " + eventId);
+            res.json({
+                message: "event not found"
+            });
+        } else {
+            if (!event_.notification_stop.includes(user)) {
+                event_.notification_stop.push(user);
+                await event_.save();
+                console.log("notifiche spente:" + eventId + " " + user);
+            }
+            //if(!r){
+            //	return res.status(404).send("Event not found");
+            //}
+            res.json({ message: "Event notifications disabled." });
+        }
+    } catch (error) {
+        console.error("ERRORE: ", error);
+        res.status(500).send("Error disabling event notification");
+    }
+});
+
+
+//gestione accettazione di invito ad un evento per un utente
+app.get("/acceptEventInvite/:eventId/:user", async (req, res) => {
+    try {
+        const eventId = req.params.eventId
+        const user = req.params.user
+        console.log("/acceptEventInvite " + eventId + " " + user);
+        //console.log("ricerca di eventId=" + eventId);
+        const event_ = await Event.findOne({ _id: eventId });
+        if (!event_) {
+            console.error("Evento non trovato: " + eventId);
+            res.json({
+                message: "event not found"
+            });
+        } else {
+            const part_waiting = event_.participants_waiting || [];
+            const part_refused = event_.participants_refused || [];
+            if (part_waiting.includes(user)) {
+                event_.participants_waiting =  nuovaLista = part_waiting.filter(item => item !== user);
+            }
+            if (part_refused.includes(user)) {
+                event_.participants_refused =  nuovaLista = part_refused.filter(item => item !== user);
+            }
+            if (!event_.participants_accepted.includes(user)) {
+                event_.participants_accepted.push(user);
+            }
+            await event_.save();
+            console.log("evento accettato:" + eventId + " " + user);
+            //if(!r){
+            //	return res.status(404).send("Event not found");
+            //}
+            res.json({ message: "Event accepted." });
+        }
+    } catch (error) {
+        console.error("ERRORE: ", error);
+        res.status(500).send("Error accepting event");
+    }
+});
+
+//gestione rifiuto di invito ad un evento per un utente
+app.get("/refuseEventInvite/:eventId/:user", async (req, res) => {
+    try {
+        const eventId = req.params.eventId
+        const user = req.params.user
+        console.log("/refuseEventInvite " + eventId + " " + user);
+        //console.log("ricerca di eventId=" + eventId);
+        const event_ = await Event.findOne({ _id: eventId });
+        if (!event_) {
+            console.error("Evento non trovato: " + eventId);
+            res.json({
+                message: "event not found"
+            });
+        } else {
+            const part_waiting = event_.participants_waiting || [];
+            const part_accepted = event_.participants_accepted || [];
+            if (part_waiting.includes(user)) {
+                event_.participants_waiting =  nuovaLista = part_waiting.filter(item => item !== user);
+            }
+            if (part_accepted.includes(user)) {
+                event_.participants_accepted =  nuovaLista = part_accepted.filter(item => item !== user);
+            }
+            if (!event_.participants_refused.includes(user)) {
+                event_.participants_refused.push(user);
+            }
+            await event_.save();
+            console.log("evento rifiutato:" + eventId + " " + user);
+            //if(!r){
+            //	return res.status(404).send("Event not found");
+            //}
+            res.json({ message: "Event refused." });
+        }
+    } catch (error) {
+        console.error("ERRORE: ", error);
+        res.status(500).send("Error refusing event");
+    }
+});
+
 //gestione richiesta post per richiedere un'attività di un utente (con activityId = -1 si ottengono tutte le attività di quell'utente)
 app.get("/getActivities/:userName/:activityId", async (req, res) => {
-    var userName = req.params.userName;
-    var activityId = req.params.activityId
-    console.log("/getActivities/:userName/:activityId  " + userName + " " + activityId);
-    var activities;
-    if (activityId == "-1") {
-        activities = await Activity.find({ owner: userName });
-    } else {
-        activities = await Activity.find({ owner: userName, _id: activityId });
+    try {
+        var userName = req.params.userName;
+        var activityId = req.params.activityId
+        console.log("/getActivities/:userName/:activityId  " + userName + " " + activityId);
+        let activities;
+        if (activityId == '-1') {
+            activities = await Activity.find({ owner: userName });
+        } else if (userName == '-1') {
+            activities = await Event.find({ _id: activityId });
+        } else {
+            activities = await Activity.find({ owner: userName, _id: activityId });
+        }
+        console.log("return #" + activities.length + " activities");
+        res.send(activities);
+    } catch (error) {
+        console.error("ERRORE: ", error);
+        res.status(500).send("Error reading activities");
     }
-    console.log("return #" + activities.length + " activities");
-    res.send(activities);
 });
 //gestione richiesta post per l'aggiunta di un'attività
 app.post("/addActivity", async (req, res) => {
-    console.log("/addActivity " + req.body);
-    const { userName, title, end, participants, is_completed } = req.body;
-    const NewActivity = new Activity({
-        owner: userName,
-        title: title,
-        end: end,
-        has_deadline: (end != null),
-        participants: participants,
-        is_completed: is_completed,
-        creation_date: Date.now()
-    });
     try {
+        console.log("/addActivity " + req.body);
+        const { userName, title, end, is_completed, addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused } = req.body;
+        const NewActivity = new Activity({
+            owner: userName,
+            title: title,
+            end: end,
+            has_deadline: (end != null),
+            is_completed: is_completed,
+            addParticipants : addParticipants,
+            selectedParticipants : selectedParticipants,
+            participants_waiting: participants_waiting,
+            participants_accepted: participants_accepted,
+            participants_refused: participants_refused,
+            creation_date: Date.now()
+        });
         NewActivity.save();
         console.log("added activity=" + NewActivity);
         res.json({ message: "OK" });
@@ -1189,38 +1416,43 @@ app.post("/addActivity", async (req, res) => {
 });
 //gestione richiesta post per la modifica di un'attività
 app.post("/editActivity", async (req, res) => {
-    console.log("/editActivity " + req.body);
-    const { userName, activityId, title, end, participants, is_completed } = req.body;
-    console.log("ricerca di activityId:" + activityId);
-    var activity = await Activity.findOne({ _id: activityId, owner: userName });
-    if (!activity) {
-        res.json({
-            message: "activity not found"
-        });
-    } else {
-        activity.title = title;
-        activity.end = end;
-        activity.has_deadline = (end != null);
-        activity.participants = participants;
-        activity.is_completed = is_completed;
-        try {
+    try {
+        console.log("/editActivity " + req.body);
+        const { userName, activityId, title, end, is_completed, addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused } = req.body;
+        console.log("ricerca di activityId:" + activityId);
+        const activity = await Activity.findOne({ _id: activityId, owner: userName });
+        if (!activity) {
+            res.json({
+                message: "activity not found"
+            });
+        } else {
+            activity.title = title;
+            activity.end = end;
+            activity.has_deadline = (end != null);
+            activity.is_completed = is_completed;
+            activity.addParticipants = addParticipants;
+            activity.selectedParticipants = selectedParticipants;
+            activity.participants_waiting = participants_waiting;
+            activity.participants_accepted = participants_accepted;
+            activity.participants_refused = participants_refused;
             activity.save();
             res.json({ message: "OK" });
             console.log("salvato:" + activity);
-        } catch (error) {
-            console.error("Errore nel salvataggio dell'attività: ", error);
-            res.status(500).send("Error modifying activity");
         }
+    } catch (error) {
+        console.error("Errore nel salvataggio dell'attività: ", error);
+        res.status(500).send("Error modifying activity");
     }
 });
+//gestione richiesta post per la rimozione di un'attività
 app.post("/deleteActivity", async (req, res) => {
-    console.log("/deleteActivity " + req.body);
-    const { userName, activityId } = req.body;
-    console.log("ricerca di activityId=" + req.body.activityId);
     try {
-        var activity_ = await Activity.findOne({ _id: activityId, owner: userName });
+        console.log("/deleteActivity " + req.body);
+        const { userName, activityId } = req.body;
+        console.log("ricerca di activityId=" + req.body.activityId);
+        const activity_ = await Activity.findOne({ _id: activityId, owner: userName });
         if (!activity_) {
-            console.log("Attivita non trovata: " + activityId);
+            console.error("Attivita non trovata: " + activityId);
             res.json({
                 message: "activity not found"
             });
@@ -1233,8 +1465,31 @@ app.post("/deleteActivity", async (req, res) => {
             res.json({ message: "OK" });
         }
     } catch (error) {
-        console.log("ERRORE: ", error);
+        console.error("ERRORE: ", error);
         res.status(500).send("Error deleting activity");
+    }
+});
+//gestione richiesta di lista amici di un utente
+app.get("/getUserFriends/:userName", async (req, res) => {
+    try {
+        const { userName } = req.params;
+        console.log("/getUserFriends/:userName  " + userName);
+        const user = await User.findOne({ username: userName });
+        //console.log(JSON.stringify(user));
+        const { friends } = user;
+        //console.log(JSON.stringify(friends));
+        if (!friends || friends.length === 0) {
+            friends = [];
+        }
+        const friendDocuments = await User.find({ username: { $in: friends } });
+        if (friendDocuments === null) {
+            return res.status(404).json({ error: "Utente non trovato" });
+        }
+        console.log("return #" + friendDocuments.length + " friends");
+        res.status(200).json(friendDocuments);
+    } catch (error) {
+        console.error("Errore del server:", error);
+        res.status(500).json({ error: "Errore del server" });
     }
 });
 
@@ -1244,35 +1499,39 @@ const notificationEnabled = String(process.env.NOTIFICATION_ENABLED).toLowerCase
 if (notificationEnabled) {
     const notificationPollingInterval = process.env.NOTIFICATION_POLLING_INTERVAL;
     // Controlla notifiche ogni notificationPollingInterval secondi
-    setInterval(() => {
-      checkAndSendNotifications(Event,now);
-    }, notificationPollingInterval * 1000);
+    setInterval(() => { checkAndSendNotifications(Event, User); }, notificationPollingInterval * 1000);
 }
 
 app.post('/sendNotification', async (req, res) => {
-    const {to,sub,text} = req.body;
+    const { to, subject, text, html } = req.body;
     console.log(req.body);
     try {
         const user = await User.findOne({ username: to});
         if (!user) {
-            res.status(404).send("User not found");
+            return res.status(404).send("User not found");
         }
 
+        //console.log("user.mail="+user.mail);
         const mailOptions = {
-            from: 'marcostignani9@gmail.com', // Mittente
+            from: 'camillobianca2@gmail.com', // 'marcostignani9@gmail.com', // Mittente
             to: user.mail,                    // Destinatario
-            subject: `Avviso di scadenza per l'evento: ${sub}`,        // Oggetto
-            text: text, // Corpo del messaggio in formato testo
+            subject: subject,  // `Avviso di scadenza per l'evento: ${sub}`,        // Oggetto
+            text: (text != undefined ? text : null),   // Corpo del messaggio in formato testo
+            html: (html != undefined ? html : null)    // Corpo del messaggio in formato html
         };
+        //console.log(mailOptions);
         
         // Invia la mail
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                return console.error('Errore durante l\'invio:', error);
+                console.error('Errore durante l\'invio:', error);
+                return res.status(500).send("Errore durante l'invio dell'email");
             }
             console.log('Email inviata:', info.response);
+            res.status(200).send("Email inviata con successo");
         });
     }catch(error){
+        console.error(error);
         res.status(500).send("Error while sending notification");
     }
 });
