@@ -643,12 +643,15 @@ async function get_today_events() {
         let res = await axios.get(api_url + "getEvents/" + user + "/-1");    //Carica gli eventi
         Events.value = res.data;
         await nextTick();
+		res = await axios.get(api_url + "getSharedEvents/" + user);    //Carica gli eventi condivisi
+        Events.value = Events.value.concat(res.data);
+        await nextTick();
         res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
         Activities.value = res.data;
         await nextTick();
         //alert("Events.value="+JSON.stringify(Events.value));
         //alert("Activities.value="+JSON.stringify(Activities.value));
-        const calendarEvents = prepareCalendarEvents(Events.value, Activities.value);
+        const calendarEvents = prepareCalendarEvents(Events.value, Activities.value, user);
         //alert("CalendarEvents.value="+JSON.stringify(calendarEvents));
         calendar.addEventSource(calendarEvents);
 

@@ -1,6 +1,12 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs().format();
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
-export function prepareCalendarEvents(Events, Activities){
+
+export function prepareCalendarEvents(Events, Activities, user){
 	//alert("prepareCalendarEvents");
 	const calendarEvents = [];
 	//alert("Events.length="+Events.length);
@@ -9,11 +15,17 @@ export function prepareCalendarEvents(Events, Activities){
 		const item = {};
 		item.id = event_._id;
 		item.allDay = event_.all_day;
-		item.start = dayjs(event_.date_start).toDate();
-		item.end = dayjs(event_.date_end).toDate();
-		item.title = event_.title;
+		//item.start = dayjs(event_.date_start).toDate();
+        const startUtc = dayjs(event_.date_start).utc();
+        item.start = startUtc.tz(event_.timezone).toDate();
+		//item.end = dayjs(event_.date_end).toDate();
+        const endUtc = dayjs(event_.date_end).utc();
+        item.end = endUtc.tz(event_.timezone).toDate();
+        //if (event_.title ==="ev 11/1")
+        //    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
+		item.title = (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) + event_.title;
 		item.class = (event_.ev_type === 'notAvailable' ? 'notAvailable' : 'event');
-		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : 'blue');
+		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : (event_.owner === user ? 'blue' : 'violet'));
 		if (event_.is_recurring){
 			item.rrule = `DTSTART=${formatToICalendarDate(item.start)}\n` + event_.recurring_rule;
 			if (item.end > item.start){

@@ -8,27 +8,27 @@
 				<button 
 				  type="button" 
 				  :class="[
-					'btn btn-lg task-icon arrow me-2 mb-2',
+					'btn btn-sm task-icon arrow me-2 mb-2',
 					CalViewMode === VIEW_MODE_DAY ? 'btn-primary' : 'btn-outline-primary'
 				  ]" 
 				  @click="toDayView()" 
 				  title="Day view">
-				  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-calendar-day" viewBox="0 0 16 16">
+				  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-calendar-day" viewBox="0 0 16 16">
 					<path d="M4.684 11.523v-2.3h2.261v-.61H4.684V6.801h2.464v-.61H4v5.332zm3.296 0h.676V8.98c0-.554.227-1.007.953-1.007.125 0 .258.004.329.015v-.613a2 2 0 0 0-.254-.02c-.582 0-.891.32-1.012.567h-.02v-.504H7.98zm2.805-5.093c0 .238.192.425.43.425a.428.428 0 1 0 0-.855.426.426 0 0 0-.43.43m.094 5.093h.672V7.418h-.672z"/>
 					<path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
 				  </svg>
-				  Day view
+				  <span class="fs-7">Day view</span>
 				</button>
 
 				<button 
 				  type="button" 
 				  :class="[
-					'btn btn-lg task-icon arrow me-2 mb-2',
+					'btn btn-sm task-icon arrow me-2 mb-2',
 					CalViewMode === VIEW_MODE_WEEK ? 'btn-primary' : 'btn-outline-primary'
 				  ]" 
 				  @click="toWeekView()" 
 				  title="Week view">
-				  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-calendar-week" viewBox="0 0 16 16">
+				  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-calendar-week" viewBox="0 0 16 16">
 					<path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-5 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
 					<path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
 				  </svg>
@@ -38,12 +38,12 @@
 				<button 
 				  type="button" 
 				  :class="[
-					'btn btn-lg task-icon arrow me-2 mb-2',
+					'btn btn-sm task-icon arrow me-2 mb-2',
 					CalViewMode === VIEW_MODE_MONTH ? 'btn-primary' : 'btn-outline-primary'
 				  ]" 
 				  @click="toMonthView()" 
 				  title="Month view">
-				  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-calendar-month" viewBox="0 0 16 16">
+				  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-calendar-month" viewBox="0 0 16 16">
 					<path d="M2.56 11.332 3.1 9.73h1.984l.54 1.602h.718L4.444 6h-.696L1.85 11.332zm1.544-4.527L4.9 9.18H3.284l.8-2.375zm5.746.422h-.676V9.77c0 .652-.414 1.023-1.004 1.023-.539 0-.98-.246-.98-1.012V7.227h-.676v2.746c0 .941.606 1.425 1.453 1.425.656 0 1.043-.28 1.188-.605h.027v.539h.668zm2.258 5.046c-.563 0-.91-.304-.985-.636h-.687c.094.683.625 1.199 1.668 1.199.93 0 1.746-.527 1.746-1.578V7.227h-.649v.578h-.019c-.191-.348-.637-.64-1.195-.64-.965 0-1.64.679-1.64 1.886v.34c0 1.23.683 1.902 1.64 1.902.558 0 1.008-.293 1.172-.648h.02v.605c0 .645-.423 1.023-1.071 1.023m.008-4.53c.648 0 1.062.527 1.062 1.359v.253c0 .848-.39 1.364-1.062 1.364-.692 0-1.098-.512-1.098-1.364v-.253c0-.868.406-1.36 1.098-1.36z"/>
 					<path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
 				  </svg>
@@ -131,7 +131,7 @@ import { createEvents } from 'ics';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction'; // Plugin necessario per l'interazione
+import interactionPlugin from '@fullcalendar/interaction';
 import rrulePlugin from '@fullcalendar/rrule';
 import { prepareCalendarEvents, formatToICalendarDate } from './calendarUtils';
 import dayjs from 'dayjs';
@@ -280,7 +280,7 @@ const CalDateActivities = computed(() => {
 	//alert("CalDateActivities");
 	const act = [];
 	for (let i = 0; i < Activities.value.length; i++){
-		var activity = Activities.value[i];
+		const activity = Activities.value[i];
 		//alert(JSON.stringify(activity));
 		if (Activities_completed.value || (!Activities_completed.value && !activity.is_completed)) {
 			const item = {};
@@ -327,11 +327,15 @@ async function loadEventsAndActivities(){
 		Events.value = res.data;
 		await nextTick();
 		//alert("ris event=" + Events.value);
+		res = await axios.get(api_url + "getSharedEvents/" + user);    //Carica gli eventi condivisi
+        Events.value = Events.value.concat(res.data);
+		await nextTick();
+		//alert("ris event=" + Events.value);
 		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
 		Activities.value = res.data;
 		await nextTick();
 		//alert("ris activity=" + Activities.value +" - #"+Activities.value.length);
-		CalendarEvents.value = prepareCalendarEvents(Events.value, Activities.value);
+		CalendarEvents.value = prepareCalendarEvents(Events.value, Activities.value, user);
 		//alert("CalendarEvents.value="+JSON.stringify(CalendarEvents.value));
 	}catch(error){
 		//alert('Error: '+error);
@@ -406,6 +410,18 @@ const calendarOptions = reactive/*ref*/({
 	FullCalDate.value = info.startStr;
 	ActiveCalDate.value = dayjs(FullCalDate.value).toDate();
   },
+  dateClick: (info) => { // Aggiungi questo blocco
+    ActiveCalDate.value = dayjs(info.date).toDate();
+    FullCalDate.value = dayjs(info.date).format('YYYY-MM-DD');
+    // Aggiorna la classe 'selected-day'
+    const allSelectedCells = document.querySelectorAll('.fc-daygrid-day.selected-day');
+    allSelectedCells.forEach(cell => cell.classList.remove('selected-day'));
+    const dateStr = dayjs(ActiveCalDate.value).format('YYYY-MM-DD');
+    const cell = document.querySelector(`[data-date="${dateStr}"]`);
+    if (cell) {
+      cell.classList.add('selected-day');
+    }
+  },
   firstDay: 1,     //La settimana inizia dal lunedì
   datesSet: (info) => {
 	// Verifica se la vista corrente è la vista giornaliera
@@ -437,9 +453,9 @@ const calendarOptions = reactive/*ref*/({
 	//alert("event into.event="+JSON.stringify(info.event));
 	//alert("class="+info.event.extendedProps.class);
 	if (info.event.extendedProps.class == 'activity'){
-		editActivity(info.event.id)
+		editActivity(info.event.id);
 	} else if (info.event.extendedProps.class == 'event' || info.event.extendedProps.class == 'notAvailable'){
-		editEvent(info.event.id)
+        editEvent(info.event.id);
 	}
   },
   dayCellClassNames: (arg) => {
@@ -528,7 +544,7 @@ onMounted(async () => {
 
 <style>
 	.main {
-		width: 90vw;
+		width: 98vw;
 		padding-bottom: 30px;
 		border-radius: 5px;
 		background-color: azure;
@@ -539,7 +555,7 @@ onMounted(async () => {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 20px;
-		width: 90vw;
+		width: 98vw;
 	}
 	.section {
 		/*flex: 1;*/
