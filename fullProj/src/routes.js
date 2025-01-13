@@ -12,6 +12,7 @@ import EventPage from "./components/EventPage.vue";
 import addFriend from "./components/addFriend.vue";
 import inbox from './components/inbox.vue';
 import userPage from './components/userPage.vue';
+import infoPage from './components/infoPage.vue';
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -39,6 +40,10 @@ const router = createRouter({
                 {
                     path: '/addFriend',
                     component: addFriend
+                },
+                {
+                    path: '/userInfo',
+                    component: infoPage
                 }
             ]
         }
