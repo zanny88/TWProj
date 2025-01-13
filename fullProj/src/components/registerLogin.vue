@@ -27,13 +27,19 @@
             <div v-show="showDismissibleAlert" style="background: red; color: black;">
                 Username già in uso!
             </div>
+            <div v-show="showDismissibleAlertUsername" style="background: red; color: black;">
+                Nome utente inesistente!
+            </div>
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-12">
                     <div class="form-floating">
-                        <input type="password" v-model="passwd" id="passwd" name="passwd" class="form-control" required/>
+                        <input type="password" v-model="passwd" id="passwd" name="passwd" class="form-control" @input="hideDiv()" required/>
                         <label for="passwd">Password:</label>
                     </div>
                 </div>
+            </div>
+            <div v-show="showDismissibleAlertPassword" style="background: red; color: black;">
+                Password errata!
             </div>
             <div class="row" style="position: relative; justify-content: center; align-items: center;" v-if="formType == 'Register'">
                 <div class="col-lg-4 col-md-4 col-sm-12" >
@@ -79,6 +85,8 @@
     var lastName = ref('');
     var mail = ref('');
     var showDismissibleAlert = ref(false);
+    var showDismissibleAlertPassword = ref(false);
+    var showDismissibleAlertUsername = ref(false);
 
     //ho utilizzato una srtinga invece di un indice perchè riutilizzerò il valore di formType per la richiesta al server 
     var formType = ref("Login");
@@ -98,12 +106,11 @@
             const newUser = {
                 username: name.value,
                 password: passwd.value,
-                name: {first: firstName,last: lastName},
-                email: mail
+                name: {first: firstName.value,last: lastName.value},
+                email: mail.value
             }
             const r = await axios.post(api_url + "user/" + formType.value, newUser);
-            console.log(r.data.message);
-            console.log(formType);
+            
 
             if(r.data.message == "already user"){
                 showDismissibleAlert.value = true;
@@ -116,11 +123,21 @@
                 changeForm();
             }
         }catch(error){
+            name.value = "";
+            passwd.value = "";
+            if(error.response.data == "Password incorrect"){
+                showDismissibleAlertPassword.value = true;
+            }
+            if(error.response.data == "No user with that name"){
+                showDismissibleAlertUsername.value = true;
+            }
             console.log("Errore: ", error);
         }
 
     }
     function hideDiv(){
-        showDismissibleAlert.value=false;        
+        showDismissibleAlert.value = false;
+        showDismissibleAlertPassword.value = false;
+        showDismissibleAlertUsername.value = false;
     }
 </script>

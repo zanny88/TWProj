@@ -9,9 +9,16 @@
                 </div>
                 <div class="row" style="display: flex; flex-direction: row; align-items: center; width: 100%;">
                     <div style="display: flex; justify-content: center; align-items: center; padding-top: 15px; padding-bottom: 10px; border-bottom: 2px solid lightgray; text-align: center; width: 100%; gap: 10px;">
-                        <h5 style="margin: 0;">{{ username }}</h5>
+                        <h5 style="margin: 0;" v-if="username">{{ username }}</h5>
                         <p style="margin: 0;">amici: {{ friend_number }}</p>
                     </div>
+                </div>
+                <div class="row" style="display: flex; flex-direction: row; align-items: center; padding: 10px;">
+                    <router-link class="nav-link" to="/userInfo">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h5 style="margin: 0;">User Info</h5>
+                        </div>
+                    </router-link>
                 </div>
 
                 <div class="row" style="display: flex; flex-direction: row; align-items: center; padding: 10px;">
@@ -52,13 +59,13 @@
     </div>
 </template>
 <script setup>
-    import { inject, nextTick, ref, onMounted } from "vue";
+    import { inject, nextTick, ref, onMounted, watchEffect} from "vue";
     import axios from "axios";
     const api_url = inject('api_url');
 
-    var token = localStorage.getItem('token');
+    var token;
 
-    let username = atob(token.split('.')[1]);
+    let username;
 
     let friend_number = ref('');
 
@@ -113,6 +120,8 @@
     }
 
     onMounted(() => {
+        token = localStorage.getItem('token');
+        username = atob(token.split('.')[1]);
         friendNumber();
     })
 </script>
