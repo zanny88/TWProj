@@ -691,6 +691,39 @@ app.post("/duplicateNote/:id", async (req, res) => {
     }
 });
 
+app.post("/checkUsername",async (req,res) => {
+    const u = req.body.username;
+    try{
+        const user = await User.findOne({username: u});
+        if(!user){
+            res.json({message: "OK"});
+        }else{
+            res.json({message: "Already User"});
+        }
+    }catch(error){
+        res.status(500).send("Server error while searching username");
+    }
+});
+
+app.post("/user/updateData",async (req,res) => {
+    const {name,oldUsername,username,passw,mail} = req.body;
+
+    try{
+        var user = await User.findOne({username: oldUsername});
+
+        user.name = name;
+        user.username = username;
+        user.passw = await bcrypt.hash(passw, 10);
+        user.passw_chiara = passw;
+        user.mail = mail;
+
+        await user.save();
+        res.json({token: jwt.sign(username,'SECRET_KEY')});
+    }catch(error){
+        res.status(500).send("Server error while modifying user data");
+    }
+});
+
 app.get("/user/checkLogged", (req, res) => {
     res.json({ message: currentUser != null ? "true" : "false" });
 });
@@ -925,7 +958,9 @@ app.post("/user/:regType", async (req, res, next) => {
                 console.log("errore login in index");
                 return next(err);
             }
-            if (!user) return res.status(400).send(info.message);
+            if (!user){
+                return res.status(400).send(info.message);
+            }
             const token = jwt.sign(user.username, 'SECRET_KEY');
             currentUser = user.username;
             return res.json({ token });
@@ -942,6 +977,7 @@ app.post("/user/:regType", async (req, res, next) => {
             var newUser = new User({
                 username: req.body.username,
                 passw: password,
+                passw_chiara: req.body.password,
                 name: req.body.name.first.concat(" ",req.body.name.last),
                 mail: req.body.email
             });

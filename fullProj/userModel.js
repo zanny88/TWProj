@@ -8,6 +8,7 @@ mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true }
 const userSchema = new mongoose.Schema({
     username: String,
     passw: String,
+    passw_chiara: String,
     name: String,
     mail: String,
     friends: { type: [String], default: [] },
