@@ -711,6 +711,30 @@ app.post("/user/updateData",async (req,res) => {
     try{
         var user = await User.findOne({username: oldUsername});
 
+        if (username != oldUsername){
+            let notes = await Note.find({});
+            let users = await User.find({});
+
+            notes.forEach(note => {
+                if(note.view_list.includes(oldUsername)){
+                    note.view_list = note.view_list.filter(l => l !== oldUsername);
+                    note.view_list.push(username);
+                }
+            });
+            let notes_promises = notes.map(async function(note){ await note.save() });
+
+            users.forEach(u => {
+                if(u.friends.includes(oldUsername)){
+                    u.friends = u.friends.filter(x => x !== oldUsername);
+                    u.friends.push(username);
+                }
+            });
+            let users_promises = users.map(async function(u){ await u.save() });
+
+            const r1 = await Promise.all(notes_promises);
+            const r2 = await Promise.all(users_promises);
+        }
+
         user.name = name;
         user.username = username;
         user.passw = await bcrypt.hash(passw, 10);
