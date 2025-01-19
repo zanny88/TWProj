@@ -415,7 +415,7 @@ const calendarOptions = reactive/*ref*/({
     FullCalDate.value = dayjs(info.date).format('YYYY-MM-DD');
     // Aggiorna la classe 'selected-day'
     const allSelectedCells = document.querySelectorAll('.fc-daygrid-day.selected-day');
-    allSelectedCells.forEach(cell => cell.classList.remove('selected-day'));
+    allSelectedCells.forEach((cell) => cell.classList.remove('selected-day'));
     const dateStr = dayjs(ActiveCalDate.value).format('YYYY-MM-DD');
     const cell = document.querySelector(`[data-date="${dateStr}"]`);
     if (cell) {
@@ -433,14 +433,12 @@ const calendarOptions = reactive/*ref*/({
 	}
 
 	// Aggiorna la classe 'selected-day' per evidenziare il giorno corrente
-	// Rimuovi tutte le classi 'selected-day'
 	const allSelectedCells = document.querySelectorAll('.fc-daygrid-day.selected-day');
-	allSelectedCells.forEach(cell => cell.classList.remove('selected-day'));
-	// Aggiungi la classe 'selected-day' alla nuova data
+	allSelectedCells.forEach(cell => cell.classList.remove('selected-day'));  	// Rimuove tutte le classi 'selected-day'
 	const dateStr = dayjs(ActiveCalDate.value).format('YYYY-MM-DD');
 	const cell = document.querySelector(`[data-date="${dateStr}"]`);
 	if (cell) {
-	  cell.classList.add('selected-day');
+	  cell.classList.add('selected-day');    // Aggiungi la classe 'selected-day' alla nuova data
 	}
   },
   eventTimeFormat: {
@@ -452,9 +450,9 @@ const calendarOptions = reactive/*ref*/({
   eventClick: (info) => {
 	//alert("event into.event="+JSON.stringify(info.event));
 	//alert("class="+info.event.extendedProps.class);
-	if (info.event.extendedProps.class == 'activity'){
+	if (info.event.extendedProps.class === 'activity'){
 		editActivity(info.event.id);
-	} else if (info.event.extendedProps.class == 'event' || info.event.extendedProps.class == 'notAvailable'){
+	} else if (info.event.extendedProps.class === 'event' || info.event.extendedProps.class === 'notAvailable'){
         editEvent(info.event.id);
 	}
   },

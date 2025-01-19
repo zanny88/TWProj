@@ -287,11 +287,11 @@
 
             <div class="mt-4 d-flex justify-content-between align-items-center gap-2">
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-primary" @click="saveEvent">{{ formType }}</button>
+                    <button type="button" class="btn btn-outline-primary" @click="saveEvent" v-if="formType === 'Create' || User === event.owner">{{ formType }}</button>
                     <button type="button" class="btn btn-outline-secondary" @click="cancel">Cancel</button>
                 </div>
                 <button v-if="formType === 'Save' && User === event.owner" type="button" :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'" @click="toggleModify">Modify</button>
-                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="props.id != -1">Remove</button>
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="props.id != -1 && User === event.owner">Remove</button>
             </div>
         </form>
     </div>

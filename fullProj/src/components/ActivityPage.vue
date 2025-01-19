@@ -3,31 +3,130 @@
         <h2>Activity form</h2>
         <div class="mb-3">
             <label for="title" class="form-label">Title</label>
-            <input type="text" id="title" class="form-control" v-model="title" placeholder="Enter activity title"  :class="{'is-invalid': titleError}" :disabled="isReadOnly" />
+            <input type="text" id="title" class="form-control" v-model="activity.title" placeholder="Enter activity title"  :class="{'is-invalid': titleError}" :disabled="isReadOnly" />
             <div v-if="titleError" class="invalid-feedback">
                 Title is mandatory!
             </div>
         </div>
         
         <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea type="text" id="title" class="form-control" v-model="activity.description" placeholder="Enter a description (optional)" :disabled="isReadOnly" />
+        </div>
+
+        <div class="mb-3">
             <label for="endDate" class="form-check-label">
                 End date
-                <VueDatePicker v-model="end" id="endDate" locale="it" :preview-format="format" :format="format" :enable-time-picker="false" v-if="isLoaded" placeholder="Select End Date" name="Activity end date" :disabled="isReadOnly" />
+                <VueDatePicker v-model="activity.end" id="endDate" locale="it" :preview-format="format" :format="format" :enable-time-picker="false" v-if="isLoaded"
+                 placeholder="Select End Date (optional)" name="Activity end date" :disabled="isReadOnly" :class="{'is-invalid': endDateError}" />
+                 <div v-if="endDateError" class="invalid-feedback">
+                    End date not valid: date in the past!
+                </div>
             </label>
         </div>
-        
-        <!--
-        <div class="mb-3">
-            <label for="participants">Participants:</label>
-            <input type="text" v-model="participants" id="participants" name="participants" class="form-control" placeholder="Enter participants"/>
-        </div>
-        -->
         
         <div class="mb-3 row">
             <label for="isCompleted" class="col-form-label col-sm-2">Completed</label>
             <div class="col-sm-10 d-flex align-items-center form-switch">
-                <input type="checkbox" id="isCompleted" class="form-check-input form-switch" v-model="is_completed" :disabled="isReadOnly" />
+                <input type="checkbox" id="isCompleted" class="form-check-input form-switch" v-model="activity.is_completed" :disabled="isReadOnly" />
             </div>
+        </div>
+        
+        
+        
+        <!-- Esempio di switch per “Aggiungi partecipanti” -->
+      <!--<div v-if="Friends.length > 0" class="mb-3 form-switch">
+        <input
+          type="checkbox"
+          id="addParticipants"
+          class="form-check-input"
+          v-model="activity.addParticipants"
+          :disabled="isReadOnly"
+        />
+        <label for="addParticipants" class="form-check-label switch-label-margin">
+          Add participants
+        </label>
+      </div>-->
+            <div v-if="Friends.length > 0" class="mb-3 form-switch">
+                <input type="checkbox" id="addParticipants" class="form-check-input" v-model="activity.addParticipants" :disabled="isReadOnly" />
+                <label for="addParticipants" class="form-check-label switch-label-margin">Add participants</label>
+            </div>
+            <div v-if="activity.addParticipants">
+                <table class="table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="friend in Friends" :key="friend.username">
+                        <td>
+                            <input type="checkbox" class="form-check-input" v-model="activity.selectedParticipants" :value="friend.username" :disabled="isReadOnly" />
+                        </td>
+                        <td>{{ friend.username }}</td>
+                        <td>{{ friend.name }}</td>
+                        <td>
+                            <BIconHourglassSplit v-if="activity.participants_waiting.includes(friend.username)" class="text-secondary" title="Waiting" />
+                            <BIconCheckCircle v-else-if="activity.participants_accepted.includes(friend.username)" class="text-success" title="Accepted" />
+                            <BIconXCircle v-else-if="activity.participants_refused.includes(friend.username)" class="text-danger" title="Refused" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+
+      <!-- Se l’utente ha attivato lo switch, mostri la tabella -->
+      <!--<div v-if="activity.addParticipants">
+        <table class="table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="friend in Friends" :key="friend.username">
+              <td>
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  v-model="activity.selectedParticipants"
+                  :value="friend.username"
+                  :disabled="isReadOnly"
+                />
+              </td>
+              <td>{{ friend.username }}</td>
+              <td>{{ friend.name }}</td>
+              <td>
+                <BIconHourglassSplit
+                  v-if="activity.participants_waiting.includes(friend.username)"
+                  class="text-secondary"
+                  title="Waiting"
+                />
+                <BIconCheckCircle
+                  v-else-if="activity.participants_accepted.includes(friend.username)"
+                  class="text-success"
+                  title="Accepted"
+                />
+                <BIconXCircle
+                  v-else-if="activity.participants_refused.includes(friend.username)"
+                  class="text-danger"
+                  title="Refused"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>-->
+      
+        
+        <div v-if="formType === 'Save' && User !== activity.owner">
+            --- This activity is editable only by the owner ---
         </div>
 
         <div class="mt-4 d-flex justify-content-between align-items-center gap-2">
@@ -37,7 +136,7 @@
             </div>
             <button v-if="formType === 'Save'" type="button" :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'" @click="toggleModify">Modify</button>
             <!--<button type="button" class="btn btn-outline-danger" @click="remove" v-if="props.id!=-1">Remove</button>-->
-            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="props.id != -1">Remove</button>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="props.id != -1 && User === activity.owner">Remove</button>
         </div>
     </div>
 
@@ -64,7 +163,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, nextTick, inject, computed } from 'vue';
+import { onMounted, ref, nextTick, inject, computed, reactive } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import VueDatePicker from '@vuepic/vue-datepicker';
@@ -78,25 +177,30 @@ const api_url = inject('api_url');
 const router = useRouter();
 const props = defineProps(['id','callback']);
 const titleError = ref(false);
+const endDateError = ref(false);
+const Friends = ref([]);
 
 
 const formType = ref('');
-const title = ref('');
-const end = ref(null);
-const participants = ref([]);
-const is_completed = ref(false);
-const isLoaded = ref(false);
 
-//variabili per la gestione dei partecipanti
-const addParticipants = ref(false);         // Switch per mostrare/nascondere la lista partecipanti
-const selectedParticipants = ref([]);       // Elenco di partecipanti selezionati
-const participants_waiting = ref([]);       // Partecipanti in attesa di risposta
-const participants_accepted = ref([]);      // Partecipanti che hanno accettato
-const participants_refused = ref([]);       // Partecipanti che hanno rifiutato
+const activity = reactive({
+    owner: '',
+    title: '',
+    description: '',
+    end: null,
+    is_completed: false,
+    addParticipants: false,
+    selectedParticipants: [],
+    participants_waiting: [],
+    participants_accepted: [],
+    participants_refused: [],
+});
 
 
 
 const user = atob(localStorage.getItem('token').split('.')[1]);
+const User = ref(user);
+const isLoaded = ref(false);
 const isModifying = ref(false);
 const isReadOnly = computed(() => {
     if (formType.value === 'Create') return false;
@@ -111,9 +215,23 @@ const format = (date) => {
     const day = date.getDate();
     const month = date.getMonth() + 1;
     const year = date.getFullYear();
-    return `End date: ${day}/${month}/${year}`;
+    return `${day}/${month}/${year}`;
 }
 
+
+function validateEndDate() {
+    if (props.id != '-1') {
+        endDateError.value = false;
+    } else {
+        const today = new Date();
+        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        if (!activity.end || activity.end >= todayMidnight) {
+            endDateError.value = false;
+        } else {
+            endDateError.value = true;
+        }
+    }
+}
 
 
 async function getActivity(activityId){
@@ -122,20 +240,22 @@ async function getActivity(activityId){
         const Activities = res.data;
         await nextTick();
         if (Activities.length > 0){
-            const activity = Activities[0];
-            title.value = activity.title;
-            if (activity.end != null){
-                const activityEnd = dayjs(activity.end).toDate();
-                end.value = new Date(activityEnd.getFullYear(), activityEnd.getMonth(), activityEnd.getDate());   //toglie le ore dalla data
+            const act = Activities[0];
+            activity.owner = act.owner;
+            activity.title = act.title;
+            activity.description = act.description;
+            if (act.end != null){
+                const activityEnd = dayjs(act.end).toDate();
+                activity.end = new Date(activityEnd.getFullYear(), activityEnd.getMonth(), activityEnd.getDate());   //toglie le ore dalla data
             }
-            addParticipants.value = activity.addParticipants;
-            selectedParticipants.value = activity.selectedParticipants;
-            participants_waiting.value = activity.participants_waiting;
-            participants_accepted.value = activity.participants_accepted;
-            participants_refused = activity.participants_refused;
+            activity.addParticipants = act.addParticipants;
+            activity.selectedParticipants = act.selectedParticipants;
+            activity.participants_waiting = act.participants_waiting;
+            activity.participants_accepted = act.participants_accepted;
+            activity.participants_refused = act.participants_refused;
         }
     }catch(error){
-        console.error("Error adding activity: ",error);
+        console.error("Error fetching activity: ",error);
         //alert("error="+error);
     }
 }
@@ -143,25 +263,29 @@ async function getActivity(activityId){
 
 
 async function submit(){
-    if (title.value.trim() === ''){
+    if (activity.title.trim() === ''){
         titleError.value = true;
         return;
     } else{
         titleError.value = false;
     }
-    if (props.id == "-1"){  //Aggiunta di un'attività
+    validateEndDate();
+    if (endDateError.value) {
+        return;
+    }
+    if (props.id == '-1'){  //Aggiunta di un'attività
         try{
             const newActivity = {
-                userName: user,
-                title: title.value,
-                end: (end.value == null ? null : new Date(end.value.getFullYear(), end.value.getMonth(), end.value.getDate())),   //toglie le ore dalla data
-                participants: participants.value,
-                is_completed: is_completed.value,
-                addParticipants : addParticipants.value,
-                selectedParticipants : selectedParticipants.value,
-                participants_waiting : participants_waiting.value,
-                participants_accepted : participants_accepted.value,
-                participants_refused : participants_refused.value
+                owner: user,
+                title: activity.title,
+                description: activity.description,
+                end: (activity.end == null ? null : new Date(activity.end.getFullYear(), activity.end.getMonth(), activity.end.getDate())),   //toglie le ore dalla data
+                is_completed: activity.is_completed,
+                addParticipants : activity.addParticipants,
+                selectedParticipants : activity.selectedParticipants,
+                participants_waiting : activity.participants_waiting,
+                participants_accepted : activity.participants_accepted,
+                participants_refused : activity.participants_refused
             };
             //alert("bb, api_url="+api_url+", newActivity="+JSON.stringify(newActivity));
             const r = await axios.post(api_url + 'addActivity', newActivity);
@@ -177,20 +301,20 @@ async function submit(){
         }
     }else{  //Modifica di un'attività
         try{
-            const activity = {
-                userName: user,
+            const act = {
+                owner: user,
                 activityId: props.id,
-                title: title.value,
-                end: (end.value == null ? null : new Date(end.value.getFullYear(), end.value.getMonth(), end.value.getDate())),
-                participants: participants.value,
-                is_completed: is_completed.value,
-                addParticipants : addParticipants.value,
-                selectedParticipants : selectedParticipants.value,
-                participants_waiting : participants_waiting.value,
-                participants_accepted : participants_accepted.value,
-                participants_refused : participants_refused.value
+                title: activity.title,
+                description: activity.description,
+                end: (activity.end == null ? null : new Date(activity.end.getFullYear(), activity.end.getMonth(), activity.end.getDate())),
+                is_completed: activity.is_completed,
+                addParticipants : activity.addParticipants,
+                selectedParticipants : activity.selectedParticipants,
+                participants_waiting : activity.participants_waiting,
+                participants_accepted : activity.participants_accepted,
+                participants_refused : activity.participants_refused
             };
-            const r = await axios.post(api_url + 'editActivity', activity);
+            const r = await axios.post(api_url + 'editActivity', act);
             if(r.data.message == "OK"){
                 callbackToCalendar();
             }else{
@@ -242,6 +366,20 @@ function callbackToCalendar(){
     }
 }
 
+//Funzione che legge gli amici dell'utente connesso
+async function readFriends(){
+    //alert("Friends");
+    try{
+        const res = await axios.get(api_url + "getUserFriends/" + user);
+        Friends.value = res.data;
+        await nextTick();
+    } catch(error) {
+        console.error("Error reading friends: ",error);
+        alert("error="+error);
+    }
+    //alert("Friends="+JSON.stringify(Friends.value));
+}
+
 onMounted(async () => {
     if (props.id == "-1"){
         formType.value = 'Create';
@@ -251,6 +389,7 @@ onMounted(async () => {
         isModifying.value = false;
         await getActivity(props.id);
     }
+    await readFriends();
     isLoaded.value = true;
 });
 </script>
