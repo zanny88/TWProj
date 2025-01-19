@@ -1,21 +1,15 @@
-const { rrulestr } = require('rrule');
+const { rrulestr, RRule } = require('rrule');
 const dayjs = require('dayjs');
+const minMax = require('dayjs/plugin/minMax');
+dayjs.extend(minMax);
+const axios = require('axios');
 
 //Controlla se due intervalli [startA, endA] e [startB, endB] si sovrappongono
 function intervalsOverlap(startA, endA, startB, endB) {
   return (startA <= endB && startB <= endA);
 }
 
-/**
- * Genera tutte le occorrenze (come coppie [start, end]) per un evento,
- * limitandole a un range di date [rangeStart, rangeEnd].
- * 
- * @param {Object} event - l'evento (contenente date e recurring_rule).
- * @param {Date} rangeStart - limite inferiore del range da considerare.
- * @param {Date} rangeEnd   - limite superiore del range da considerare.
- * @param {Number} maxOccurrences - numero massimo di occorrenze da generare (per evitare loop enormi).
- * @returns {Array<{start: Date, end: Date}>}
- */
+//Funzione che genera tutte le occorrenze (come coppie [start, end]) per un evento, limitandole a un range di date [rangeStart, rangeEnd].
 function getEventOccurrences(event, rangeStart, rangeEnd, maxOccurrences = 1000) {
   if (!event.is_recurring) {
     const eventStart = dayjs(event.date_start);
@@ -82,68 +76,64 @@ function eventsOverlap(eventA, eventB) {
 
 
 //Restituisce una descrizione in inglese della ricorrenza
+// Modifica della funzione getRecurrenceDescription
 function getRecurrenceDescription(recurringRule) {
   try {
     const rule = rrulestr(recurringRule);
-    
+    const options = rule.options;
+    const descriptions = [];
+
     // Frequenza
-    let freqStr = '';
-    switch (rule.options.freq) {
-      case RRule.YEARLY:
-        freqStr = 'yearly';
-        break;
-      case RRule.MONTHLY:
-        freqStr = 'monthly';
-        break;
-      case RRule.WEEKLY:
-        freqStr = 'weekly';
-        break;
-      case RRule.DAILY:
-        freqStr = 'daily';
-        break;
-      case RRule.HOURLY:
-        freqStr = 'hourly';
-        break;
-      case RRule.MINUTELY:
-        freqStr = 'every minute';
-        break;
-      case RRule.SECONDLY:
-        freqStr = 'every second';
-        break;
-      default:
-        freqStr = 'custom frequency';
-        break;
-    }
+    const freqMap = {
+      [RRule.YEARLY]: 'yearly',
+      [RRule.MONTHLY]: 'monthly',
+      [RRule.WEEKLY]: 'weekly',
+      [RRule.DAILY]: 'daily',
+      [RRule.HOURLY]: 'hourly',
+      [RRule.MINUTELY]: 'every minute',
+      [RRule.SECONDLY]: 'every second',
+    };
+    const freqStr = freqMap[options.freq] || 'custom frequency';
+    descriptions.push(`Recurs ${freqStr}`);
 
     // Interval
-    const interval = rule.options.interval || 1;
-    let description = `Recurs ${freqStr}`;
-    if (interval > 1) {
-      description += ` (every ${interval} ${freqStr === 'custom frequency' ? 'units' : freqStr.slice(0, -2) + 's'})`;
+    if (options.interval && options.interval > 1) {
+      descriptions.push(`every ${options.interval} ${freqStr}${options.interval > 1 ? 's' : ''}`);
     }
 
-    // ByDay, se presente
-    if (rule.options.byweekday && rule.options.byweekday.length > 0) {
-      const weekdays = rule.options.byweekday.map((wd) => RRule.weekdayToString(wd.weekday)).join(', ');
-      description += ` on ${weekdays}`;
+    // ByDay
+    if (options.byweekday && options.byweekday.length > 0) {
+      const weekdaysMap = {
+        MO: 'Monday',
+        TU: 'Tuesday',
+        WE: 'Wednesday',
+        TH: 'Thursday',
+        FR: 'Friday',
+        SA: 'Saturday',
+        SU: 'Sunday'
+      };
+      const weekdays = options.byweekday.map(wd => weekdaysMap[wd.toString().slice(0,2)]).join(', ');
+      descriptions.push(`on ${weekdays}`);
     }
 
-    // Fino a data di fine (UNTIL) se presente
-    if (rule.options.until) {
-      description += ` until ${dayjs(rule.options.until).format('YYYY-MM-DD')}`;
+    // Until
+    if (options.until) {
+      descriptions.push(`until ${dayjs(options.until).format('YYYY-MM-DD')}`);
     }
 
-    // Numero di ricorrenze (COUNT) se presente
-    if (rule.options.count) {
-      description += ` for ${rule.options.count} time(s)`;
+    // Count
+    if (options.count) {
+      descriptions.push(`for ${options.count} time(s)`);
     }
 
-    return description;
+    return descriptions.join(' ');
   } catch (error) {
-    //Se non riesce il parsing o manca la rrule, restituisco una stringa di default
+    console.error('Error generating recurrence description:', error);
     return 'Recurring rule not valid or not provided.';
   }
 }
+
+
 
 //Ritorna una breve descrizione della configurazione di notifica
 function getNotificationSummary(event) {
@@ -166,7 +156,7 @@ function getNotificationSummary(event) {
 }
 
 //Genera una stringa HTML da utilizzare in un'email di invito
-function generateEventInviteHTML(event, user) {
+function generateEventInvitationHTML(event, user) {
   // Formatto le date d'inizio e fine
   const formatString = 'YYYY-MM-DD HH:mm';
   const startStr = event.date_start ? dayjs(event.date_start).format(formatString) : 'N/A';
@@ -188,6 +178,9 @@ function generateEventInviteHTML(event, user) {
   const notificationInfo = getNotificationSummary(event);  //Info sulle notifiche
   const eventId = event._id || 'unknown-id';
 
+console.log("server_url="+process.env.SERVER_URL);
+  const acceptUrl = `${process.env.SERVER_URL}acceptEventInvitation/${event._id}/${user}`;
+  const refuseUrl = `${process.env.SERVER_URL}refuseEventInvitation/${event._id}/${user}`;
   let html = `
 <html>
   <head>
@@ -202,7 +195,7 @@ function generateEventInviteHTML(event, user) {
         max-width: 600px;
         margin: auto;
       }
-      h1 {
+      h2 {
         color: #333;
       }
       .section-title {
@@ -246,12 +239,7 @@ function generateEventInviteHTML(event, user) {
         <div class="info">${notificationInfo}</div>
       </p>
 
-      <p><span class="section-title">Priority:</span> <span class="info">${priorityStr}</span></p>`;
-
-      <!-- Pulsanti Accept e Refuse -->
-      const acceptUrl = `${process.env.SERVER_URL}acceptEventInvite/${event._id}/${user}`;
-      const refuseUrl = `${process.env.SERVER_URL}refuseEventInvite/${event._id}/${user}`;
-      html += `
+      <p><span class="section-title">Priority:</span> <span class="info">${priorityStr}</span></p>
       <div class="buttons">
         <a class="button accept" href="${acceptUrl}">Accept</a>
         <a class="button refuse" href="${refuseUrl}">Refuse</a>
@@ -263,6 +251,221 @@ function generateEventInviteHTML(event, user) {
   return html;
 }
 
-module.exports = {
-  generateEventInviteHTML, eventsOverlap
-};
+
+//gestione degli eventuali partecipanti all'evento condiviso
+async function manageEventParticipants(event, Event, User) {
+    try {
+        if (!event || !event.selectedParticipants || event.selectedParticipants.length == 0) {
+            return;  //nulla da fare --> esco
+        }
+        const part_waiting = event.participants_waiting || [];
+        const part_accepted = event.participants_accepted || [];
+        const part_refused = event.participants_refused || [];
+        for (let i = 0; i < event.selectedParticipants.length; i++) {
+            const user = event.selectedParticipants[i];
+            if (part_waiting.includes(user) || part_accepted.includes(user) || part_refused.includes(user)) {
+                continue;
+            }
+            //Controllo se ci sono eventi di tipo "notAvailable" sovrapposti
+            const eventsNotAvailable = await Event.find({ owner: user, ev_type: 'notAvailable' });
+            if (!eventsNotAvailable) {
+                continue;
+            }
+            let overlapped = false;
+            for (let k = 0; k < eventsNotAvailable.length; k++) {
+                const ev = eventsNotAvailable[k];
+                if (eventsOverlap(event, ev)) {  //Evento "notAvailable" sovrapposto --> rifiuto in automatico l'invito
+                    overlapped = true;
+                    console.log("INVITO a " + user + ": Rifiuto automatico per sovrapposizione con evento 'notAvailable'.");
+                    event.participants_refused.push(user);
+                    break;
+                }
+            }
+            if (!overlapped) {
+                const userDB = await User.findOne({ username: user });
+                //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
+                if (userDB && userDB.mail) {
+                    //mando l'invito
+                    let html = generateEventInvitationHTML(event, user);
+                    console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
+                    try {
+                          const payload = {
+                            to: user,
+                            subject: `Invitation for event: ${event.title}`,
+                            html: html
+                          }
+                          await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
+                          event.participants_waiting.push(user);
+                          await event.save();
+                      } catch (error) {
+                          console.error("Errore: "+error);
+                      }
+                } else {
+                    console.error("Invito all'evento non inviato a " + user + " per mancanza di mail configurata!");
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Errore nella gestione dei partecipanti all'evento: ", error);
+    }
+}
+
+const generateHTMLResponse = (title, message, color) => `
+    <html>
+        <head>
+            <title>${title}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    margin-top: 50px;
+                }
+                .message {
+                    display: inline-block;
+                    padding: 20px;
+                    border: 2px solid ${color};
+                    border-radius: 10px;
+                    background-color: ${color === '#4CAF50' ? '#f9fff9' : '#fff9f9'};
+                }
+                .message h1 {
+                    color: ${color};
+                }
+            </style>
+        </head>
+        <body>
+            <div class="message">
+                <h1>${title}</h1>
+                <p>${message}</p>
+            </div>
+        </body>
+    </html>
+`;
+
+
+async function disableEventNotification(eventId, user, Event) {
+    try {
+        console.log("/disableEventNotification " + eventId + " " + user);
+        const event_ = await Event.findOne({ _id: eventId });
+        if (!event_) {
+            console.error("Event not found: " + eventId);
+            return `
+                <html>
+                    <head><title>Event Not Found</title></head>
+                    <body>
+                        <h1>Event Not Found</h1>
+                        <p>The event you are trying to modify does not exist.</p>
+                    </body>
+                </html>
+            `;
+        }
+        if (!event_.notification_stop.includes(user)) {
+            event_.notification_stop.push(user);
+            await event_.save();
+            console.log("Notifications disabled for user:" + eventId + " " + user);
+        }
+        return generateHTMLResponse("Notifications Disabled", "You have successfully disabled event notifications.", "#4CAF50");
+    } catch (error) {
+        console.error("ERROR: ", error);
+        return `
+            <html>
+                <head><title>Error</title></head>
+                <body>
+                    <h1>An Error Occurred</h1>
+                    <p>We were unable to disable event notifications. Please try again later.</p>
+                </body>
+            </html>
+        `;
+    }
+}
+
+
+//gestione accettazione di invito ad un evento per un utente
+async function acceptEventInvitation(eventId, user, Event) {
+    try {
+        const event_ = await Event.findOne({ _id: eventId });
+        if (!event_) {
+            console.error("Event not found: " + eventId);
+            return `
+                <html>
+                    <head><title>Event Not Found</title></head>
+                    <body>
+                        <h1>Event Not Found</h1>
+                        <p>The event you are trying to accept does not exist.</p>
+                    </body>
+                </html>
+            `;
+        }
+        const part_waiting = event_.participants_waiting || [];
+        const part_refused = event_.participants_refused || [];
+        if (part_waiting.includes(user)) {
+            event_.participants_waiting = part_waiting.filter(item => item !== user);
+        }
+        if (part_refused.includes(user)) {
+            event_.participants_refused = part_refused.filter(item => item !== user);
+        }
+        if (!event_.participants_accepted.includes(user)) {
+            event_.participants_accepted.push(user);
+        }
+        await event_.save();
+        console.log("Event accepted:" + eventId + " " + user);
+        return generateHTMLResponse("Event Accepted", "You have successfully accepted the event invitation.", "#4CAF50");
+    } catch (error) {
+        console.error("ERROR: ", error);
+        return `
+            <html>
+                <head><title>Error</title></head>
+                <body>
+                    <h1>An Error Occurred</h1>
+                    <p>We were unable to accept the event. Please try again later.</p>
+                </body>
+            </html>
+        `;
+    }
+}
+
+//gestione rifiuto di invito ad un evento per un utente
+async function refuseEventInvitation(eventId, user, Event) {
+    try {
+        const event_ = await Event.findOne({ _id: eventId });
+        if (!event_) {
+            console.error("Event not found: " + eventId);
+            return `
+                <html>
+                    <head><title>Event Not Found</title></head>
+                    <body>
+                        <h1>Event Not Found</h1>
+                        <p>The event you are trying to refuse does not exist.</p>
+                    </body>
+                </html>
+            `;
+        }
+        const part_waiting = event_.participants_waiting || [];
+        const part_accepted = event_.participants_accepted || [];
+        if (part_waiting.includes(user)) {
+            event_.participants_waiting = part_waiting.filter(item => item !== user);
+        }
+        if (part_accepted.includes(user)) {
+            event_.participants_accepted = part_accepted.filter(item => item !== user);
+        }
+        if (!event_.participants_refused.includes(user)) {
+            event_.participants_refused.push(user);
+        }
+        await event_.save();
+        console.log("Event refused:" + eventId + " " + user);
+        return generateHTMLResponse("Event Refused", "You have successfully refused the event invitation.", "#f44336");
+    } catch (error) {
+        console.error("ERROR: ", error);
+        return `
+            <html>
+                <head><title>Error</title></head>
+                <body>
+                    <h1>An Error Occurred</h1>
+                    <p>We were unable to refuse the event. Please try again later.</p>
+                </body>
+            </html>
+        `;
+    }
+}
+
+
+module.exports = { generateEventInvitationHTML, eventsOverlap, manageEventParticipants, disableEventNotification, acceptEventInvitation, refuseEventInvitation };

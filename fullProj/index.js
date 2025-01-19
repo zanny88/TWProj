@@ -15,19 +15,20 @@ const jwt = require('jsonwebtoken');
 
 const User = require('./userModel');
 const { Message } = require('./messageModel');
-const checkAndSendNotifications = require('./notificationUtils');
-const { generateEventInviteHTML, eventsOverlap } = require('./eventUtils');
+const { checkAndSendNotifications } = require('./notificationUtils');
+const { generateEventInvitationHTML, eventsOverlap, manageEventParticipants, disableEventNotification, acceptEventInvitation, refuseEventInvitation } = require('./eventUtils');
+const { generateActivityInvitationHTML, manageActivityParticipants, acceptActivityInvitation, refuseActivityInvitation } = require('./activityUtils');
 
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 
 const transporter = nodemailer.createTransport({
-    host: 'in-v3.mailjet.com',
-    port: 587,
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
     secure: false,
     auth: {
-        user: '975b5c4995d053fa22c0286eabb39a9b',
-        pass: '862210377b666f67170d1477c47fc4a0'
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PWD
     },
 });
 
@@ -117,6 +118,7 @@ const eventSchema = new mongoose.Schema({
 const activitySchema = new mongoose.Schema({
     owner: String,
     title: String,
+    description: String,
     end: Date,
     creation_date: Date,
     has_deadline: Boolean,
@@ -1177,7 +1179,7 @@ app.post("/addEvent", async (req, res) => {
         });
         await NewEvent.save();
         console.log("added event= " + NewEvent);
-        manageEventParticipants(NewEvent);
+        await manageEventParticipants(NewEvent, Event, User);
         res.json({ message: "OK" });
     } catch (error) {
         console.error("Errore nella creazione dell'evento: ", error);
@@ -1222,7 +1224,7 @@ app.post("/editEvent", async (req, res) => {
             event_.participants_refused = participants_refused;
             event_.timezone = timezone;
             await event_.save();
-            manageEventParticipants(event_);
+            await manageEventParticipants(event_, Event, User);
             res.json({ message: "OK" });
             console.log("saved:" + event_);
         }
@@ -1231,66 +1233,6 @@ app.post("/editEvent", async (req, res) => {
         res.status(500).send("Error modifying event");
     }
 });
-//gestione degli eventuali partecipanti all'evento condiviso
-async function manageEventParticipants(event) {
-    try {
-        if (!event || !event.selectedParticipants || event.selectedParticipants.length == 0) {
-            return;  //nulla da fare --> esco
-        }
-        const part_waiting = event.participants_waiting || [];
-        const part_accepted = event.participants_accepted || [];
-        const part_refused = event.participants_refused || [];
-        for (let i = 0; i < event.selectedParticipants.length; i++) {
-            const user = event.selectedParticipants[i];
-            if (part_waiting.includes(user) || part_accepted.includes(user) || part_refused.includes(user)) {
-                continue;
-            }
-            //Controllo se ci sono eventi di tipo "notAvailable" sovrapposti
-            const eventsNotAvailable = await Event.find({ owner: user, ev_type: 'notAvailable' });
-            if (!eventsNotAvailable) {
-                continue;
-            }
-            let overlapped = false;
-            for (let k = 0; k < eventsNotAvailable.length; k++) {
-                const ev = eventsNotAvailable[k];
-                if (eventsOverlap(event, ev)) {  //Evento "notAvailable" sovrapposto --> rifiuto in automatico l'invito
-                    overlapped = true;
-                    console.log("INVITO a " + user + ": Rifiuto automatico per sovrapposizione con evento 'notAvailable'.");
-                    event.participants_refused.push(user);
-                    break;
-                }
-            }
-            if (!overlapped) {
-                const userDB = await User.findOne({ username: user });
-                //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
-                if (userDB && userDB.mail) {
-                    const email = userDB.mail;
-                    //mando l'invito
-                    let html = generateEventInviteHTML(event, user);
-                    console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
-                    
-                    try {
-                          const payload = {
-                            to: user,
-                            subject: `Invite for event: ${event.title}`,
-                            html: html
-                          }
-                          await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
-                      } catch (error) {
-                          console.error("Errore: "+error);
-                      }
-                    
-                    event.participants_waiting.push(user);
-                } else {
-                    console.error("Invito non inviato a " + user + " per mancanza di mail configurata!");
-                }
-            }
-            await event.save();
-        }
-    } catch (error) {
-        console.error("Errore nella gestione dei partecipanti all'evento: ", error);
-    }
-}
 
 //gestione richiesta post per la cancellazione di un evento
 app.post("/deleteEvent", async (req, res) => {
@@ -1322,110 +1264,28 @@ app.post("/deleteEvent", async (req, res) => {
 
 //gestione richiesta di disabilitazione delle notifiche per un evento per un utente
 app.get("/disableEventNotification/:eventId/:user", async (req, res) => {
-    try {
-        const eventId = req.params.eventId
-        const user = req.params.user
-        console.log("/dismissEventNotification " + eventId + " " + user);
-        //console.log("ricerca di eventId=" + eventId);
-        const event_ = await Event.findOne({ _id: eventId });
-        if (!event_) {
-            console.error("Evento non trovato: " + eventId);
-            res.json({
-                message: "event not found"
-            });
-        } else {
-            if (!event_.notification_stop.includes(user)) {
-                event_.notification_stop.push(user);
-                await event_.save();
-                console.log("notifiche spente:" + eventId + " " + user);
-            }
-            //if(!r){
-            //	return res.status(404).send("Event not found");
-            //}
-            res.json({ message: "Event notifications disabled." });
-        }
-    } catch (error) {
-        console.error("ERRORE: ", error);
-        res.status(500).send("Error disabling event notification");
-    }
+    const eventId = req.params.eventId;
+    const user = req.params.user;
+    console.log("/disableEventNotification " + eventId + " " + user);
+    res.send(await disableEventNotification(eventId, user, Event));
 });
 
-
 //gestione accettazione di invito ad un evento per un utente
-app.get("/acceptEventInvite/:eventId/:user", async (req, res) => {
-    try {
-        const eventId = req.params.eventId
-        const user = req.params.user
-        console.log("/acceptEventInvite " + eventId + " " + user);
-        //console.log("ricerca di eventId=" + eventId);
-        const event_ = await Event.findOne({ _id: eventId });
-        if (!event_) {
-            console.error("Evento non trovato: " + eventId);
-            res.json({
-                message: "event not found"
-            });
-        } else {
-            const part_waiting = event_.participants_waiting || [];
-            const part_refused = event_.participants_refused || [];
-            if (part_waiting.includes(user)) {
-                event_.participants_waiting =  nuovaLista = part_waiting.filter(item => item !== user);
-            }
-            if (part_refused.includes(user)) {
-                event_.participants_refused =  nuovaLista = part_refused.filter(item => item !== user);
-            }
-            if (!event_.participants_accepted.includes(user)) {
-                event_.participants_accepted.push(user);
-            }
-            await event_.save();
-            console.log("evento accettato:" + eventId + " " + user);
-            //if(!r){
-            //	return res.status(404).send("Event not found");
-            //}
-            res.json({ message: "Event accepted." });
-        }
-    } catch (error) {
-        console.error("ERRORE: ", error);
-        res.status(500).send("Error accepting event");
-    }
+app.get("/acceptEventInvitation/:eventId/:user", async (req, res) => {
+    const eventId = req.params.eventId;
+    const user = req.params.user;
+    console.log("/acceptEventInvitation " + eventId + " " + user);
+    res.send(await acceptEventInvitation(eventId, user, Event));
 });
 
 //gestione rifiuto di invito ad un evento per un utente
-app.get("/refuseEventInvite/:eventId/:user", async (req, res) => {
-    try {
-        const eventId = req.params.eventId
-        const user = req.params.user
-        console.log("/refuseEventInvite " + eventId + " " + user);
-        //console.log("ricerca di eventId=" + eventId);
-        const event_ = await Event.findOne({ _id: eventId });
-        if (!event_) {
-            console.error("Evento non trovato: " + eventId);
-            res.json({
-                message: "event not found"
-            });
-        } else {
-            const part_waiting = event_.participants_waiting || [];
-            const part_accepted = event_.participants_accepted || [];
-            if (part_waiting.includes(user)) {
-                event_.participants_waiting =  nuovaLista = part_waiting.filter(item => item !== user);
-            }
-            if (part_accepted.includes(user)) {
-                event_.participants_accepted =  nuovaLista = part_accepted.filter(item => item !== user);
-            }
-            if (!event_.participants_refused.includes(user)) {
-                event_.participants_refused.push(user);
-            }
-            await event_.save();
-            console.log("evento rifiutato:" + eventId + " " + user);
-            //if(!r){
-            //	return res.status(404).send("Event not found");
-            //}
-            res.json({ message: "Event refused." });
-        }
-    } catch (error) {
-        console.error("ERRORE: ", error);
-        res.status(500).send("Error refusing event");
-    }
+app.get("/refuseEventInvitation/:eventId/:user", async (req, res) => {
+    const eventId = req.params.eventId;
+    const user = req.params.user;
+    console.log("/refuseEventInvitation " + eventId + " " + user);
+    res.send(await refuseEventInvitation(eventId, user, Event));
 });
+
 
 //gestione richiesta post per richiedere un'attività di un utente (con activityId = -1 si ottengono tutte le attività di quell'utente)
 app.get("/getActivities/:userName/:activityId", async (req, res) => {
@@ -1452,10 +1312,11 @@ app.get("/getActivities/:userName/:activityId", async (req, res) => {
 app.post("/addActivity", async (req, res) => {
     try {
         console.log("/addActivity " + req.body);
-        const { userName, title, end, is_completed, addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused } = req.body;
+        const { owner, title, description, end, is_completed, addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused } = req.body;
         const NewActivity = new Activity({
-            owner: userName,
+            owner: owner,
             title: title,
+            description: description,
             end: end,
             has_deadline: (end != null),
             is_completed: is_completed,
@@ -1466,7 +1327,8 @@ app.post("/addActivity", async (req, res) => {
             participants_refused: participants_refused,
             creation_date: Date.now()
         });
-        NewActivity.save();
+        await NewActivity.save();
+        await manageActivityParticipants(NewActivity, User)
         console.log("added activity=" + NewActivity);
         res.json({ message: "OK" });
     } catch (error) {
@@ -1478,15 +1340,17 @@ app.post("/addActivity", async (req, res) => {
 app.post("/editActivity", async (req, res) => {
     try {
         console.log("/editActivity " + req.body);
-        const { userName, activityId, title, end, is_completed, addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused } = req.body;
+        const { owner, activityId, title, description, end, is_completed, addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused } = req.body;
         console.log("ricerca di activityId:" + activityId);
-        const activity = await Activity.findOne({ _id: activityId, owner: userName });
+        const activity = await Activity.findOne({ _id: activityId, owner: owner });
         if (!activity) {
+            console.error("Attività non trovata!");
             res.json({
                 message: "activity not found"
             });
         } else {
             activity.title = title;
+            activity.description = description;
             activity.end = end;
             activity.has_deadline = (end != null);
             activity.is_completed = is_completed;
@@ -1495,7 +1359,8 @@ app.post("/editActivity", async (req, res) => {
             activity.participants_waiting = participants_waiting;
             activity.participants_accepted = participants_accepted;
             activity.participants_refused = participants_refused;
-            activity.save();
+            await activity.save();
+            await manageActivityParticipants(activity, User)
             res.json({ message: "OK" });
             console.log("salvato:" + activity);
         }
@@ -1529,6 +1394,24 @@ app.post("/deleteActivity", async (req, res) => {
         res.status(500).send("Error deleting activity");
     }
 });
+
+//gestione accettazione di invito ad un evento per un utente
+app.get("/acceptActivityInvitation/:activityId/:user", async (req, res) => {
+    const activityId = req.params.activityId;
+    const user = req.params.user;
+    console.log("/acceptActivityInvitation " + activityId + " " + user);
+    res.send(await acceptActivityInvitation(activityId, user, Activity));
+});
+
+//gestione rifiuto di invito ad un evento per un utente
+app.get("/refuseActivityInvitation/:activityId/:user", async (req, res) => {
+    const activityId = req.params.activityId;
+    const user = req.params.user;
+    console.log("/refuseActivityInvitation " + activityId + " " + user);
+    res.send(await refuseActivityInvitation(activityId, user, Activity));
+});
+
+
 //gestione richiesta di lista amici di un utente
 app.get("/getUserFriends/:userName", async (req, res) => {
     try {
@@ -1585,10 +1468,10 @@ app.post('/sendNotification', async (req, res) => {
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error('Errore durante l\'invio:', error);
-                return res.status(500).send("Errore durante l'invio dell'email");
+                return res.status(500).send("Error while sending notification");
             }
             console.log('Email inviata:', info.response);
-            res.status(200).send("Email inviata con successo");
+            res.status(200).send("Email notification successfully sent");
         });
     }catch(error){
         console.error(error);

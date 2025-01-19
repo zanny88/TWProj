@@ -305,4 +305,4 @@ function getEventNotificationHtml(event, now, user) {
   return html;
 }
 
-module.exports = checkAndSendNotifications;
+module.exports = { checkAndSendNotifications };
