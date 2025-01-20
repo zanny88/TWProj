@@ -53,11 +53,19 @@
         <div class="card-header">
             Dati utente
         </div>
-        <div class="card-body">
-            <p class="card-text" v-for="(val,index) in ['Nome','Cognome','Username','Password','Mail']">
-                {{ val }}: {{ userInfo[index] }}
-            </p>
-            <button class="btn btn-primary" @click="changeData = true;">Modifica dati</button>
+        <div class="card-body" style="display: flex; flex-wrap: wrap;">
+            <div style="flex: 1;">
+                <p class="card-text" v-for="(val,index) in ['Nome','Cognome','Username','Password','Mail']">
+                    {{ val }}: {{ userInfo[index] }}
+                </p>
+                <button class="btn btn-primary" @click="changeData = true;">Modifica dati</button>
+            </div>
+            <div style="flex: 1; border-left: 1px solid lightgray; padding: 10px;">
+                Amici <span v-if="userFriends.length <= 0"> - None</span>:
+                <ul>
+                    <li v-for="(friend,index) in userFriends">{{ friend }}</li>
+                </ul>
+            </div>
         </div>
     </div>
 </template>
@@ -72,6 +80,7 @@ const api_url = inject('api_url');
 const user = atob(localStorage.getItem('token').split('.')[1]);
 const router = useRouter();
 var userInfo = ref([]);
+var userFriends = ref([]);
 var changeData = ref(false);
 var showDismissibleAlert = ref(false);
 
@@ -139,6 +148,8 @@ async function getUserInfo(){
         userInfo.value.push(utente.username);
         userInfo.value.push(utente.passw_chiara);
         userInfo.value.push(utente.mail);
+
+        userFriends.value = utente.friends;
         console.log(userInfo.value);
     }catch(error){
         console.log("Errore: ",error);
