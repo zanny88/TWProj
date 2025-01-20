@@ -825,8 +825,8 @@ app.post("/user/sendMessage",async (req,res) => {
     }
 });
 
-app.get("/user/checkInbox", async (req, res) => {
-    var username = req.query.user;
+app.post("/user/checkInbox", async (req, res) => {
+    var username = req.body.user;
 
     try {
         try {
@@ -841,9 +841,9 @@ app.get("/user/checkInbox", async (req, res) => {
 
         var newMessages = user.inbox.filter(msg => msg.seen == false);
         if (newMessages.length > 0) {
-            res.send({ message: true });
+            res.json(true);
         } else {
-            res.send({ message: false });
+            res.json(false);
         }
     } catch (error) {
         console.log("Error fetching user for inbox check: ", error);
