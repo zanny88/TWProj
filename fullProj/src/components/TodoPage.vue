@@ -139,7 +139,7 @@
     }
 
     onMounted(async () => {
-        await getTodos();
+        //await getTodos();
     })
 </script>
 <style scoped>
