@@ -136,7 +136,6 @@ const Session = mongoose.model("Session", sessionSchema);
 const Event = mongoose.model("Event", eventSchema);
 const Activity = mongoose.model("Activity", activitySchema);
 
-var currentUser = null;
 
 var now = new Date();
 
@@ -157,11 +156,6 @@ app.get('*',async function (req,res){
 });
 */
 
-app.post("/getUser", (req, res) => {
-    if (currentUser)
-        res.json({ name: currentUser.name });
-    else res.json(undefined);
-});
 
 //gestione richiesta post per richiedere un preciso to-do o una precisa nota inviando l'ID
 app.post("/:blogType/get", async (req, res) => {
@@ -241,7 +235,7 @@ app.post("/getNotes/:limit", async (req, res) => {
 });
 
 //gestione richiesta post per richiedere un numero di to-do (con limit = -1 si ottengono tutti i to-do)
-app.post("/getTodos/:limit", async (req, res) => {
+/*app.post("/getTodos/:limit", async (req, res) => {
     var lim = Number(req.params.limit);
     var todo;
     if (lim > 0) {
@@ -250,7 +244,7 @@ app.post("/getTodos/:limit", async (req, res) => {
         todo = await Todo.find({ user: currentUser.name });
     }
     res.send(todo);
-});
+});*/
 
 //gestione richiesta post per aggiungere o modificare note e to-do
 app.post("/compose", async (req, res) => {
@@ -750,14 +744,6 @@ app.post("/user/updateData",async (req,res) => {
     }
 });
 
-app.get("/user/checkLogged", (req, res) => {
-    res.json({ message: currentUser != null ? "true" : "false" });
-});
-
-app.get("/user/logout", (req, res) => {
-    currentUser = null;
-    res.json({ message: "OK" });
-});
 //crea nuova route per la gestione dei messaggi (add amico e condivisione)
 //dato che la condivisione la si fa lato server la funzione per la'aggiunta del mesaggio non deve essere una route e deve essere 
 //richiamata dalla route indicata alla prima riga
@@ -979,6 +965,7 @@ app.post("/user/:regType", async (req, res, next) => {
     var user = null;
 
     if (req.params.regType == "Login") {
+        console.log("TENTATO LOGIN DA TELEFONO");
         passport.authenticate('local', (err, user, info) => {
             if (err) {
                 console.log("errore login in index");
@@ -988,7 +975,6 @@ app.post("/user/:regType", async (req, res, next) => {
                 return res.status(400).send(info.message);
             }
             const token = jwt.sign(user.username, 'SECRET_KEY');
-            currentUser = user.username;
             return res.json({ token });
         })(req, res, next);
     } else {
