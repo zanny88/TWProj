@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { inject } from 'vue';
 import dayjs from 'dayjs';
 import axios from 'axios';
 const api_url = 'http://localhost:3000/';
@@ -10,11 +11,11 @@ export const useTimeMachineStore = defineStore('timeMachine', {
     actions: {
         async setTime(newTime) {
             this.currentTime = dayjs(newTime);
-            await axios.get(`${api_url}setTime?time=${this.currentTime.toISOString()}`);
+            await axios.post(`${api_url}setTime`,{u: atob(localStorage.getItem('token').split('.')[1]),time: this.currentTime.toISOString()});
         },
         async resetTime() {
             this.currentTime = dayjs();
-            await axios.get(`${api_url}setTime?time=${this.currentTime.toISOString()}`);
+            await axios.post(`${api_url}setTime`,{u: atob(localStorage.getItem('token').split('.')[1]),time: this.currentTime.toISOString()});
         },
     },
     getters: {
