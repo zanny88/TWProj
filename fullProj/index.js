@@ -137,8 +137,6 @@ const Event = mongoose.model("Event", eventSchema);
 const Activity = mongoose.model("Activity", activitySchema);
 
 
-var now = new Date();
-
 /*[SETUP PER SERVER DISI] !!!!!CAMBIARE PORTA DEL SERVER DA 3000 A 8000!!!!!!!!!!!!!!!
 global.rootDir = __dirname;
 
@@ -1428,7 +1426,13 @@ const notificationEnabled = String(process.env.NOTIFICATION_ENABLED).toLowerCase
 if (notificationEnabled) {
     const notificationPollingInterval = process.env.NOTIFICATION_POLLING_INTERVAL;
     // Controlla notifiche ogni notificationPollingInterval secondi
-    setInterval(() => { checkAndSendNotifications(Event, User); }, notificationPollingInterval * 1000);
+    setInterval(async () => { 
+        const users = await User.find();
+        users.forEach(user => {
+            console.log(`controllo gli eventi per l'utente ${user.username}, considerando l'orario ${user.currentTime}`);
+            checkAndSendNotifications(Event, User, user.currentTime); 
+        });
+    }, notificationPollingInterval * 1000);
 }
 
 app.post('/sendNotification', async (req, res) => {
@@ -1465,9 +1469,23 @@ app.post('/sendNotification', async (req, res) => {
     }
 });
 
-app.get("/setTime",(req,res) => {
-    now = new Date(req.query.time);
-    res.send("OK");
+app.post("/setTime",async (req,res) => {
+    const user = req.body.u;
+    const newTime = req.body.time;
+
+    try{
+        var utente = await User.findOne({username: user});
+
+        if(!utente){
+            res.status(404).send("User not found");
+        }
+
+        utente.currentTime = newTime;
+        await User.findByIdAndUpdate({_id: utente._id},{currentTime: utente.currentTime});
+    }catch(error){
+        res.status(500).send("Error while saving time");
+        console.log("Errore: ",error);
+    }
 });
 
 

@@ -5,12 +5,15 @@ const mongoDBUri = process.env.MONGODB_URI;
 
 mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
 
+const now = new Date();
+
 const userSchema = new mongoose.Schema({
     username: String,
     passw: String,
     passw_chiara: String,
     name: String,
     mail: String,
+    currentTime: { type: String, default: now.toString()},
     friends: { type: [String], default: [] },
     inbox: {type: [messageSchema], default: []}
 });

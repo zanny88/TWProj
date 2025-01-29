@@ -3,7 +3,7 @@ const dayjs = require('dayjs');
 const axios = require('axios');
 
 //Funzione che, ogni N secondi, controlla tutti gli eventi con has_notification=true e verifica se è il momento di inviare la notifica, considerando anche le ricorrenze.
-async function checkAndSendNotifications(MongoDBEvent, MongoDBUser) {
+async function checkAndSendNotifications(MongoDBEvent, MongoDBUser, time) {
     //console.log("checkAndSendNotifications-START");
     try {
         const events = await MongoDBEvent.find({
@@ -11,7 +11,7 @@ async function checkAndSendNotifications(MongoDBEvent, MongoDBUser) {
             $or: [{ is_recurring: true }, { $expr: { $not: { $in: [ "$owner", "$notification_stop" ] } } }]       //Ricorrenti oppure owner NON presente in notification_stop
         });
 
-        const now = new Date();
+        const now = new Date(time);
         //Costruisce un dizionario delle coppie (username, mail) per gli utenti che hanno mail configurata
         const emailDictionary = {};
         const emailUsers = await MongoDBUser.find({ mail: { $exists: true, $ne: null } });
