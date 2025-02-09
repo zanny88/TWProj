@@ -90,6 +90,7 @@ const sessionSchema = new mongoose.Schema({
 const eventSchema = new mongoose.Schema({
     owner: String,
     title: String,
+    description: String,
     date_start: Date,                      /* data e ora di inizio */
     date_end: Date,
     is_recurring: Boolean,                 /* Vero se l'evento è ricorrente */
@@ -106,6 +107,7 @@ const eventSchema = new mongoose.Schema({
 	notification_last_handled: Date,        /* data dell'ultimo evento trattato (per eventi ricorrenti) */
     notification_stop: { type: [String], default: [] },                    /* lista degli utenti con notifiche fermate */
     ev_type: { type: String, default: "Event" },                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
+    pomodoro: Boolean,                      /* Evento pomodoro */
     priority: Number,                       /* Priorità 1=Low, 2=Normal, 3=High, 4=Highest */
     addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
     selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
@@ -964,7 +966,7 @@ app.post("/user/:regType", async (req, res, next) => {
 
     if (req.params.regType == "Login") {
         console.log("TENTATO LOGIN DA TELEFONO");
-        passport.authenticate('local', (err, user, info) => {
+        passport.authenticate('local', async (err, user, info) => {
             if (err) {
                 console.log("errore login in index");
                 return next(err);
@@ -973,6 +975,14 @@ app.post("/user/:regType", async (req, res, next) => {
                 return res.status(400).send(info.message);
             }
             const token = jwt.sign(user.username, 'SECRET_KEY');
+            console.log("user="+user);
+            //Azzera il deltaTime dell'utente
+            try {
+                if (user) {
+                    user.deltaTime = 0;
+                    await user.save();
+                }
+            } catch (error) {}
             return res.json({ token });
         })(req, res, next);
     } else {
@@ -1119,8 +1129,7 @@ app.get("/getSharedEvents/:userName", async (req, res) => {
     try {
         const userName = req.params.userName;
         console.log("/getSharedEvents/:userName " + userName);
-        let events;
-        events = await Event.find({ participants_accepted: userName });
+        const events = await Event.find({ participants_accepted: userName });
         console.log("return #" + events.length + " shared events");
         res.send(events);
     } catch (error) {
@@ -1132,12 +1141,13 @@ app.get("/getSharedEvents/:userName", async (req, res) => {
 app.post("/addEvent", async (req, res) => {
     try {
         console.log("/addEvent " + req.body);
-        const { userName, title, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, priority,
+        const { userName, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
                 has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
                 addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         const NewEvent = new Event({
             owner: userName,
             title: title,
+            description: description,
             date_start: date_start,
             date_end: date_end,
             place: place,
@@ -1145,6 +1155,7 @@ app.post("/addEvent", async (req, res) => {
             is_recurring: is_recurring,
             recurring_rule: recurring_rule,
             ev_type: ev_type,
+            pomodoro: pomodoro,
             priority: priority,
             has_notification: has_notification,
             notification_modes: notification_modes,
@@ -1174,7 +1185,7 @@ app.post("/addEvent", async (req, res) => {
 app.post("/editEvent", async (req, res) => {
     try {
         console.log("/editEvent " + req.body);
-        const { userName, eventId, title, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, priority,
+        const { userName, eventId, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
                 has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
                 addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         console.log("ricerca di eventId=" + req.body.eventId);
@@ -1185,6 +1196,7 @@ app.post("/editEvent", async (req, res) => {
             });
         } else {
             event_.title = title;
+            event_.description = description;
             event_.date_start = date_start;
             event_.date_end = date_end;
             event_.place = place;
@@ -1192,6 +1204,7 @@ app.post("/editEvent", async (req, res) => {
             event_.is_recurring = is_recurring;
             event_.recurring_rule = recurring_rule;
             event_.ev_type = ev_type;
+            event_.pomodoro = pomodoro;
             event_.priority = priority;
             event_.has_notification = has_notification;
             event_.notification_modes = notification_modes;
@@ -1271,17 +1284,17 @@ app.get("/refuseEventInvitation/:eventId/:user", async (req, res) => {
 });
 
 
-//gestione richiesta post per richiedere un'attività di un utente (con activityId = -1 si ottengono tutte le attività di quell'utente)
+//gestione richiesta get per richiedere un'attività di un utente (con activityId = -1 si ottengono tutte le attività di quell'utente)
 app.get("/getActivities/:userName/:activityId", async (req, res) => {
     try {
-        var userName = req.params.userName;
-        var activityId = req.params.activityId
+        const userName = req.params.userName;
+        const activityId = req.params.activityId
         console.log("/getActivities/:userName/:activityId  " + userName + " " + activityId);
         let activities;
         if (activityId == '-1') {
             activities = await Activity.find({ owner: userName });
         } else if (userName == '-1') {
-            activities = await Event.find({ _id: activityId });
+            activities = await Activity.find({ _id: activityId });
         } else {
             activities = await Activity.find({ owner: userName, _id: activityId });
         }
@@ -1290,6 +1303,19 @@ app.get("/getActivities/:userName/:activityId", async (req, res) => {
     } catch (error) {
         console.error("ERRORE: ", error);
         res.status(500).send("Error reading activities");
+    }
+});
+//gestione richiesta post per richiedere le eventuali attività condivise che l'utente ha accettato
+app.get("/getSharedActivities/:userName", async (req, res) => {
+    try {
+        const userName = req.params.userName;
+        console.log("/getSharedActivities/:userName " + userName);
+        const activites = await Activity.find({ participants_accepted: userName });
+        console.log("return #" + activites.length + " shared activites");
+        res.send(activites);
+    } catch (error) {
+        console.error("ERRORE: ", error);
+        res.status(500).send("Error reading shared activites");
     }
 });
 //gestione richiesta post per l'aggiunta di un'attività
@@ -1408,15 +1434,15 @@ app.get("/getUserFriends/:userName", async (req, res) => {
         if (!friends || friends.length === 0) {
             friends = [];
         }
-        const friendDocuments = await User.find({ username: { $in: friends } });
-        if (friendDocuments === null) {
-            return res.status(404).json({ error: "Utente non trovato" });
+        const friendUsers = await User.find({ username: { $in: friends } });
+        if (friendUsers === null) {
+            return res.status(404).json({ error: "User not found" });
         }
-        console.log("return #" + friendDocuments.length + " friends");
-        res.status(200).json(friendDocuments);
+        console.log("return #" + friendUsers.length + " friends");
+        res.status(200).json(friendUsers);
     } catch (error) {
         console.error("Errore del server:", error);
-        res.status(500).json({ error: "Errore del server" });
+        res.status(500).json({ error: "Server error" });
     }
 });
 
@@ -1429,8 +1455,9 @@ if (notificationEnabled) {
     setInterval(async () => { 
         const users = await User.find();
         users.forEach(user => {
-            console.log(`controllo gli eventi per l'utente ${user.username}, considerando l'orario ${user.currentTime}`);
-            checkAndSendNotifications(Event, User, user.currentTime); 
+            let time = (user.deltaTime != undefined ? new Date(Date.now() + user.deltaTime) : new Date());
+            console.log(`controllo gli eventi per l'utente ${user.username}, considerando l'orario ${time}`);
+            checkAndSendNotifications(Event, User, user.username, time); 
         });
     }, notificationPollingInterval * 1000);
 }
@@ -1472,7 +1499,6 @@ app.post('/sendNotification', async (req, res) => {
 app.post("/setTime",async (req,res) => {
     const user = req.body.u;
     const newTime = req.body.time;
-
     try{
         var utente = await User.findOne({username: user});
 
@@ -1480,8 +1506,9 @@ app.post("/setTime",async (req,res) => {
             res.status(404).send("User not found");
         }
 
-        utente.currentTime = newTime;
-        await User.findByIdAndUpdate({_id: utente._id},{currentTime: utente.currentTime});
+        utente.deltaTime = (new Date(newTime) - new Date());
+        console.log("deltaTime="+utente.deltaTime);
+        await User.findByIdAndUpdate({_id: utente._id}, {deltaTime: utente.deltaTime});
     }catch(error){
         res.status(500).send("Error while saving time");
         console.log("Errore: ",error);

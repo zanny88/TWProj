@@ -3,7 +3,7 @@ const dayjs = require('dayjs');
 const axios = require('axios');
 
 //Funzione che, ogni N secondi, controlla tutti gli eventi con has_notification=true e verifica se è il momento di inviare la notifica, considerando anche le ricorrenze.
-async function checkAndSendNotifications(MongoDBEvent, MongoDBUser, time) {
+async function checkAndSendNotifications(MongoDBEvent, MongoDBUser, userName, time) {
     //console.log("checkAndSendNotifications-START");
     try {
         const events = await MongoDBEvent.find({
@@ -30,6 +30,9 @@ async function checkAndSendNotifications(MongoDBEvent, MongoDBUser, time) {
             //console.log("gestione evento: "+JSON.stringify(ev));
             const users = [ev.owner, ...(ev.participants_accepted || [])];        //utente che ha creato l'evento e tutti gli eventuali utenti che hanno accettato l'invito
             for (const user of users) {
+                if (user != userName) {
+                    continue;
+                }
                 console.log("gestione evento '" + ev.title + "' per utente " + user);
                 if (!emailDictionary[user]) {
                     console.error("utente " + user + " privo di mail");
@@ -139,6 +142,9 @@ async function notification_handleRecurringEvent(event, now, user, email) {
             //console.log("event.notification_last_handled="+event.notification_last_handled);
             event.notification_num_sent = 0;
             event.notification_last_handled = nextOccurrence;
+            if (event.notification_stop.includes(user)) {
+                event.notification_stop = event.notification_stop.filter(item => item !== user);
+            }
         } else if (event.notification_stop.includes(user)) {
             return;
         }
@@ -173,7 +179,7 @@ async function notification_handleRecurringEvent(event, now, user, email) {
             console.log("notification_handleRecurringEvent --> notification_stop=true 2");
             if (!event.notification_stop.includes(user)) {
                 event.notification_stop.push(user);
-              }
+            }
           }
           await event.save();
         }

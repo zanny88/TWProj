@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
     passw_chiara: String,
     name: String,
     mail: String,
-    currentTime: { type: String, default: now.toString()},
+    deltaTime: { type: Number },                   //delta time in milliseconds
     friends: { type: [String], default: [] },
     inbox: {type: [messageSchema], default: []}
 });

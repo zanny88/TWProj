@@ -98,7 +98,7 @@ function getRecurrenceDescription(recurringRule) {
 
     // Interval
     if (options.interval && options.interval > 1) {
-      descriptions.push(`every ${options.interval} ${freqStr}${options.interval > 1 ? 's' : ''}`);
+      descriptions.push(`every ${options.interval} ${freqStr}`);  //${options.interval > 1 ? 's' : ''}`);
     }
 
     // ByDay
@@ -176,9 +176,7 @@ function generateEventInvitationHTML(event, user) {
       };
   const priorityStr = map[event.priority] || 'Unknown';  //Priorità
   const notificationInfo = getNotificationSummary(event);  //Info sulle notifiche
-  const eventId = event._id || 'unknown-id';
 
-console.log("server_url="+process.env.SERVER_URL);
   const acceptUrl = `${process.env.SERVER_URL}acceptEventInvitation/${event._id}/${user}`;
   const refuseUrl = `${process.env.SERVER_URL}refuseEventInvitation/${event._id}/${user}`;
   let html = `
@@ -228,6 +226,7 @@ console.log("server_url="+process.env.SERVER_URL);
     <div class="container">
       <h2>You're invited: ${event.title || 'Untitled Event'}</h2>
 
+      <p><span class="section-title">Description:</span> <span class="info">${event.description || 'N/A'}</span></p>
       <p><span class="section-title">Place:</span> <span class="info">${event.place || 'N/A'}</span></p>
       <p><span class="section-title">Starts:</span> <span class="info">${startStr}</span></p>
       <p><span class="section-title">Ends:</span> <span class="info">${endStr}</span></p>
@@ -278,6 +277,7 @@ async function manageEventParticipants(event, Event, User) {
                     overlapped = true;
                     console.log("INVITO a " + user + ": Rifiuto automatico per sovrapposizione con evento 'notAvailable'.");
                     event.participants_refused.push(user);
+                    await event.save();
                     break;
                 }
             }
