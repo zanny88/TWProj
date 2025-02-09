@@ -11,7 +11,7 @@
         
         <div class="mb-3">
             <label for="description" class="form-label">Description</label>
-            <textarea type="text" id="title" class="form-control" v-model="activity.description" placeholder="Enter a description (optional)" :disabled="isReadOnly" />
+            <textarea type="text" id="description" class="form-control" v-model="activity.description" placeholder="Enter a description (optional)" :disabled="isReadOnly" />
         </div>
 
         <div class="mb-3">
@@ -34,95 +34,37 @@
         
         
         
-        <!-- Esempio di switch per “Aggiungi partecipanti” -->
-      <!--<div v-if="Friends.length > 0" class="mb-3 form-switch">
-        <input
-          type="checkbox"
-          id="addParticipants"
-          class="form-check-input"
-          v-model="activity.addParticipants"
-          :disabled="isReadOnly"
-        />
-        <label for="addParticipants" class="form-check-label switch-label-margin">
-          Add participants
-        </label>
-      </div>-->
-            <div v-if="Friends.length > 0" class="mb-3 form-switch">
-                <input type="checkbox" id="addParticipants" class="form-check-input" v-model="activity.addParticipants" :disabled="isReadOnly" />
-                <label for="addParticipants" class="form-check-label switch-label-margin">Add participants</label>
-            </div>
-            <div v-if="activity.addParticipants">
-                <table class="table">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Code</th>
-                        <th>Name</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="friend in Friends" :key="friend.username">
-                        <td>
-                            <input type="checkbox" class="form-check-input" v-model="activity.selectedParticipants" :value="friend.username" :disabled="isReadOnly" />
-                        </td>
-                        <td>{{ friend.username }}</td>
-                        <td>{{ friend.name }}</td>
-                        <td>
-                            <BIconHourglassSplit v-if="activity.participants_waiting.includes(friend.username)" class="text-secondary" title="Waiting" />
-                            <BIconCheckCircle v-else-if="activity.participants_accepted.includes(friend.username)" class="text-success" title="Accepted" />
-                            <BIconXCircle v-else-if="activity.participants_refused.includes(friend.username)" class="text-danger" title="Refused" />
-                        </td>
-                    </tr>
-                </tbody>
+        <div v-if="Friends.length > 0 && (formType === 'Create' || User === activity.owner)" class="mb-3 form-switch">
+            <input type="checkbox" id="addParticipants" class="form-check-input" v-model="activity.addParticipants" :disabled="isReadOnly" />
+            <label for="addParticipants" class="form-check-label switch-label-margin">Add participants</label>
+        </div>
+        <div v-if="activity.addParticipants && (formType === 'Create' || User === activity.owner)">
+            <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="friend in Friends" :key="friend.username">
+                    <td>
+                        <input type="checkbox" class="form-check-input" v-model="activity.selectedParticipants" :value="friend.username" :disabled="isReadOnly" />
+                    </td>
+                    <td>{{ friend.username }}</td>
+                    <td>{{ friend.name }}</td>
+                    <td>
+                        <BIconHourglassSplit v-if="activity.participants_waiting.includes(friend.username)" class="text-secondary" title="Waiting" />
+                        <BIconCheckCircle v-else-if="activity.participants_accepted.includes(friend.username)" class="text-success" title="Accepted" />
+                        <BIconXCircle v-else-if="activity.participants_refused.includes(friend.username)" class="text-danger" title="Refused" />
+                    </td>
+                </tr>
+            </tbody>
             </table>
-            </div>
+        </div>
 
-      <!-- Se l’utente ha attivato lo switch, mostri la tabella -->
-      <!--<div v-if="activity.addParticipants">
-        <table class="table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="friend in Friends" :key="friend.username">
-              <td>
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  v-model="activity.selectedParticipants"
-                  :value="friend.username"
-                  :disabled="isReadOnly"
-                />
-              </td>
-              <td>{{ friend.username }}</td>
-              <td>{{ friend.name }}</td>
-              <td>
-                <BIconHourglassSplit
-                  v-if="activity.participants_waiting.includes(friend.username)"
-                  class="text-secondary"
-                  title="Waiting"
-                />
-                <BIconCheckCircle
-                  v-else-if="activity.participants_accepted.includes(friend.username)"
-                  class="text-success"
-                  title="Accepted"
-                />
-                <BIconXCircle
-                  v-else-if="activity.participants_refused.includes(friend.username)"
-                  class="text-danger"
-                  title="Refused"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>-->
       
         
         <div v-if="formType === 'Save' && User !== activity.owner">
@@ -131,12 +73,12 @@
 
         <div class="mt-4 d-flex justify-content-between align-items-center gap-2">
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-primary" @click="submit">{{ formType }}</button>
+                <button v-if="formType === 'Create' || User === activity.owner" type="button" class="btn btn-outline-primary" @click="submit">{{ formType }}</button>
                 <button type="button" class="btn btn-outline-secondary" @click="cancel">Cancel</button>
             </div>
-            <button v-if="formType === 'Save'" type="button" :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'" @click="toggleModify">Modify</button>
+            <button v-if="formType === 'Save' && User === activity.owner" type="button" :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'" @click="toggleModify">Modify</button>
             <!--<button type="button" class="btn btn-outline-danger" @click="remove" v-if="props.id!=-1">Remove</button>-->
-            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="props.id != -1 && User === activity.owner">Remove</button>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="formType === 'Save' && User === activity.owner">Remove</button>
         </div>
     </div>
 
@@ -236,7 +178,8 @@ function validateEndDate() {
 
 async function getActivity(activityId){
     try{
-        const res = await axios.get(api_url + "getActivities/" + user + "/" + activityId);
+        //const res = await axios.get(api_url + "getActivities/" + user + "/" + activityId);
+        const res = await axios.get(api_url + "getActivities/-1/" + activityId);
         const Activities = res.data;
         await nextTick();
         if (Activities.length > 0){
@@ -297,7 +240,7 @@ async function submit(){
             }
         }catch(error){
             console.error("Errore: ", error);
-            alert("Errore: "+error);
+            alert("Error: "+error);
         }
     }else{  //Modifica di un'attività
         try{
@@ -323,7 +266,7 @@ async function submit(){
             }
         }catch(error){
             console.error("Errore: ", error);
-            //alert("Errore: "+error);
+            //alert("Error: "+error);
         }
     }
 }
@@ -381,7 +324,7 @@ async function readFriends(){
 }
 
 onMounted(async () => {
-    if (props.id == "-1"){
+    if (props.id == '-1'){
         formType.value = 'Create';
         isModifying.value = true;
     }else{

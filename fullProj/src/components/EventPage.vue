@@ -11,6 +11,11 @@
             </div>
 
             <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea type="text" id="description" class="form-control" v-model="event.description" placeholder="Enter a description (optional)" :disabled="isReadOnly" />
+            </div>
+
+            <div class="mb-3">
                 <label for="location" class="form-label">Location</label>
                 <input type="text" id="location" class="form-control" v-model="event.location" placeholder="Enter event location" :disabled="isReadOnly" />
             </div>
@@ -144,6 +149,11 @@
                 <label for="eventTypeNotAvailable" class="form-check-label switch-label-margin">Event type: not available</label>
             </div>
 
+            <div class="mb-4 form-switch">
+                <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly" />
+                <label for="pomodoro" class="form-check-label switch-label-margin">Pomodoro event</label>
+            </div>
+
 
             <div class="mb-3">
                 <label for="priority" class="form-label">Priority</label>
@@ -180,7 +190,6 @@
                     </div>
                 </div>-->
 
-                <!-- Offset: in minuti (scelta veloce) oppure orario esatto con DatePicker -->
                 <div class="mb-3">
                     <label class="form-label">Notification offset</label>
 
@@ -263,7 +272,7 @@
                         </td>
                     </tr>
                 </tbody>
-            </table>
+                </table>
             </div>
             
             
@@ -291,7 +300,7 @@
                     <button type="button" class="btn btn-outline-secondary" @click="cancel">Cancel</button>
                 </div>
                 <button v-if="formType === 'Save' && User === event.owner" type="button" :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'" @click="toggleModify">Modify</button>
-                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="props.id != -1 && User === event.owner">Remove</button>
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="formType === 'Save' && User === event.owner">Remove</button>
             </div>
         </form>
     </div>
@@ -374,6 +383,7 @@ watch(currentTime, async() => {
 const event = reactive({
     owner : '',
     title: '',
+    description: '',
     location: '',
     startDate: null,
     startTime: null,
@@ -390,6 +400,7 @@ const event = reactive({
     repeatCount: 1,
     untilDate: null,
     eventTypeNotAvailable: false,
+    pomodoro: false,
     recurring_rule: '',
     priority: 2,                    // default: 2=Normal
     //variabili per la gestione dei partecipanti
@@ -480,12 +491,13 @@ async function getEvent(eventId){
     try{
         //const res = await axios.get(api_url + "getEvents/" + user + "/" + eventId);
         const res = await axios.get(api_url + "getEvents/-1/" + eventId);
-        var Events = res.data;
+        const Events = res.data;
         await nextTick();
-        var event_ = Events[0];
+        const event_ = Events[0];
         //alert("event_= " + JSON.stringify(event_));
         event.owner = event_.owner;
         event.title = event_.title;
+        event.description = event_.description;
         //event.startDate = dayjs(event_.date_start).toDate();
         const startUtc = dayjs(event_.date_start).utc();
         event.startDate = startUtc.tz(event.timezone).toDate();
@@ -501,6 +513,7 @@ async function getEvent(eventId){
         event.isRecurring = event_.is_recurring;
         event.recurring_rule = event_.recurring_rule;
         event.eventTypeNotAvailable = (event_.ev_type === 'notAvailable');
+        event.pomodoro = event_.pomodoro;
         event.priority = event_.priority || 2;
         event.addParticipants = event_.addParticipants || false;
         event.selectedParticipants = event_.selectedParticipants || [];
@@ -593,11 +606,13 @@ async function submit(rrule){
             const newevent = {
                 userName: user,
                 title: event.title,
+                description: event.description,
                 place: event.location,
                 all_day: event.allDay,
                 is_recurring: event.isRecurring,
                 recurring_rule: rrule,
                 ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event'),
+                pomodoro: event.pomodoro,
                 priority: event.priority,
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
@@ -655,12 +670,14 @@ async function submit(rrule){
                 userName: user,
                 eventId : props.id,
                 title: event.title,
+                description: event.description,
                 place: event.location,
                 //participants: participants.value,
                 all_day: event.allDay,
                 is_recurring: event.isRecurring,
                 recurring_rule: rrule,
                 ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event'),
+                pomodoro: event.pomodoro,
                 priority: event.priority,
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,

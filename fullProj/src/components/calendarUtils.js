@@ -25,7 +25,7 @@ export function prepareCalendarEvents(Events, Activities, user){
         //    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
 		item.title = (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) + event_.title;
 		item.class = (event_.ev_type === 'notAvailable' ? 'notAvailable' : 'event');
-		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : (event_.owner === user ? 'blue' : 'violet'));
+		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : (event_.pomodoro ? 'red' : (event_.owner === user ? 'blue' : 'violet')));
 		if (event_.is_recurring){
 			item.rrule = `DTSTART=${formatToICalendarDate(item.start)}\n` + event_.recurring_rule;
 			if (item.end > item.start){
@@ -54,7 +54,7 @@ export function prepareCalendarEvents(Events, Activities, user){
 				end: dayjs(activity.end).toDate(),
 				allDay: true,
 				class: 'activity',
-				backgroundColor: 'green'
+				backgroundColor: (activity.owner === user ? 'green' : 'orange')
 			}
 			calendarEvents.push(item);
 			//alert("Activity: " + item.title + ", " + JSON.stringify(item));

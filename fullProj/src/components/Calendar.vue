@@ -334,6 +334,9 @@ async function loadEventsAndActivities(){
 		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
 		Activities.value = res.data;
 		await nextTick();
+		res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
+        Activities.value = Activities.value.concat(res.data);
+		await nextTick();
 		//alert("ris activity=" + Activities.value +" - #"+Activities.value.length);
 		CalendarEvents.value = prepareCalendarEvents(Events.value, Activities.value, user);
 		//alert("CalendarEvents.value="+JSON.stringify(CalendarEvents.value));
@@ -486,7 +489,7 @@ watch(FullCalDate, (newDate) => {
 function isActivityExpired(activity) {
 	if (!activity.end || activity.is_completed) return false;
 	const now = new Date(currentTime.value);
-	const endDate = new Date(activity.end);
+	const endDate = dayjs(activity.end).add(1,'day').toDate();
 	return endDate < now;
 }
 

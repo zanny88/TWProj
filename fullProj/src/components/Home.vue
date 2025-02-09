@@ -649,6 +649,9 @@ async function get_today_events() {
         res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
         Activities.value = res.data;
         await nextTick();
+		res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
+        Activities.value = Activities.value.concat(res.data);
+		await nextTick();
         //alert("Events.value="+JSON.stringify(Events.value));
         //alert("Activities.value="+JSON.stringify(Activities.value));
         const calendarEvents = prepareCalendarEvents(Events.value, Activities.value, user);
