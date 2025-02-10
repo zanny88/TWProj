@@ -51,17 +51,17 @@
     </Modal>
     <div class="card">
         <div class="card-header">
-            Dati utente
+            User data
         </div>
         <div class="card-body" style="display: flex; flex-wrap: wrap;">
             <div style="flex: 1;">
-                <p class="card-text" v-for="(val,index) in ['Nome','Cognome','Username','Password','Mail']">
+                <p class="card-text" v-for="(val,index) in ['Name','Surname','Username','Password','Mail']">
                     {{ val }}: {{ userInfo[index] }}
                 </p>
-                <button class="btn btn-primary" @click="changeData = true;">Modifica dati</button>
+                <button class="btn btn-primary" @click="changeData = true;">Change data</button>
             </div>
             <div style="flex: 1; border-left: 1px solid lightgray; padding: 10px;">
-                Amici <span v-if="userFriends.length <= 0"> - None</span>:
+                Friends <span v-if="userFriends.length <= 0"> - None</span>:
                 <ul>
                     <li v-for="(friend,index) in userFriends">{{ friend }}</li>
                 </ul>

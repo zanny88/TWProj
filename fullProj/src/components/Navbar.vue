@@ -24,29 +24,29 @@
                             <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
                                 <li><router-link class="dropdown-item" to="/calendar">Calendar</router-link></li>
                                 <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
-                                <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>
+<!--                                <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>-->
                                 <li><router-link class="dropdown-item" to="/pomodoro">Pomodoro</router-link></li>
                             </ul>
                         </li>
                     <ul v-if="hamburgerShowing" id="ul-if-hamburgerShowing">
                         <li class="nav-item"><router-link class="nav-link" to="/calendar">Calendar</router-link></li>
                         <li class="nav-item"><router-link class="nav-link" to="/showNote">Notes</router-link></li>
-                        <li class="nav-item"><router-link class="nav-link" to="/showTodo">To&nbsp;Do</router-link></li>
+<!--                        <li class="nav-item"><router-link class="nav-link" to="/showTodo">To&nbsp;Do</router-link></li>-->
                         <li class="nav-item"><router-link class="nav-link" to="/pomodoro">Pomodoro</router-link></li>
                     </ul>
                     <form class="d-flex position-relative" role="search" id="searchForm">
-                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput" @input="inputSearch()" v-model="searchString" autocomplete="off"/>
+                        <input class="form-control me-2" :type="searchType" placeholder="Search" aria-label="Search" id="searchInput" @input="search()" v-model="searchString" autocomplete="off"/>
                         <div class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" id="filterDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Filtri
                             </a>
-                            <ul class="dropdown-menu" id="filterDropdownList" aria-labelledby="filterDropdown" style="z-index: 1051;">
-                                <li><input type="radio" name="filterB" value="heading" v-model="filter" checked/>Titolo</li>
-                                <li><input type="radio" name="filterB" value="user" v-model="filter"/>Autore</li>
-                                <li><input type="radio" name="filterB" value="place" v-model="filter"/>Luogo</li>
-                                <li><input type="radio" name="filterB" value="data" v-model="filter"/>Data</li>
+                            <ul class="dropdown-menu" id="filterDropdownList" aria-labelledby="filterDropdown" style="z-index: 1051; padding: 5px;">
+                                <li><input type="radio" name="filterB" value="heading" v-model="filter" checked/>Title</li>
+                                <li><input type="radio" name="filterB" value="user" v-model="filter"/>Author</li>
+                                <li><input type="radio" name="filterB" value="place" v-model="filter"/>Place</li>
+                                <li><input type="radio" name="filterB" value="data" v-model="filter"/>Date</li>
                                 <li><input type="radio" name="filterB" value="tag" v-model="filter"/>Tag</li>
-                                <li><input type="checkbox" name="friendSearch" value="friends" v-model="friendFilter"/>Friends</li>
+                                <li><input type="checkbox" name="friendSearch" value="friends" v-model="friendFilter"/>Friends search</li>
                             </ul>
                         </div>
                         <button class="btn btn-outline-light" type="submit" @click.prevent="search()">Search</button><!--il .prevent in @click è utilizzato per evitare che il bottone esegua la sua solita azione di submit del form-->
@@ -81,7 +81,7 @@
 </template>
 
 <script setup>
-    import {inject,watch,ref,onMounted} from "vue";
+    import {inject,watch,ref,onMounted,computed} from "vue";
     import axios from "axios";
     import { useRouter, useRoute } from "vue-router";
 
@@ -102,6 +102,10 @@
 
     var searchString = ref('');
     var hamburgerShowing = ref(false);
+
+    const searchType = computed(() => {
+        return filter.value == 'data' ? 'date' : 'search';
+    });
 
     watch(token,(newValue) => {
         val.value = (newValue === null);
@@ -136,19 +140,19 @@
         val.value = newLog;
     });*/
 
-    function inputSearch(){
-        var li_val = filter.value;
-        var friendSearch = friendFilter.value;
+    async function search(){
+        
+        var f = filter.value;
+        var fs = friendFilter.value;
+        var q;
 
         if(searchString.value.length >= 1){
-            search(searchString.value,li_val,friendSearch);
+            q = searchString.value;
         }else{
             hasSearchresults.value = false;
+            return;
         }
-    }
 
-    async function search(q,f,fs){
-        
         var newSearch = {
             user: atob(token.value.split('.')[1]),
             query: q,

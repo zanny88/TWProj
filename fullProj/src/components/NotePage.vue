@@ -17,7 +17,7 @@
             <h1>Notes Viewer</h1>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="filter" class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Ordina
+                    Order
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
                         <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
                     </svg>
@@ -25,7 +25,7 @@
                 <ul class="dropdown-menu">
                     <li class="dropdown-item" @click="sortNotes('Nome')">
                         <div>
-                            Nome
+                            Name
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Nome'">
                                 <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
                             </svg>
@@ -33,7 +33,7 @@
                     </li>
                     <li class="dropdown-item" @click="sortNotes('Data')">
                         <div>
-                            Data
+                            Date
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16" v-if="sortParam == 'Data'">
                                 <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
                             </svg>
@@ -49,13 +49,13 @@
                     </li>
                 </ul>
                 <button v-html="HTMLS[revSort]" v-if="sorting" class="btn" type="button" @click="reverseSort"></button>
-                <button type="button" class="btn btn-outline-info">
-                    <router-link to="/create">Add Note</router-link>
+                <button type="button" class="btn" id="add">
+                    <router-link to="/create" style="color: black; text-decoration: none;">Add Note</router-link>
                 </button>
             </div>
         </div>
     <div id="page-body" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 gx-4 gy-5 justify-content-center" style="width: 100vw; margin-left: 1px;" v-if="isNoteLoaded">
-        <div class="col" align="center" v-for="note in Notes" :key="note._id">
+        <div class="col" style="justify-content: center; align-items: center;" v-for="note in Notes" :key="note._id">
             <div class="card h-100" v-on:mouseleave="collapseCardDropdown">
                 <div class="card-header d-flex justify-content-end">
                     <button class="btn card-dropdown-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -300,6 +300,11 @@
 }
 
 #filter:hover{
+    background: #ccc;
+    border: 1px solid black;
+    cursor: pointer;
+}
+#add:hover{
     background: #ccc;
     border: 1px solid black;
     cursor: pointer;

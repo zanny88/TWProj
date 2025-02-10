@@ -6,7 +6,7 @@
                     <div class="card-body">
                         <div style="display: flex; justify-content: space-between;">
                             <h5 class="card-title">{{ note.heading }}</h5>
-                            <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button :class="['btn',{'disabled': isMenuDisabled}]" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
                                     <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
                                 </svg>
@@ -36,13 +36,17 @@
 </template>
 
 <script setup>
-    import {ref, onMounted, inject} from "vue";
+    import {ref, onMounted, inject,watch} from "vue";
     import axios from "axios";
-    import {useRouter} from "vue-router";
+    import {useRouter,useRoute} from "vue-router";
     const router = useRouter();
+    const route = useRoute();
     const props = defineProps(['id']);
     var note = ref(null);
     const api_url = inject('api_url');
+    const user = atob(localStorage.getItem('token').split('.')[1]);
+
+    var isMenuDisabled = ref(false);
 
     async function duplicate(id){
         const res = await axios.post(api_url + "duplicateNote/" + id);
@@ -55,10 +59,21 @@
             const payload = {ID: props.id};
             const res = await axios.post(`${api_url}notes/get`,payload);
             note.value = res.data[0];
+            if (user != note.value.user){
+                isMenuDisabled.value = true;
+            }else{
+                isMenuDisabled.value = false;
+            }
         }catch(error){
             console.log("Error",error);
         }
     }
+
+    watch(() => route.params.id, async (newId) => {
+        if (newId) {
+            await getNote();
+        }
+    })
 
     async function deleteNote(id){
         const payload = {
@@ -98,6 +113,8 @@
 
     //appena il componente viene caricato si esegue la funzione per la ricerca dei dati della nota da visualizzare
     onMounted(async () => {
+        console.log("PORCO DIO");
         await getNote();
+        
     });
 </script>
