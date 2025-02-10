@@ -1038,6 +1038,22 @@ async function realSearch(u, filter, query, searchUser) {
                 results.push(user);
             }
         });
+    } else if (filter == 'data'){
+        let notes = await Note.find({});
+        notes = notes.filter(n => n.date.toISOString().split('T')[0] == query);
+        if (searchUser != ""){
+            notes.forEach(note => {
+                if (note.user == u && note.view_list.includes(searchUser)){
+                    results.push(note);
+                }
+            })
+        } else {
+            notes.forEach(note => {
+                if (note.user == u || note.view_list.includes(u)){
+                    results.push(note);
+                }
+            })
+        }
     } else {
         const resultsNote = await Note.find({
             [filter]: { $regex: new RegExp(query, 'i') }
