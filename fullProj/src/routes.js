@@ -20,7 +20,7 @@ const router = createRouter({
         { path: '/', component: Home },
         { path: '/create', component: Compose },
         { path: '/showNote', component: NotePage },
-        { path: '/showTodo', component: TodoPage },
+        //{ path: '/showTodo', component: TodoPage },
         { path: '/note/:id', component: Note, props: true },
         { path: '/login', component: RegLog },
         { path: '/pomodoro/:sessionId', component: Pomodoro, props: true },
