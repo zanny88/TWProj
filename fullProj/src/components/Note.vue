@@ -113,7 +113,6 @@
 
     //appena il componente viene caricato si esegue la funzione per la ricerca dei dati della nota da visualizzare
     onMounted(async () => {
-        console.log("PORCO DIO");
         await getNote();
         
     });
