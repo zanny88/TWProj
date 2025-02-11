@@ -892,7 +892,6 @@ onMounted(() => {
     get_note_preview();
     get_today_events();
     get_this_week_events();
-    console.log(this_week_events.value);
 });
 
 watch(latestNoteToggle, (newVal) => {
