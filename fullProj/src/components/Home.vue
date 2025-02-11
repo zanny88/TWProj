@@ -89,9 +89,36 @@
                             </div>
                         </div>
 
-                        <div v-else class="col d-flex flex-column preview-info">
-                            <div>Pretend something is here</div>
-                            <!-- TODO: Preview for current week -->
+                        <div v-if="calendarToggle" class="col d-flex flex-column preview-info">
+                            <div>Events this week:</div>
+                            <div class="calendar-preview-info">
+                                <div v-if="this_week_events.length > 0">
+                                    <div v-for="event in this_week_events.slice(0, 2)" :key="event"
+                                        style="margin-bottom: 0.5rem;">
+                                        {{ event.substring(0, 20) + (event.length > 20 ? '...' : '') }}
+                                    </div>
+                                    <div v-if="this_week_events.length > 2" style="font-style: italic;">...and more
+                                    </div>
+                                </div>
+                                <div v-else style="font-style: italic;">No events this week.</div>
+                            </div>
+                        </div>
+
+                        <div v-if="calendarToggle" class="col-1 vr ms-3 me-3" style="color: #B8BDB5;"></div>
+
+                        <div v-if="calendarToggle" class="col d-flex flex-column preview-info">
+                            <div>Activities this week:</div>
+                            <div class="calendar-preview-info">
+                                <div v-if="this_week_activities.length > 0">
+                                    <div v-for="activity in this_week_activities.slice(0, 2)" :key="activity"
+                                        style="margin-bottom: 0.5rem;">
+                                        {{ activity.substring(0, 20) + (activity.length > 20 ? '...' : '') }}
+                                    </div>
+                                    <div v-if="today_activities.length > 2" style="font-style: italic;">...and more
+                                    </div>
+                                </div>
+                                <div v-else style="font-style: italic;">No activities this week.</div>
+                            </div>
                         </div>
 
                     </div>
@@ -139,7 +166,8 @@
                                     <div>Study: {{ latestPomodoroSession?.studyTime }} min.</div>
                                     <div>Rest: {{ latestPomodoroSession?.restTime }} min.</div>
                                     <div>Cycles:
-                                        {{ latestPomodoroSession?.completedCycles }}/{{ latestPomodoroSession.totCycles
+                                        {{ latestPomodoroSession?.completedCycles }}/{{
+                                            latestPomodoroSession.totCycles
                                         }}
                                     </div>
 
@@ -156,12 +184,15 @@
                         <div v-else class="col d-flex flex-column preview-info">
                             <div>Stats for last week:</div>
                             <div id="pomodoro-preview-info">
-                                <div>Sessions completed: {{ Math.floor(pomodoroWeekStats.percentOfCompletedSessions) }}%
-                                    ({{ pomodoroWeekStats.completedSessionsCount }}/{{ pomodoroWeekStats.sessionsCount
+                                <div>Sessions completed: {{ Math.floor(pomodoroWeekStats.percentOfCompletedSessions)
+                                    }}%
+                                    ({{ pomodoroWeekStats.completedSessionsCount }}/{{
+                                        pomodoroWeekStats.sessionsCount
                                     }})
                                 </div>
                                 <div>Cycles completed: {{ Math.floor(pomodoroWeekStats.percentOfCompletedCycles) }}%
-                                    ({{ pomodoroWeekStats.completedCyclesCount }}/{{ pomodoroWeekStats.cyclesCount }})
+                                    ({{ pomodoroWeekStats.completedCyclesCount }}/{{ pomodoroWeekStats.cyclesCount
+                                    }})
                                 </div>
 
                             </div>
@@ -204,7 +235,8 @@
                         <div class="col container preview-img-container d-none d-sm-block"><img
                                 src="../assets/slothStudying.png" class="img-fluid preview-img" /></div>
                         <div class="col d-flex flex-column preview-info align-items-center">
-                            <div style="margin-bottom: 0.5rem">{{ latestNoteToggle ? 'Latest' : 'Oldest' }} note:</div>
+                            <div style="margin-bottom: 0.5rem">{{ latestNoteToggle ? 'Latest' : 'Oldest' }} note:
+                            </div>
 
                             <div class="card" style="width: 14rem;" v-if="displayedNoteId != ''" id="latest-note-card">
                                 <div class="card-body">
@@ -214,9 +246,11 @@
                                         </router-link>
                                     </h5>
                                     <hr>
-                                    <p class="card-text" v-if="displayedNoteContent != ''">{{ displayedNoteContent }}
+                                    <p class="card-text" v-if="displayedNoteContent != ''">{{ displayedNoteContent
+                                        }}
                                     </p>
-                                    <p class="card-text" v-else style="font-style: italic;">(no content provided)</p>
+                                    <p class="card-text" v-else style="font-style: italic;">(no content provided)
+                                    </p>
                                 </div>
                             </div>
 
@@ -607,6 +641,8 @@ const displayedNoteContent = ref('');
 
 const today_events = ref([]);
 const today_activities = ref([]);
+const this_week_events = ref([]);
+const this_week_activities = ref([]);
 const calendarToggle = ref(false);
 const pomodoroToggle = ref(false);
 const latestNoteToggle = ref(true);
@@ -616,6 +652,7 @@ async function update_previews() {
     get_pomodoro_week_stats(); //Must manage time server-side in index.js
     get_note_preview(); //Must manage time server-side in index.js
     get_today_events(); //Updates correctly
+    get_this_week_events();
 }
 
 async function get_today_events() {
@@ -643,15 +680,15 @@ async function get_today_events() {
         let res = await axios.get(api_url + "getEvents/" + user + "/-1");    //Carica gli eventi
         Events.value = res.data;
         await nextTick();
-		res = await axios.get(api_url + "getSharedEvents/" + user);    //Carica gli eventi condivisi
+        res = await axios.get(api_url + "getSharedEvents/" + user);    //Carica gli eventi condivisi
         Events.value = Events.value.concat(res.data);
         await nextTick();
         res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
         Activities.value = res.data;
         await nextTick();
-		res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
+        res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
         Activities.value = Activities.value.concat(res.data);
-		await nextTick();
+        await nextTick();
         //alert("Events.value="+JSON.stringify(Events.value));
         //alert("Activities.value="+JSON.stringify(Activities.value));
         const calendarEvents = prepareCalendarEvents(Events.value, Activities.value, user);
@@ -692,6 +729,72 @@ async function get_today_events() {
         console.error("Error fetching events and activities: ", error);
     } finally {
         // Distruggi l'istanza di FullCalendar per liberare risorse
+        calendar.destroy();
+    }
+}
+
+async function get_this_week_events() {
+    const Events = ref([]);
+    const Activities = ref([]);
+    this_week_events.value = [];
+    this_week_activities.value = [];
+
+    // Crea un elemento DOM temporaneo e non aggiungerlo al DOM visibile
+    const tempEl = document.createElement('div');
+
+    // Inizializza FullCalendar sull'elemento temporaneo
+    const calendar = new Calendar(tempEl, {
+        plugins: [dayGridPlugin, rrulePlugin]
+    });
+
+    // Renderizza il calendario (anche se non è visibile)
+    calendar.render();
+
+    try {
+        var user;
+        if (token != null) {
+            user = atob(token.split('.')[1]);
+        }
+        let res = await axios.get(api_url + "getEvents/" + user + "/-1");    //Carica gli eventi
+        Events.value = res.data;
+        await nextTick();
+        res = await axios.get(api_url + "getSharedEvents/" + user);    //Carica gli eventi condivisi
+        Events.value = Events.value.concat(res.data);
+        await nextTick();
+        res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
+        Activities.value = res.data;
+        await nextTick();
+        res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
+        Activities.value = Activities.value.concat(res.data);
+        await nextTick();
+        const calendarEvents = prepareCalendarEvents(Events.value, Activities.value, user);
+        calendar.addEventSource(calendarEvents);
+
+        const today = new Date(currentTime.value);
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+        const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 7));
+
+        // Filtra gli eventi per questa settimana utilizzando FullCalendar
+        const eventsThisWeek = calendar.getEvents().filter(event => {
+            const eventDate = new Date(event.start);
+            return eventDate >= startOfWeek && eventDate < endOfWeek;
+        }).slice(0, 6);            //Prendo fino a 6 elementi
+        eventsThisWeek.sort((a, b) => {
+            const dataA = new Date(a.start);
+            const dataB = new Date(b.start);
+            return dataA - dataB;
+        });
+        for (let i = 0; i < eventsThisWeek.length; i++) {
+            const ev = eventsThisWeek[i];
+            let title = ev.start.getDate() + "/" + (ev.start.getMonth() + 1) + " ";
+            title += ev.title;
+            if (ev.extendedProps.class == "activity")
+                this_week_activities.value.push(title);
+            else this_week_events.value.push(title);
+        }
+    } catch (error) {
+        console.error("Error fetching events and activities: ", error);
+    } finally {
         calendar.destroy();
     }
 }
@@ -788,6 +891,8 @@ onMounted(() => {
     get_pomodoro_week_stats();
     get_note_preview();
     get_today_events();
+    get_this_week_events();
+    console.log(this_week_events.value);
 });
 
 watch(latestNoteToggle, (newVal) => {
