@@ -56,10 +56,10 @@ const noteSchema = new mongoose.Schema({
     heading: String,
     content: String,
     date: { type: Date },
-    last_modify: {type: Date},
+    last_modify: { type: Date },
     place: String,
     tags: [String],
-    view_list: { type: [String], default: []},
+    view_list: { type: [String], default: [] },
     todo_children: { type: [String], default: [] },//array dove salvare gli id dei to-do creati nel corpo della nota per eventuali modifiche
     el_type: { type: String, default: "notes" }
 });
@@ -104,16 +104,16 @@ const eventSchema = new mongoose.Schema({
     notification_repetitions: Number,       /* 0 per infinite*/
     notification_interval: Number,          /* numero di minuti tra una notifica e la successiva */
     notification_num_sent: Number,          /* numero di notifiche già inviate per l'evento attuale */
-	notification_last_handled: Date,        /* data dell'ultimo evento trattato (per eventi ricorrenti) */
+    notification_last_handled: Date,        /* data dell'ultimo evento trattato (per eventi ricorrenti) */
     notification_stop: { type: [String], default: [] },                    /* lista degli utenti con notifiche fermate */
     ev_type: { type: String, default: "Event" },                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
     pomodoro: Boolean,                      /* Evento pomodoro */
     priority: Number,                       /* Priorità 1=Low, 2=Normal, 3=High, 4=Highest */
     addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
     selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
-    participants_waiting : { type: [String], default: [] },       /* partecipanti in attesa di accettazione/rifiuto */
-    participants_accepted : { type: [String], default: [] },      /* partecipanti che hanno accettato */
-    participants_refused : { type: [String], default: [] },       /* partecipanti che hanno rifiutato */
+    participants_waiting: { type: [String], default: [] },       /* partecipanti in attesa di accettazione/rifiuto */
+    participants_accepted: { type: [String], default: [] },      /* partecipanti che hanno accettato */
+    participants_refused: { type: [String], default: [] },       /* partecipanti che hanno rifiutato */
     timezone: { type: String, default: 'UTC' }                    /* fuso orario */
 });
 
@@ -127,9 +127,9 @@ const activitySchema = new mongoose.Schema({
     is_completed: Boolean,
     addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
     selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
-    participants_waiting : { type: [String], default: [] },       /* partecipanti in attesa di accettazione/rifiuto */
-    participants_accepted : { type: [String], default: [] },      /* partecipanti che hanno accettato */
-    participants_refused : { type: [String], default: [] }        /* partecipanti che hanno rifiutato */
+    participants_waiting: { type: [String], default: [] },       /* partecipanti in attesa di accettazione/rifiuto */
+    participants_accepted: { type: [String], default: [] },      /* partecipanti che hanno accettato */
+    participants_refused: { type: [String], default: [] }        /* partecipanti che hanno rifiutato */
 });
 
 const Note = mongoose.model("Note", noteSchema);
@@ -279,13 +279,13 @@ app.post("/compose", async (req, res) => {
                 note.tags = tags.split(",").map(tag => tag.trim()).filter(item => item != "");
                 note.last_modify = date;
 
-                if (share.length > 0){
+                if (share.length > 0) {
                     var u = share.split("-");
-                    if (u.length >= note.view_list.length){
+                    if (u.length >= note.view_list.length) {
                         u = u.filter(e => !note.view_list.includes(e));
                         u.forEach(e => note.view_list.push(e));
                         share = u.join('-');
-                    }else{
+                    } else {
                         del_friends = note.view_list.filter(e => !u.includes(e));
                         note.view_list = note.view_list.filter(e => !del_friends.includes(e));
                         share = "";
@@ -386,8 +386,8 @@ app.post("/compose", async (req, res) => {
                     id: savedDocument._id
                 });
             }
-            if (!todo_children && flag){
-                res.send({message: "OK"});
+            if (!todo_children && flag) {
+                res.send({ message: "OK" });
             }
         } else {
             //uguale divisione per creazione e modifica
@@ -404,7 +404,7 @@ app.post("/compose", async (req, res) => {
                 }
                 res.json({ message: "fine" });
             }
-        }        
+        }
     } catch (error) {
         console.log(error);
         res.status(500).send("Error saving Note");
@@ -425,9 +425,9 @@ app.post("/compose", async (req, res) => {
             }
             var m;
             if (!(user.friends.includes(friend))) {
-                sendMessageSupport(f,user,"amicizia");
+                sendMessageSupport(f, user, "amicizia");
             }
-            sendMessageSupport(f,user,"condivisione",savedDocument._id);          
+            sendMessageSupport(f, user, "condivisione", savedDocument._id);
         });
     }
 });
@@ -551,7 +551,7 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
         //When time machine is implemented, TODO: change initialization of "now" constant above
         for (const session of userSessions) {
             if (session.dateTime < now) {
-                res.json(session);
+                return res.json(session);
             }
         }
 
@@ -687,45 +687,45 @@ app.post("/duplicateNote/:id", async (req, res) => {
     }
 });
 
-app.post("/checkUsername",async (req,res) => {
+app.post("/checkUsername", async (req, res) => {
     const u = req.body.username;
-    try{
-        const user = await User.findOne({username: u});
-        if(!user){
-            res.json({message: "OK"});
-        }else{
-            res.json({message: "Already User"});
+    try {
+        const user = await User.findOne({ username: u });
+        if (!user) {
+            res.json({ message: "OK" });
+        } else {
+            res.json({ message: "Already User" });
         }
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Server error while searching username");
     }
 });
 
-app.post("/user/updateData",async (req,res) => {
-    const {name,oldUsername,username,passw,mail} = req.body;
+app.post("/user/updateData", async (req, res) => {
+    const { name, oldUsername, username, passw, mail } = req.body;
 
-    try{
-        var user = await User.findOne({username: oldUsername});
+    try {
+        var user = await User.findOne({ username: oldUsername });
 
-        if (username != oldUsername){
+        if (username != oldUsername) {
             let notes = await Note.find({});
             let users = await User.find({});
 
             notes.forEach(note => {
-                if(note.view_list.includes(oldUsername)){
+                if (note.view_list.includes(oldUsername)) {
                     note.view_list = note.view_list.filter(l => l !== oldUsername);
                     note.view_list.push(username);
                 }
             });
-            let notes_promises = notes.map(async function(note){ await note.save() });
+            let notes_promises = notes.map(async function (note) { await note.save() });
 
             users.forEach(u => {
-                if(u.friends.includes(oldUsername)){
+                if (u.friends.includes(oldUsername)) {
                     u.friends = u.friends.filter(x => x !== oldUsername);
                     u.friends.push(username);
                 }
             });
-            let users_promises = users.map(async function(u){ await u.save() });
+            let users_promises = users.map(async function (u) { await u.save() });
 
             const r1 = await Promise.all(notes_promises);
             const r2 = await Promise.all(users_promises);
@@ -738,8 +738,8 @@ app.post("/user/updateData",async (req,res) => {
         user.mail = mail;
 
         await user.save();
-        res.json({token: jwt.sign(username,'SECRET_KEY')});
-    }catch(error){
+        res.json({ token: jwt.sign(username, 'SECRET_KEY') });
+    } catch (error) {
         res.status(500).send("Server error while modifying user data");
     }
 });
@@ -755,14 +755,14 @@ app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il rem
         console.log("aagiungo richiesta di amicizia all'inbox di: ", friend_username);
 
         var friend = await User.findOne({ username: friend_username });
-        var me = await User.findOne({username: user});
-        if ( !me.friends.includes(friend.username) ){
+        var me = await User.findOne({ username: user });
+        if (!me.friends.includes(friend.username)) {
             console.log(friend.username);
             res.status(404).send("Amico non trovato, impossibile rimuovere");
-        }else{
+        } else {
             let new_friends = [];
             me.friends.forEach(f => {
-                if (f != friend_username){
+                if (f != friend_username) {
                     new_friends.push(f);
                 }
             });
@@ -770,14 +770,14 @@ app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il rem
 
             new_friends = [];
             friend.friends.forEach(f => {
-                if (f != me.username){
+                if (f != me.username) {
                     new_friends.push(f);
                 }
             });
             friend.friends = new_friends;
 
-            await User.findByIdAndUpdate({_id: me._id},{friends: me.friends});
-            await User.findByIdAndUpdate({_id: friend._id},{friends: friend.friends});
+            await User.findByIdAndUpdate({ _id: me._id }, { friends: me.friends });
+            await User.findByIdAndUpdate({ _id: friend._id }, { friends: friend.friends });
             res.send("OK");
         }
     } catch (error) {
@@ -786,7 +786,7 @@ app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il rem
     }
 });
 
-async function sendMessageSupport(to,from,text,data=""){
+async function sendMessageSupport(to, from, text, data = "") {
     var newMessage = new Message({
         from: from.username,
         type: text,
@@ -794,19 +794,19 @@ async function sendMessageSupport(to,from,text,data=""){
     });
     to.inbox.push(newMessage);
     await newMessage.save();
-    await User.findByIdAndUpdate({_id: to._id},{inbox: to.inbox});
+    await User.findByIdAndUpdate({ _id: to._id }, { inbox: to.inbox });
 }
 
-app.post("/user/sendMessage",async (req,res) => {
+app.post("/user/sendMessage", async (req, res) => {
     const msg = req.body;
 
-    try{
-        var toUser = await User.findOne({username: msg.toUser});
-        var fromUser = await User.findOne({username: msg.fromUser});
+    try {
+        var toUser = await User.findOne({ username: msg.toUser });
+        var fromUser = await User.findOne({ username: msg.fromUser });
 
-        await sendMessageSupport(toUser,fromUser,msg.message);
-        res.send({message: "Messaggio inviato"});
-    }catch(error){
+        await sendMessageSupport(toUser, fromUser, msg.message);
+        res.send({ message: "Messaggio inviato" });
+    } catch (error) {
         res.status(500).send("Errore del server nell'invio del messaggio");
     }
 });
@@ -853,7 +853,7 @@ app.get("/user/getMessages", async (req, res) => {
 app.post("/user/checkMessages", async (req, res) => {
     var username = req.body.u;
     var messages = req.body.messages;
-    for(let m of messages){
+    for (let m of messages) {
         console.log(m);
     }
 
@@ -884,14 +884,14 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
             console.log(`accetto richiesta di amicizia`);
             fromUser.friends.push(toUser.username);
             toUser.friends.push(fromUser.username);
-        }else if (msg.type == "condivisione"){
+        } else if (msg.type == "condivisione") {
             console.log("accetto richiesta di condivisione");
-            var note = await Note.findOne({_id: msg.data});
+            var note = await Note.findOne({ _id: msg.data });
             note.view_list.push(toUser.username);
             await note.save();
         }
         console.log("messaggi dentro l'inbox: ");
-        for(let m of toUser.inbox){
+        for (let m of toUser.inbox) {
             console.log(String(m._id));
             console.log(m);
         }
@@ -900,14 +900,14 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
 
         let new_inbox = [];
         toUser.inbox.forEach(m => {
-            if (m.from != fromUser.username || m.type != msg.type){
+            if (m.from != fromUser.username || m.type != msg.type) {
                 new_inbox.push(m);
             }
         })
         toUser.inbox = new_inbox;
 
         console.log("messaggio dentro all'inbox dopo eliminazione: ");
-        for(let m of toUser.inbox){
+        for (let m of toUser.inbox) {
             console.log(m);
         }
 
@@ -971,18 +971,18 @@ app.post("/user/:regType", async (req, res, next) => {
                 console.log("errore login in index");
                 return next(err);
             }
-            if (!user){
+            if (!user) {
                 return res.status(400).send(info.message);
             }
             const token = jwt.sign(user.username, 'SECRET_KEY');
-            console.log("user="+user);
+            console.log("user=" + user);
             //Azzera il deltaTime dell'utente
             try {
                 if (user) {
                     user.deltaTime = 0;
                     await user.save();
                 }
-            } catch (error) {}
+            } catch (error) { }
             return res.json({ token });
         })(req, res, next);
     } else {
@@ -998,7 +998,7 @@ app.post("/user/:regType", async (req, res, next) => {
                 username: req.body.username,
                 passw: password,
                 passw_chiara: req.body.password,
-                name: req.body.name.first.concat(" ",req.body.name.last),
+                name: req.body.name.first.concat(" ", req.body.name.last),
                 mail: req.body.email
             });
             try {
@@ -1024,7 +1024,7 @@ async function realSearch(u, filter, query, searchUser) {
                 results.push(item);
             }
         });
-        if (searchUser != ""){
+        if (searchUser != "") {
             results = results.filter(item => item.user == u && item.view_list.includes(searchUser));
         } else {
             results = results.filter(item => item.user == u || item.view_list.includes(u));
@@ -1038,18 +1038,18 @@ async function realSearch(u, filter, query, searchUser) {
                 results.push(user);
             }
         });
-    } else if (filter == 'data'){
+    } else if (filter == 'data') {
         let notes = await Note.find({});
         notes = notes.filter(n => n.date.toISOString().split('T')[0] == query);
-        if (searchUser != ""){
+        if (searchUser != "") {
             notes.forEach(note => {
-                if (note.user == u && note.view_list.includes(searchUser)){
+                if (note.user == u && note.view_list.includes(searchUser)) {
                     results.push(note);
                 }
             })
         } else {
             notes.forEach(note => {
-                if (note.user == u || note.view_list.includes(u)){
+                if (note.user == u || note.view_list.includes(u)) {
                     results.push(note);
                 }
             })
@@ -1061,15 +1061,15 @@ async function realSearch(u, filter, query, searchUser) {
         console.log(`[DEBUG] RESULT: ${resultsNote}`);
         console.log(searchUser);
         //aggiungere todo
-        if (searchUser != ""){
+        if (searchUser != "") {
             resultsNote.forEach(note => {
-                if (note.user == u && note.view_list.includes(searchUser)){
+                if (note.user == u && note.view_list.includes(searchUser)) {
                     results.push(note);
                 }
             })
         } else {
             resultsNote.forEach(note => {
-                if (note.user == u || note.view_list.includes(u)){
+                if (note.user == u || note.view_list.includes(u)) {
                     results.push(note);
                 }
             })
@@ -1158,8 +1158,8 @@ app.post("/addEvent", async (req, res) => {
     try {
         console.log("/addEvent " + req.body);
         const { userName, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
-                has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
-                addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
+            has_notification, notification_modes, notification_advance, notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
+            addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         const NewEvent = new Event({
             owner: userName,
             title: title,
@@ -1202,8 +1202,8 @@ app.post("/editEvent", async (req, res) => {
     try {
         console.log("/editEvent " + req.body);
         const { userName, eventId, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
-                has_notification, notification_modes, notification_advance,	notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
-                addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
+            has_notification, notification_modes, notification_advance, notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
+            addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         console.log("ricerca di eventId=" + req.body.eventId);
         const event_ = await Event.findOne({ _id: eventId, owner: userName });
         if (!event_) {
@@ -1229,7 +1229,7 @@ app.post("/editEvent", async (req, res) => {
             event_.notification_repetitions = notification_repetitions;
             event_.notification_interval = notification_interval;
             event_.notification_num_sent = notification_num_sent;
-            event_.notification_stop= notification_stop;
+            event_.notification_stop = notification_stop;
             event_.addParticipants = addParticipants;
             event_.selectedParticipants = selectedParticipants;
             event_.participants_waiting = participants_waiting;
@@ -1346,8 +1346,8 @@ app.post("/addActivity", async (req, res) => {
             end: end,
             has_deadline: (end != null),
             is_completed: is_completed,
-            addParticipants : addParticipants,
-            selectedParticipants : selectedParticipants,
+            addParticipants: addParticipants,
+            selectedParticipants: selectedParticipants,
             participants_waiting: participants_waiting,
             participants_accepted: participants_accepted,
             participants_refused: participants_refused,
@@ -1445,7 +1445,7 @@ app.get("/getUserFriends/:userName", async (req, res) => {
         console.log("/getUserFriends/:userName  " + userName);
         const user = await User.findOne({ username: userName });
         //console.log(JSON.stringify(user));
-        const { friends } = user;
+        let { friends } = user;
         //console.log(JSON.stringify(friends));
         if (!friends || friends.length === 0) {
             friends = [];
@@ -1468,12 +1468,12 @@ const notificationEnabled = String(process.env.NOTIFICATION_ENABLED).toLowerCase
 if (notificationEnabled) {
     const notificationPollingInterval = process.env.NOTIFICATION_POLLING_INTERVAL;
     // Controlla notifiche ogni notificationPollingInterval secondi
-    setInterval(async () => { 
+    setInterval(async () => {
         const users = await User.find();
         users.forEach(user => {
             let time = (user.deltaTime != undefined ? new Date(Date.now() + user.deltaTime) : new Date());
-            console.log(`controllo gli eventi per l'utente ${user.username}, considerando l'orario ${time}`);
-            checkAndSendNotifications(Event, User, user.username, time); 
+            //console.log(`controllo gli eventi per l'utente ${user.username}, considerando l'orario ${time}`);
+            checkAndSendNotifications(Event, User, user.username, time);
         });
     }, notificationPollingInterval * 1000);
 }
@@ -1482,7 +1482,7 @@ app.post('/sendNotification', async (req, res) => {
     const { to, subject, text, html } = req.body;
     console.log(req.body);
     try {
-        const user = await User.findOne({ username: to});
+        const user = await User.findOne({ username: to });
         if (!user) {
             return res.status(404).send("User not found");
         }
@@ -1496,7 +1496,7 @@ app.post('/sendNotification', async (req, res) => {
             html: (html != undefined ? html : null)    // Corpo del messaggio in formato html
         };
         //console.log(mailOptions);
-        
+
         // Invia la mail
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
@@ -1506,28 +1506,28 @@ app.post('/sendNotification', async (req, res) => {
             console.log('Email inviata:', info.response);
             res.status(200).send("Email notification successfully sent");
         });
-    }catch(error){
+    } catch (error) {
         console.error(error);
         res.status(500).send("Error while sending notification");
     }
 });
 
-app.post("/setTime",async (req,res) => {
+app.post("/setTime", async (req, res) => {
     const user = req.body.u;
     const newTime = req.body.time;
-    try{
-        var utente = await User.findOne({username: user});
+    try {
+        var utente = await User.findOne({ username: user });
 
-        if(!utente){
+        if (!utente) {
             res.status(404).send("User not found");
         }
 
         utente.deltaTime = (new Date(newTime) - new Date());
-        console.log("deltaTime="+utente.deltaTime);
-        await User.findByIdAndUpdate({_id: utente._id}, {deltaTime: utente.deltaTime});
-    }catch(error){
+        console.log("deltaTime=" + utente.deltaTime);
+        await User.findByIdAndUpdate({ _id: utente._id }, { deltaTime: utente.deltaTime });
+    } catch (error) {
         res.status(500).send("Error while saving time");
-        console.log("Errore: ",error);
+        console.log("Errore: ", error);
     }
 });
 
