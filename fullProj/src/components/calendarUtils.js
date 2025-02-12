@@ -6,29 +6,31 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 
-export function prepareCalendarEvents(Events, Activities, user){
+export function prepareCalendarEvents(Events, Activities, user) {
 	//alert("prepareCalendarEvents");
 	const calendarEvents = [];
 	//alert("Events.length="+Events.length);
-	for (let i = 0; i < Events.length; i++){
+	for (let i = 0; i < Events.length; i++) {
 		const event_ = Events[i];
 		const item = {};
 		item.id = event_._id;
 		item.allDay = event_.all_day;
 		//item.start = dayjs(event_.date_start).toDate();
-        const startUtc = dayjs(event_.date_start).utc();
-        item.start = startUtc.tz(event_.timezone).toDate();
+		const startUtc = dayjs(event_.date_start).utc();
+		item.start = startUtc.tz(event_.timezone).toDate();
 		//item.end = dayjs(event_.date_end).toDate();
-        const endUtc = dayjs(event_.date_end).utc();
-        item.end = endUtc.tz(event_.timezone).toDate();
-        //if (event_.title ==="ev 11/1")
-        //    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
+		const endUtc = dayjs(event_.date_end).utc();
+		item.end = endUtc.tz(event_.timezone).toDate();
+		//if (event_.title ==="ev 11/1")
+		//    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
 		item.title = (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) + event_.title;
 		item.class = (event_.ev_type === 'notAvailable' ? 'notAvailable' : 'event');
 		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : (event_.pomodoro ? 'red' : (event_.owner === user ? 'blue' : 'violet')));
-		if (event_.is_recurring){
+		item.pomodoro = event_.pomodoro;
+		item.pomodoroId = event_.pomodoroId;
+		if (event_.is_recurring) {
 			item.rrule = `DTSTART=${formatToICalendarDate(item.start)}\n` + event_.recurring_rule;
-			if (item.end > item.start){
+			if (item.end > item.start) {
 				const durationInMinutes = dayjs(event_.date_end).diff(dayjs(event_.date_start), 'minute');
 				//alert(item.title+", durationInMinutes="+durationInMinutes);
 				item.duration = `${Math.floor(durationInMinutes / 60).toString().padStart(2, '0')}:${(durationInMinutes % 60).toString().padStart(2, '0')}`;
@@ -41,12 +43,12 @@ export function prepareCalendarEvents(Events, Activities, user){
 		calendarEvents.push(item);
 		//alert(item.title + ", " + JSON.stringify(item));
 	}
-	
+
 	//Aggiunge le attività, se hanno una data "entro il"
 	//alert("DateActivities.value.length="+DateActivities.value.length);
-	for (let i = 0; i < Activities.length; i++){
+	for (let i = 0; i < Activities.length; i++) {
 		const activity = Activities[i];
-		if (activity.has_deadline){
+		if (activity.has_deadline) {
 			const item = {
 				id: activity._id,
 				title: activity.title,
@@ -60,6 +62,7 @@ export function prepareCalendarEvents(Events, Activities, user){
 			//alert("Activity: " + item.title + ", " + JSON.stringify(item));
 		}
 	}
+	//console.log("calendarEvents=" + JSON.stringify(calendarEvents));
 	return calendarEvents;
 }
 
@@ -67,6 +70,6 @@ export function prepareCalendarEvents(Events, Activities, user){
 export const formatToICalendarDate = (date) => dayjs(date).format('YYYYMMDDTHHmmss');
 
 
-export function getAddEventPath(){
+export function getAddEventPath() {
 	return "/editEvent/-1/Hp/" + dayjs(new Date()).format('DDMMYYYY');
 }

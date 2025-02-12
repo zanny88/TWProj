@@ -108,6 +108,10 @@ const eventSchema = new mongoose.Schema({
     notification_stop: { type: [String], default: [] },                    /* lista degli utenti con notifiche fermate */
     ev_type: { type: String, default: "Event" },                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
     pomodoro: Boolean,                      /* Evento pomodoro */
+    cycles: Number,
+    studyTime: Number,
+    restTime: Number,
+    pomodoroId: String,
     priority: Number,                       /* Priorità 1=Low, 2=Normal, 3=High, 4=Highest */
     addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
     selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
@@ -511,6 +515,7 @@ app.post("/pomodoro/sessions/create", async (req, res) => {
             ...data
         });
         await newSession.save();
+        res.json({ id: newSession._id });
     } catch (error) {
         console.log("Error: ", error);
         res.status(500).send("Error while creating session");
@@ -1157,7 +1162,7 @@ app.get("/getSharedEvents/:userName", async (req, res) => {
 app.post("/addEvent", async (req, res) => {
     try {
         console.log("/addEvent " + req.body);
-        const { userName, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
+        const { userName, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, cycles, studyTime, restTime, priority,
             has_notification, notification_modes, notification_advance, notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
             addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         const NewEvent = new Event({
@@ -1172,6 +1177,10 @@ app.post("/addEvent", async (req, res) => {
             recurring_rule: recurring_rule,
             ev_type: ev_type,
             pomodoro: pomodoro,
+            cycles: cycles,
+            studyTime: studyTime,
+            restTime: restTime,
+            pomodoroId: -1,
             priority: priority,
             has_notification: has_notification,
             notification_modes: notification_modes,
@@ -1188,6 +1197,18 @@ app.post("/addEvent", async (req, res) => {
             participants_refused: participants_refused,
             timezone: timezone
         });
+        if (pomodoro) {
+            let newSession = new Session({
+                user: userName,
+                state: "idle",
+                completedCycles: 0,
+                totCycles: cycles,
+                studyTime: studyTime,
+                restTime: restTime
+            });
+            newSession.save();
+            NewEvent.pomodoroId = newSession._id;
+        }
         await NewEvent.save();
         console.log("added event= " + NewEvent);
         await manageEventParticipants(NewEvent, Event, User);
@@ -1201,7 +1222,7 @@ app.post("/addEvent", async (req, res) => {
 app.post("/editEvent", async (req, res) => {
     try {
         console.log("/editEvent " + req.body);
-        const { userName, eventId, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
+        const { userName, eventId, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, cycles, studyTime, restTime, pomodoroId, priority,
             has_notification, notification_modes, notification_advance, notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
             addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         console.log("ricerca di eventId=" + req.body.eventId);
