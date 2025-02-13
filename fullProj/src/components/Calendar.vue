@@ -166,7 +166,7 @@ const user = atob(localStorage.getItem('token').split('.')[1]);
 //********************************************************************************************************************
 //TIME MACHINE
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
-const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
+//const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
 watch(currentTime, async() => {
 	FullCalDate.value = dayjs(currentTime.value).toISOString().substring(0, 10);
 	await nextTick();

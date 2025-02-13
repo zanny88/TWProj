@@ -149,9 +149,12 @@
                 <label for="eventTypeNotAvailable" class="form-check-label switch-label-margin">Event type: not available</label>
             </div>
 
-            <div class="mb-4 form-switch">
+            <div class="mb-4 form-switch d-flex align-items-center">
                 <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly" />
                 <label for="pomodoro" class="form-check-label switch-label-margin">Pomodoro event</label>
+                <button v-if="formType === 'Save' && event.pomodoro" type="button" class="btn btn-danger" style="margin-left: 3cm;" @click="openPomodoro">
+                Pomodoro
+                </button>
             </div>
 
 
@@ -1028,6 +1031,10 @@ watch(() => event.endDate, (newEndDate) => {
 //alert("Event.="+JSON.stringify(event));
 
 //alert("event.startDate="+event.startDate+", event.endDate="+event.endDate );
+
+const openPomodoro = () => {
+  router.push({path: "/pomodoro"});
+};
 </script>
 
 

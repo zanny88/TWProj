@@ -1,9 +1,9 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-dayjs().format();
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs().format();
 
 
 export function prepareCalendarEvents(Events, Activities, user){
@@ -15,12 +15,18 @@ export function prepareCalendarEvents(Events, Activities, user){
 		const item = {};
 		item.id = event_._id;
 		item.allDay = event_.all_day;
-		//item.start = dayjs(event_.date_start).toDate();
-        const startUtc = dayjs(event_.date_start).utc();
-        item.start = startUtc.tz(event_.timezone).toDate();
-		//item.end = dayjs(event_.date_end).toDate();
-        const endUtc = dayjs(event_.date_end).utc();
-        item.end = endUtc.tz(event_.timezone).toDate();
+        if (event_.timezone) {
+            const startUtc = dayjs(event_.date_start).utc();
+            item.start = startUtc.tz(event_.timezone).toDate();
+            const endUtc = dayjs(event_.date_end).utc();
+            item.end = endUtc.tz(event_.timezone).toDate();
+        } else {
+            item.start = dayjs(event_.date_start).toDate();
+            item.end = dayjs(event_.date_end).toDate();
+        }
+        if (event_.all_day) {
+           item.end = dayjs(item.end).add(25, 'hour').toDate(); 
+        }
         //if (event_.title ==="ev 11/1")
         //    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
 		item.title = (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) + event_.title;
@@ -68,5 +74,5 @@ export const formatToICalendarDate = (date) => dayjs(date).format('YYYYMMDDTHHmm
 
 
 export function getAddEventPath(){
-	return "/editEvent/-1/Hp/" + dayjs(new Date()).format('DDMMYYYY');
+	return "/editEvent/-1/Hp/" + dayjs().format('DDMMYYYY');
 }

@@ -152,11 +152,13 @@
         }catch(error){
             name.value = "";
             passwd.value = "";
-            if(error.response.data == "Password incorrect"){
-                showDismissibleAlertPassword.value = true;
-            }
-            if(error.response.data == "No user with that name"){
-                showDismissibleAlertUsername.value = true;
+            if (error.response) {
+                if(error.response.data == "Password incorrect"){
+                    showDismissibleAlertPassword.value = true;
+                }
+                if(error.response.data == "No user with that name"){
+                    showDismissibleAlertUsername.value = true;
+                }
             }
             console.log("Errore: ", error);
         }

@@ -1,9 +1,9 @@
-import { inject } from "vue";
+//import { inject } from "vue";
 import axios from "axios";
 
-const api_url = "http://localhost:3000/";
+//const api_url = "http://localhost:3000/";
 
-export async function sendMessage(to,from,body){
+export async function sendMessage(to,from,body, api_url){
     const payload = {
         toUser: to,
         fromUser: from,
