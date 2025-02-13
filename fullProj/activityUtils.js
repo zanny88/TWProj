@@ -1,7 +1,7 @@
 const axios = require('axios'); 
 
 //Funzione che genera una stringa HTML per l'invito ad un'attività
-function generateActivityInvitationHTML(activity, user) {
+function generateActivityInvitationHTML(activity, user, ownerDB) {
     if (!activity || !activity._id || !activity.title) {
         throw new Error('Invalid activity object');
     }
@@ -18,6 +18,7 @@ function generateActivityInvitationHTML(activity, user) {
     } else {
         endDate = 'N/A';
     }
+    const inviteStr = (ownerDB != null && ownerDB.name ? ownerDB.name + " invited you to an Activity!" : "You're invited to an Activity!");
 
     return `
 <!DOCTYPE html>
@@ -65,7 +66,7 @@ function generateActivityInvitationHTML(activity, user) {
 <body>
     <div class="container">
         <div class="header">
-            <h2>You're Invited to an Activity!</h2>
+            <h2>${inviteStr}</h2>
         </div>
         <div class="content">
             <h3>${activity.title}</h3>
@@ -98,11 +99,12 @@ async function manageActivityParticipants(activity, User) {
                 continue;
             }
             const userDB = await User.findOne({ username: user });
+            const ownerDB = await User.findOne({ username: activity.owner });
             //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
             if (userDB && userDB.mail) {
                 const email = userDB.mail;
                 //mando l'invito
-                let html = generateActivityInvitationHTML(activity, user);
+                let html = generateActivityInvitationHTML(activity, user, ownerDB);
                 console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
                 try {
                     const payload = {
@@ -274,4 +276,4 @@ async function refuseActivityInvitation(activityId, user, Activity) {
     }
 }
 
-module.exports = { generateActivityInvitationHTML, manageActivityParticipants, acceptActivityInvitation, refuseActivityInvitation };
+module.exports = { manageActivityParticipants, acceptActivityInvitation, refuseActivityInvitation };

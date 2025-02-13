@@ -201,7 +201,7 @@ async function sendNotification(event, occurrenceDate, now, user, email) {
       try {
         const payload = {
           to: user, //event.owner,
-          subject: `Reminder fo event: ${event.title}`,
+          subject: `Reminder for event: ${event.title}`,
           html: html //`Ciao ${event.owner}, ti ricordiamo che l'evento "${event.title}" è in programma per il giorno ${occurrenceDate || event.date_end}.`
         }
         await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
@@ -311,4 +311,140 @@ function getEventNotificationHtml(event, now, user) {
   return html;
 }
 
-module.exports = { checkAndSendNotifications };
+
+
+//Funzione che, ogni N secondi, controlla tutte le attività scadute e verifica se è il momento di inviare la notifica.
+async function checkAndSendActivityNotifications(MongoDBActivity, MongoDBUser, userName, now) {
+    try {
+        const tomorrow = dayjs(now).add(1, 'day').toDate();
+        const activities = await MongoDBActivity.find({
+            has_deadline: true,
+            is_completed: false,
+            end: { $lt: tomorrow }
+        });
+
+        for (const act of activities) {
+            if (act.owner !== userName && !act.participants_accepted.includes(userName)) {
+                continue;
+            }
+            const numSent = act.notification_num_sent || 0;
+            //console.log("act="+JSON.stringify(act));
+            let urgenza;
+            let priority;
+            const diff_GG = (tomorrow - act.end) / (1000 * 60 * 60 * 24);
+            let delta_time_HH;
+            if (diff_GG < 3) {          //Sono passati meno di 3 giorni dalla fine dell'attività
+                urgenza = 1;
+                priority = 'MEDIUM';
+                delta_time_HH = (numSent + 1) * 24;
+            } else if (diff_GG < 7) {   //Sono passati da 3 a 7 giorni dalla fine dell'attività
+                urgenza = 2;
+                priority = 'HIGH';
+                delta_time_HH = 3 * 24 + (numSent - 2) * 12;
+            } else {                    //Sono passati oltre 7 giorni dalla fine dell'attività
+                urgenza = 3;
+                priority = 'CRITICAL';
+                delta_time_HH = 3 * 24 + 4 * 12 + (numSent - 6) * 8;
+            }
+            const nextNotificationTime = dayjs(act.end).add(1, 'day').add(delta_time_HH, 'hour').toDate();
+            //console.log("nextNotificationTime="+nextNotificationTime+", now="+now);
+            if (nextNotificationTime < now) {
+                const html = getActivityNotificationHtml(act, now, userName, priority);
+                try {
+                      const payload = {
+                        to: userName,
+                        subject: `Reminder for activity: ${act.title}`,
+                        html: html
+                      }
+                    console.log("Invio mail di notifica attività a " + userName + ", priority=" + priority);
+                    console.log("html=" + html);
+                    //await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
+                    act.notification_num_sent = numSent + 1;
+                    act.save();
+                } catch (error) {
+                    console.error("Errore: "+error);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("[checkAndSendActivityNotifications] Errore:", error);
+    }
+}
+
+
+function getActivityNotificationHtml(activity, now, user, priority) {
+    if (!activity || !activity._id || !activity.title) {
+        throw new Error('Invalid activity object');
+    }
+
+    let endDate;
+    if (activity.end) {
+        endDate = new Date(activity.end).toLocaleString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long',
+            day: 'numeric'
+        });   
+    } else {
+        endDate = 'N/A';
+    }
+
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Activity expired!</title>
+    <style>
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            font-size: 16px;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .accept {
+            background-color: #28a745;
+        }
+        .refuse {
+            background-color: #dc3545;
+        }
+        .container {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #777777;
+            text-align: center;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>An activity has expired!</h2>
+        </div>
+        <div class="content">
+            <h3>${activity.title}</h3>
+            <p>${activity.description}</p>
+            <p><strong>End Date:</strong> ${endDate}</p>
+            <p>Priority: ${priority}</p>
+        </div>
+    </div>
+</body>
+</html>
+    `;
+}
+
+module.exports = { checkAndSendNotifications, checkAndSendActivityNotifications };

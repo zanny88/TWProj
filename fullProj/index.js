@@ -15,9 +15,9 @@ const jwt = require('jsonwebtoken');
 
 const User = require('./userModel');
 const { Message } = require('./messageModel');
-const { checkAndSendNotifications } = require('./notificationUtils');
-const { generateEventInvitationHTML, eventsOverlap, manageEventParticipants, disableEventNotification, acceptEventInvitation, refuseEventInvitation } = require('./eventUtils');
-const { generateActivityInvitationHTML, manageActivityParticipants, acceptActivityInvitation, refuseActivityInvitation } = require('./activityUtils');
+const { checkAndSendNotifications, checkAndSendActivityNotifications } = require('./notificationUtils');
+const { manageEventParticipants, disableEventNotification, acceptEventInvitation, refuseEventInvitation } = require('./eventUtils');
+const { manageActivityParticipants, acceptActivityInvitation, refuseActivityInvitation } = require('./activityUtils');
 
 const nodemailer = require('nodemailer');
 const axios = require('axios');
@@ -127,9 +127,10 @@ const activitySchema = new mongoose.Schema({
     is_completed: Boolean,
     addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
     selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
-    participants_waiting: { type: [String], default: [] },       /* partecipanti in attesa di accettazione/rifiuto */
-    participants_accepted: { type: [String], default: [] },      /* partecipanti che hanno accettato */
-    participants_refused: { type: [String], default: [] }        /* partecipanti che hanno rifiutato */
+    participants_waiting: { type: [String], default: [] },        /* partecipanti in attesa di accettazione/rifiuto */
+    participants_accepted: { type: [String], default: [] },       /* partecipanti che hanno accettato */
+    participants_refused: { type: [String], default: [] },        /* partecipanti che hanno rifiutato */
+    notification_num_sent: Number                                 /* numero di notifiche già inviate per l'attività attuale */
 });
 
 const Note = mongoose.model("Note", noteSchema);
@@ -756,29 +757,33 @@ app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il rem
 
         var friend = await User.findOne({ username: friend_username });
         var me = await User.findOne({ username: user });
-        if (!me.friends.includes(friend.username)) {
-            console.log(friend.username);
-            res.status(404).send("Amico non trovato, impossibile rimuovere");
+        if (friend) {
+            if (!me.friends.includes(friend.username)) {
+                console.log(friend.username);
+                res.status(404).send("Amico non trovato, impossibile rimuovere");
+            } else {
+                let new_friends = [];
+                me.friends.forEach(f => {
+                    if (f != friend_username) {
+                        new_friends.push(f);
+                    }
+                });
+                me.friends = new_friends;
+
+                new_friends = [];
+                friend.friends.forEach(f => {
+                    if (f != me.username) {
+                        new_friends.push(f);
+                    }
+                });
+                friend.friends = new_friends;
+
+                await User.findByIdAndUpdate({ _id: me._id }, { friends: me.friends });
+                await User.findByIdAndUpdate({ _id: friend._id }, { friends: friend.friends });
+                res.send("OK");
+            }
         } else {
-            let new_friends = [];
-            me.friends.forEach(f => {
-                if (f != friend_username) {
-                    new_friends.push(f);
-                }
-            });
-            me.friends = new_friends;
-
-            new_friends = [];
-            friend.friends.forEach(f => {
-                if (f != me.username) {
-                    new_friends.push(f);
-                }
-            });
-            friend.friends = new_friends;
-
-            await User.findByIdAndUpdate({ _id: me._id }, { friends: me.friends });
-            await User.findByIdAndUpdate({ _id: friend._id }, { friends: friend.friends });
-            res.send("OK");
+            res.status(404).send("Friend not found!");
         }
     } catch (error) {
         console.log("Errore nell'agigunta di un amico: ", error);
@@ -1474,6 +1479,7 @@ if (notificationEnabled) {
             let time = (user.deltaTime != undefined ? new Date(Date.now() + user.deltaTime) : new Date());
             //console.log(`controllo gli eventi per l'utente ${user.username}, considerando l'orario ${time}`);
             checkAndSendNotifications(Event, User, user.username, time);
+            checkAndSendActivityNotifications(Activity, User, user.username, time);
         });
     }, notificationPollingInterval * 1000);
 }
@@ -1489,7 +1495,7 @@ app.post('/sendNotification', async (req, res) => {
 
         //console.log("user.mail="+user.mail);
         const mailOptions = {
-            from: 'camillobianca2@gmail.com', // 'marcostignani9@gmail.com', // Mittente
+            from: process.env.EMAIL_SENDER, // 'camillobianca2@gmail.com', // 'marcostignani9@gmail.com', // Mittente
             to: user.mail,                    // Destinatario
             subject: subject,  // `Avviso di scadenza per l'evento: ${sub}`,        // Oggetto
             text: (text != undefined ? text : null),   // Corpo del messaggio in formato testo
