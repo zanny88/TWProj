@@ -1204,7 +1204,8 @@ app.post("/addEvent", async (req, res) => {
                 completedCycles: 0,
                 totCycles: cycles,
                 studyTime: studyTime,
-                restTime: restTime
+                restTime: restTime,
+                dateTime: date_start
             });
             newSession.save();
             NewEvent.pomodoroId = newSession._id;
@@ -1232,6 +1233,34 @@ app.post("/editEvent", async (req, res) => {
                 message: "event not found"
             });
         } else {
+            if (event_.pomodoro && !pomodoro) { // Event was previously a pomodoro event, now not anymore
+                await Session.findByIdAndDelete(event_.pomodoroId);
+                event_.pomodoroId = -1;
+            } else if (!event_.pomodoro && pomodoro) { // Event was not a pomodoro event, now it is
+                // create pomodoro session and link it to event
+                let newSession = new Session({
+                    user: userName,
+                    state: "idle",
+                    completedCycles: 0,
+                    totCycles: cycles,
+                    studyTime: studyTime,
+                    restTime: restTime,
+                    dateTime: date_start
+                });
+                await newSession.save();
+                event_.pomodoroId = newSession._id;
+            } else if (event_.pomodoro && pomodoro &&
+                (event_.studyTime != studyTime || event_.restTime != restTime || event_.cycles != cycles)
+            ) { // Event was and still is a pomodoro event, but some parameters changed
+                //update session
+                let session = await Session.findById(event_.pomodoroId);
+                session.totCycles = cycles;
+                session.studyTime = studyTime;
+                session.restTime = restTime;
+                session.dateTime = date_start;
+                await session.save();
+            }
+
             event_.title = title;
             event_.description = description;
             event_.date_start = date_start;
@@ -1242,6 +1271,9 @@ app.post("/editEvent", async (req, res) => {
             event_.recurring_rule = recurring_rule;
             event_.ev_type = ev_type;
             event_.pomodoro = pomodoro;
+            event_.cycles = cycles;
+            event_.studyTime = studyTime;
+            event_.restTime = restTime;
             event_.priority = priority;
             event_.has_notification = has_notification;
             event_.notification_modes = notification_modes;

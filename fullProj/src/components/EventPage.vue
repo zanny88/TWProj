@@ -65,7 +65,7 @@
             </div>
 
             <div class="mb-3 form-switch">
-                <input type="checkbox" id="recurringEvent" class="form-check-input" v-model="event.isRecurring" :disabled="isReadOnly" />
+                <input type="checkbox" id="recurringEvent" class="form-check-input" v-model="event.isRecurring" :disabled="isReadOnly || event.pomodoro" />
                 <label for="recurringEvent" class="form-check-label switch-label-margin">Recurring event</label>
             </div>
 
@@ -150,7 +150,7 @@
             </div>
 
             <div class="mb-4 form-switch">
-                <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly" />
+                <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly || event.isRecurring" />
                 <label for="pomodoro" class="form-check-label switch-label-margin">Pomodoro event</label>
             </div>
             
@@ -599,7 +599,17 @@ async function getEvent(eventId){
     }
 }
 
+watch(() => event.pomodoro, (newVal) => {
+    if (newVal) {
+        event.isRecurring = false;
+    }
+})
 
+watch(() => event.isRecurring, (newVal) => {
+    if (newVal) {
+        event.pomodoro = false;
+    }
+})
 
 async function submit(rrule){
     // Se la notifica è abilitata, almeno un canale deve essere scelto
