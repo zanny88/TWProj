@@ -4,7 +4,7 @@
         <div class="container" style="justify-content: center; align-items: center;" v-if="msgs.length > 0">
             <div class="col-lg-6 col-md-6 col-sm-6">
                 <div class="row" v-for="(msg,index) in msgs" @click="selectedMsg = msg">
-                    <span class="col-6" style="flex-grow: 1">Nuovo messaggio da {{ msg.from }}</span>
+                    <span class="col-6" style="flex-grow: 1">New message from {{ msg.from }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="col-1 bi bi-envelope-fill" viewBox="0 0 16 16">
                         <path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414zM0 4.697v7.104l5.803-3.558zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586zm3.436-.586L16 11.801V4.697z"/>
                     </svg>
@@ -15,14 +15,14 @@
     <div v-else>
         <div class="card">
             <div class="card-header">
-                    Messaggio da {{ selectedMsg.from }}
+                    Message from {{ selectedMsg.from }}
             </div>
             <div class="card-body">
-                <p class="card-text" v-if="selectedMsg.type == 'amicizia'">Richiesta di amicizia</p>
-                <p class="card-text" v-if="selectedMsg.type == 'condivisione'">Richiesta di condivisione nota</p>
+                <p class="card-text" v-if="selectedMsg.type == 'amicizia'">Friend request</p>
+                <p class="card-text" v-if="selectedMsg.type == 'condivisione'">Note sharing request</p>
                 <p class="card-text" v-if="selectedMsg.type != 'amicizia' && selectedMsg.type != 'condivisione'">{{ selectedMsg.type }}</p>
                 <div style="display: flex; justify-content: space-between;">
-                    <button class="btn btn-primary" @click="selectedMsg = null">Torna indietro</button>
+                    <button class="btn btn-primary" @click="selectedMsg = null">Back</button>
                     <div>
                         <svg style="margin-right: 10px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" viewBox="0 0 16 16" @click="accept_msg(selectedMsg)">
                             <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/>

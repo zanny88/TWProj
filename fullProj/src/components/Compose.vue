@@ -120,11 +120,19 @@
     var final_todo_index = 0;
 
     var usersToShare = ref([]);
-    function appendUser(friend_name){
+    var submitFlag;
+    async function appendUser(friend_name){
         console.log("appending friend");
-        userName.value = '';
-        userFound.value = false;
-        usersToShare.value.push(friend_name);
+        const r = await axios.post(`${api_url}userSearch`,{username: friend_name});
+        console.log(`risultato ricerca utente ${friend_name}: ${r.data}`);
+        if (!r.data){
+            userName.value = '';
+            userFound.value = false;
+            usersToShare.value.push(friend_name);
+        }else{
+            alert("utente non trovato");
+            submitFlag = false;
+        }
     }
 
     async function deleteFriend(index){
@@ -230,6 +238,15 @@
 
     //funzione di submit per il salvataggio del post
     async function submit(){
+        submitFlag = true;
+
+        if (userName.value != ''){
+            appendUser(userName.value);
+            if (!submitFlag){
+                return;
+            }
+        }
+
         var todos_data = null;
         var todo_objs = null;
         console.log(`tipo post in gestione: ${typeI.value}`);
@@ -342,7 +359,6 @@
                         name: e.username
                     }));
                     userFound.value = true;
-                    console.log("PORCO DIO: ",users.value);
                 }else{
                     users.value = [];
                     userFound.value = false;

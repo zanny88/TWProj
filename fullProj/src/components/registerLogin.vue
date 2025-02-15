@@ -25,10 +25,10 @@
                 </div>
             </div>
             <div v-show="showDismissibleAlert" style="background: red; color: black;">
-                Username già in uso!
+                Username already taken!
             </div>
             <div v-show="showDismissibleAlertUsername" style="background: red; color: black;">
-                Nome utente inesistente!
+                Username not found!
             </div>
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-12">
@@ -40,7 +40,7 @@
                 </div>
             </div>
             <div v-show="showDismissibleAlertPassword" style="background: red; color: black;">
-                Password errata!
+                Wrong password!
             </div>
             <div class="row" style="position: relative; justify-content: center; align-items: center;" v-if="formType == 'Register'">
                 <div class="col-lg-4 col-md-4 col-sm-12" >
@@ -118,8 +118,8 @@
     //ho utilizzato una srtinga invece di un indice perchè riutilizzerò il valore di formType per la richiesta al server 
     var formType = ref("Login");
     var outlines = {
-        "Login":["Non hai un account?","Registrati"],
-        "Register":["Hai già un account?","Fai il login"]
+        "Login":["You don't have an account?","Register"],
+        "Register":["You already have an account?","Login"]
     };
 
     function changeForm(){
