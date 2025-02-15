@@ -55,12 +55,6 @@ function generateActivityInvitationHTML(activity, user, ownerDB) {
         .content {
             padding: 20px;
         }
-        .footer {
-            font-size: 12px;
-            color: #777777;
-            text-align: center;
-            padding: 10px;
-        }
     </style>
 </head>
 <body>
@@ -102,7 +96,6 @@ async function manageActivityParticipants(activity, User) {
             const ownerDB = await User.findOne({ username: activity.owner });
             //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
             if (userDB && userDB.mail) {
-                const email = userDB.mail;
                 //mando l'invito
                 let html = generateActivityInvitationHTML(activity, user, ownerDB);
                 console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);

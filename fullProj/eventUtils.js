@@ -135,6 +135,7 @@ function getRecurrenceDescription(recurringRule) {
     if (options.count) {
       descriptions.push(`for ${options.count} time(s)`);
     }
+    //console.log(JSON.stringify(options));
     if (!options.until && !options.count) {
       descriptions.push('forever');
     }
@@ -350,7 +351,7 @@ const generateHTMLResponse = (title, message, color) => `
         <body>
             <div class="message">
                 <h1>${title}</h1>
-                <p>${message}</p>
+                <h2>${message}</h2>
             </div>
         </body>
     </html>
@@ -378,7 +379,7 @@ async function disableEventNotification(eventId, user, Event) {
             await event_.save();
             console.log("Notifications disabled for user:" + eventId + " " + user);
         }
-        return generateHTMLResponse("Notifications Disabled", "You have successfully disabled event notifications.", "#4CAF50");
+        return generateHTMLResponse("Notifications Disabled", "You have successfully disabled this event's notifications.", "#4CAF50");
     } catch (error) {
         console.error("ERROR: ", error);
         return `

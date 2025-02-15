@@ -1542,6 +1542,7 @@ app.post("/setTime", async (req, res) => {
         utente.deltaTime = (new Date(newTime) - new Date());
         console.log("deltaTime=" + utente.deltaTime);
         await User.findByIdAndUpdate({ _id: utente._id }, { deltaTime: utente.deltaTime });
+        res.status(200).send("OK");
     } catch (error) {
         res.status(500).send("Error while saving time");
         console.log("Errore: ", error);
