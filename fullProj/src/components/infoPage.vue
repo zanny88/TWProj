@@ -28,7 +28,7 @@
             </div>
         </div>
         <div v-show="showDismissibleAlert" style="background: red; color: black;">
-            Username già in uso!
+            Username already in use!
         </div>
         <div class="row" style="position: relative; justify-content: center; align-items: center;">
             <div class="col-lg-8 col-md-8 col-sm-12">

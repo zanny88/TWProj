@@ -38,7 +38,7 @@
                         <input class="form-control me-2" :type="searchType" placeholder="Search" aria-label="Search" id="searchInput" @input="search()" v-model="searchString" autocomplete="off"/>
                         <div class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" id="filterDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Filtri
+                                Filters
                             </a>
                             <ul class="dropdown-menu" id="filterDropdownList" aria-labelledby="filterDropdown" style="z-index: 1051; padding: 5px;">
                                 <li><input type="radio" name="filterB" value="heading" v-model="filter" checked/>Title</li>

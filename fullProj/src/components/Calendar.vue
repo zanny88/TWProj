@@ -136,7 +136,6 @@ import rrulePlugin from '@fullcalendar/rrule';
 import { prepareCalendarEvents, formatToICalendarDate } from './calendarUtils';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-dayjs().format();
 dayjs.extend(customParseFormat);
 
 import { useTimeMachineStore } from '../stores/timeMachine';
@@ -465,6 +464,8 @@ const calendarOptions = reactive/*ref*/({
 		return ['selected-day'];
 	}
 	return [];
+  },
+  eventDrop: function(info) {   //TODO
   }
 });
 

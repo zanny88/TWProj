@@ -215,7 +215,7 @@
                     </div>
 
                     <div class="ms-4" v-if="notification.offsetType === 'exact'">
-                        <VueDatePicker v-model="notification.offsetTime" :format="timeFormat" :enable-time-picker="true" time-picker :auto-apply="true" placeholder="Select offset time" :disabled="isReadOnly" />
+                        <VueDatePicker v-model="notification.offsetTime" time-picker placeholder="Select offset time" model-type="timestamp" :disabled="isReadOnly" />
                     </div>
                 </div>
 
@@ -620,7 +620,7 @@ async function submit(rrule){
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
                 notification_advance: notification.offsetMinutes,
-                notification_advance_date: (notification.offsetTime ? dayjs(notification.offsetTime).toDate() : null),
+                notification_advance_date: (notification.offsetTime ? notification.offsetTime /*dayjs(notification.offsetTime).toDate()*/ : null),
                 notification_repetitions: notification.repeatCount,
                 notification_interval: notification.repeatInterval,
                 notification_num_sent: 0,
@@ -685,7 +685,7 @@ async function submit(rrule){
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
                 notification_advance: notification.offsetMinutes,
-                notification_advance_date: (notification.offsetTime ? dayjs(notification.offsetTime).toDate() : null),
+                notification_advance_date: (notification.offsetTime ? notification.offsetTime /*dayjs(notification.offsetTime).toDate()*/ : null),
                 notification_repetitions: notification.repeatCount,
                 notification_interval: notification.repeatInterval,
                 notification_num_sent: 0,

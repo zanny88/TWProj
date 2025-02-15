@@ -3,7 +3,6 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
-dayjs().format();
 
 
 export function prepareCalendarEvents(Events, Activities, user){
@@ -25,7 +24,7 @@ export function prepareCalendarEvents(Events, Activities, user){
             item.end = dayjs(event_.date_end).toDate();
         }
         if (event_.all_day) {
-           item.end = dayjs(item.end).add(25, 'hour').toDate(); 
+           item.end = dayjs(item.end).add(1, 'day').toDate();   //Estendo la data end nel caso di evento all-day per includerlo nella visualizzazione del calendario
         }
         //if (event_.title ==="ev 11/1")
         //    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
