@@ -1016,6 +1016,17 @@ app.post("/user/:regType", async (req, res, next) => {
     }
 });
 
+app.post("/userSearch",async (req,res) => {
+    try{
+        const user = await User.findOne({username: req.body.username});
+        console.log(`ricerca dell'utente ${req.body.username}`);
+        console.log(user);
+        res.json(user == null);
+    }catch(error){
+        res.status(500).send("Error while search for user");
+    }
+})
+
 //---------------------------------------------------------------
 //funzioni per la gestione della ricerca 
 //!!!NOTA!!! --> NON TESTATE
