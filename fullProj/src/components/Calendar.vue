@@ -71,10 +71,19 @@
 
 		<!-- Lista degli eventi -->
 		<div class="event-list mt-3">
+		  
 		  <div v-for="event in CalDateEvents" :key="event.id" v-if="isEventLoaded" class="event-item mb-2">
 			<button type="button" class="btn btn-outline-primary events w-100 text-start" @click="editEvent(event.id)" title="Edit event">
 			  {{ event.title }}
 			</button>
+		  </div>
+		  <div v-if="incompletePomodoroSessions.length > 0">
+			<h5>Incomplete Pomodoro Sessions:</h5>
+			<div v-for="session in incompletePomodoroSessions" :key="session._id" class="event-item mb-2">
+			  <button type="button" class="btn btn-outline-secondary w-100 text-start" @click="router.push({ path: '/pomodoro/' + session._id })" title="Open Pomodoro Session">
+				{{ session.studyTime }}min study, {{ session.restTime }}min rest, {{ session.completedCycles }} / {{ session.totCycles }} - {{ dayjs(session.dateTime).format('DD/MM/YYYY') }}
+			  </button>
+			</div>
 		  </div>
 		</div>
 		</div>
@@ -142,11 +151,13 @@ dayjs.extend(customParseFormat);
 import { useTimeMachineStore } from '../stores/timeMachine';
 const timeMachineStore = useTimeMachineStore();
 
+const incompletePomodoroSessions = ref([]);
 
 const VIEW_MODE_MONTH = "dayGridMonth";
 const VIEW_MODE_WEEK = "timeGridWeek";
 const VIEW_MODE_DAY = "timeGridDay";
 const api_url = inject('api_url');
+const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const router = useRouter();
 const props = defineProps(['mode','calDate']);
 const CalViewMode = ref(                                    //Modalit� di visualizzazione del calendario
@@ -170,6 +181,7 @@ const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()
 watch(currentTime, async() => {
 	FullCalDate.value = dayjs(currentTime.value).toISOString().substring(0, 10);
 	await nextTick();
+	await loadIncompletePomodoroSessions();
 });
 //********************************************************************************************************************
 
@@ -368,6 +380,16 @@ function editActivity(activityId){
 	router.push({path: "/editActivity/" + activityId + "/" + getCallbackStr()});   //passaggio al componente ActivityPage.vue
 }
 
+async function loadIncompletePomodoroSessions() {
+  try {
+    const res = await axios.post(pomodoro_sessions_api_url + "read/incomplete", { user: user, now: currentTime.value });
+    incompletePomodoroSessions.value = res.data;
+	// console.log("incompletePomodoroSessions: ", incompletePomodoroSessions.value);
+  } catch (error) {
+    console.error("Error fetching pomodoro sessions: ", error);
+  }
+}
+
 function toDayView(){
 	CalViewMode.value = VIEW_MODE_DAY;
 	if (calendarRef.value) {
@@ -543,6 +565,8 @@ onMounted(async () => {
 		end: new Date(Today.value.getTime() + 24 * 60 * 60 * 1000), // Fine del giorno
 		allDay: true,
 	});
+	await nextTick();
+	await loadIncompletePomodoroSessions();
 });
 </script>
 

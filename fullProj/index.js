@@ -569,6 +569,31 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
     }
 });
 
+app.post("/pomodoro/sessions/read/incomplete", async (req, res) => {
+    const user = req.body.user;
+
+    //Set UTC hours to 0,0,0,0 to compare only the date part of the datetime
+    const now = req.body.now ? new Date(req.body.now).setUTCHours(0, 0, 0, 0) : new Date().getTime().setUTCHours(0, 0, 0, 0);
+
+    try {
+        var userSessions = await Session.find({ user: user });
+        for (let session of userSessions) {
+            console.log("Session: ", session);
+            if (session.dateTime < now) {
+                console.log("Session dateTime is before now: ", session.dateTime + " - " + now);
+            } else {
+                console.log("Session dateTime is after now: ", session.dateTime + " - " + now);
+            }
+        }
+        const incompleteSessions = userSessions.filter(session => session.completedCycles < session.totCycles && session.dateTime < now);
+        res.json(incompleteSessions);
+    } catch (error) {
+        console.log("Error in /pomodoro/sessions/read/incomplete: ", error);
+        res.status(500).send("Error while reading incomplete sessions");
+    }
+});
+
+
 // POST request to get informations on the stats of the last week of pomodoro sessions. Note: to access the information, read the .data field of the received JSON.
 app.post("/pomodoro/sessions/read/week_stats", async (req, res) => {
     const user = req.body.user;
@@ -713,9 +738,7 @@ app.get("/user/friends/searchByPrefix", async (req, res) => {
     try {
         const friends = await User.findOne({ username: currentUser }).select('friends');
         const friendsUsernames = friends.friends;
-        console.log("friendsUsernames: ", friendsUsernames);
         const filteredUsers = friendsUsernames.filter(friend => friend.startsWith(prefix));
-        console.log("filteredUsers: ", filteredUsers);
         res.json(filteredUsers);
     } catch (error) {
         console.error("Error while searching for users: ", error);
