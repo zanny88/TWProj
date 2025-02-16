@@ -573,18 +573,14 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
 app.post("/pomodoro/sessions/read/incomplete", async (req, res) => {
     const user = req.body.user;
 
-    //Set UTC hours to 0,0,0,0 to compare only the date part of the datetime
-    const now = req.body.now ? new Date(req.body.now).setUTCHours(0, 0, 0, 0) : new Date().getTime().setUTCHours(0, 0, 0, 0);
+    const now = req.body.now ? new Date(req.body.now).setHours(0, 0, 0, 0) : new Date().setHours(0, 0, 0, 0);
 
     try {
         var userSessions = await Session.find({ user: user });
         for (let session of userSessions) {
-            console.log("Session: ", session);
-            if (session.dateTime < now) {
-                console.log("Session dateTime is before now: ", session.dateTime + " - " + now);
-            } else {
-                console.log("Session dateTime is after now: ", session.dateTime + " - " + now);
-            }
+            const sessionDate = new Date(session.dateTime).setHours(0, 0, 0, 0);
+            console.log("now: ", new Date(now));
+            console.log("sessionDate: ", new Date(sessionDate), "\n");
         }
         const incompleteSessions = userSessions.filter(session => session.completedCycles < session.totCycles && session.dateTime < now);
         res.json(incompleteSessions);
@@ -1077,13 +1073,13 @@ app.post("/user/:regType", async (req, res, next) => {
     }
 });
 
-app.post("/userSearch",async (req,res) => {
-    try{
-        const user = await User.findOne({username: req.body.username});
+app.post("/userSearch", async (req, res) => {
+    try {
+        const user = await User.findOne({ username: req.body.username });
         console.log(`ricerca dell'utente ${req.body.username}`);
         console.log(user);
         res.json(user == null);
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Error while search for user");
     }
 })
