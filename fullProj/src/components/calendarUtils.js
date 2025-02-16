@@ -15,14 +15,22 @@ export function prepareCalendarEvents(Events, Activities, user) {
 		const item = {};
 		item.id = event_._id;
 		item.allDay = event_.all_day;
-		//item.start = dayjs(event_.date_start).toDate();
-		const startUtc = dayjs(event_.date_start).utc();
-		item.start = startUtc.tz(event_.timezone).toDate();
-		//item.end = dayjs(event_.date_end).toDate();
-		const endUtc = dayjs(event_.date_end).utc();
-		item.end = endUtc.tz(event_.timezone).toDate();
+
+		if (event_.timezone) {
+			const startUtc = dayjs(event_.date_start).utc();
+			item.start = startUtc.tz(event_.timezone).toDate();
+			const endUtc = dayjs(event_.date_end).utc();
+			item.end = endUtc.tz(event_.timezone).toDate();
+		} else {
+			item.start = dayjs(event_.date_start).toDate();
+			item.end = dayjs(event_.date_end).toDate();
+		}
+		if (event_.all_day) {
+			item.end = dayjs(item.end).add(1, 'day').toDate();   //Estendo la data end nel caso di evento all-day per includerlo nella visualizzazione del calendario
+		}
 		//if (event_.title ==="ev 11/1")
 		//    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
+
 		item.title = (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) + event_.title;
 		item.class = (event_.ev_type === 'notAvailable' ? 'notAvailable' : 'event');
 		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : (event_.pomodoro ? 'red' : (event_.owner === user ? 'blue' : 'violet')));

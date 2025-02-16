@@ -149,7 +149,7 @@
                 <label for="eventTypeNotAvailable" class="form-check-label switch-label-margin">Event type: not available</label>
             </div>
 
-            <div class="mb-4 form-switch">
+            <div class="mb-4 form-switch d-flex align-items-center">
                 <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly || event.isRecurring" />
                 <label for="pomodoro" class="form-check-label switch-label-margin">Pomodoro event</label>
             </div>

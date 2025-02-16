@@ -118,7 +118,7 @@
                         </div>
                         <div class="modal-body">
                             <div class="invite-friend-container mt-3">
-                                <input type="text" v-model="friendSearch" @input="searchFriends" placeholder="Search friend by username" class="form-control" />
+                                <input type="text" v-model="friendSearch" @input="searchFriends" placeholder="Search friend by username" class="form-control" id="searchFriendInput"/>
                                 <ul v-if="friendSuggestions.length > 0" class="list-group mt-2">
                                     <li v-for="friend in friendSuggestions.slice(0,3)" :key="friend" @click="inviteFriend(friend)" class="list-group-item list-group-item-action">
                                         {{ friend }}
@@ -456,6 +456,7 @@ function disable_form_inputs() {
     for (const el of input_list) {
         el.disabled = true;
     }
+    document.getElementById("searchFriendInput").disabled = false;
 }
 
 // Enables all inputs in the form

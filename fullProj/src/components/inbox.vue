@@ -19,7 +19,7 @@
             </div>
             <div class="card-body">
                 <p class="card-text" v-if="selectedMsg.type == 'amicizia'">Friend request</p>
-                <p class="card-text" v-if="selectedMsg.type == 'condivisione'">Note share request</p>
+                <p class="card-text" v-if="selectedMsg.type == 'condivisione'">Note sharing request</p>
                 <p class="card-text" v-if="selectedMsg.type == 'pomodoro'">Join me for a Pomodoro session! Study Time: {{ selectedMsg.data.studyTime }} mins, Rest Time: {{ selectedMsg.data.restTime }} mins, Total Cycles: {{ selectedMsg.data.totCycles }}</p>
                 <p class="card-text" v-if="selectedMsg.type != 'amicizia' && selectedMsg.type != 'condivisione' && selectedMsg.type != 'pomodoro'">{{ selectedMsg.type }}</p>
                 <div style="display: flex; justify-content: space-between;">
