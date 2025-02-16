@@ -108,6 +108,10 @@ const eventSchema = new mongoose.Schema({
     notification_stop: { type: [String], default: [] },                    /* lista degli utenti con notifiche fermate */
     ev_type: { type: String, default: "Event" },                            /* "notAvailable" per indicare non disponibilità ad eventi di gruppo*/
     pomodoro: Boolean,                      /* Evento pomodoro */
+    cycles: Number,
+    studyTime: Number,
+    restTime: Number,
+    pomodoroId: String,
     priority: Number,                       /* Priorità 1=Low, 2=Normal, 3=High, 4=Highest */
     addParticipants: Boolean,                                     /* indica se si vogliono poter scegliere altri partecipanti */
     selectedParticipants: { type: [String], default: [] },        /* partecipanti selezionati */
@@ -512,6 +516,7 @@ app.post("/pomodoro/sessions/create", async (req, res) => {
             ...data
         });
         await newSession.save();
+        res.json({ id: newSession._id });
     } catch (error) {
         console.log("Error: ", error);
         res.status(500).send("Error while creating session");
@@ -564,6 +569,31 @@ app.post("/pomodoro/sessions/read/latest", async (req, res) => {
         res.json(undefined);
     }
 });
+
+app.post("/pomodoro/sessions/read/incomplete", async (req, res) => {
+    const user = req.body.user;
+
+    //Set UTC hours to 0,0,0,0 to compare only the date part of the datetime
+    const now = req.body.now ? new Date(req.body.now).setUTCHours(0, 0, 0, 0) : new Date().getTime().setUTCHours(0, 0, 0, 0);
+
+    try {
+        var userSessions = await Session.find({ user: user });
+        for (let session of userSessions) {
+            console.log("Session: ", session);
+            if (session.dateTime < now) {
+                console.log("Session dateTime is before now: ", session.dateTime + " - " + now);
+            } else {
+                console.log("Session dateTime is after now: ", session.dateTime + " - " + now);
+            }
+        }
+        const incompleteSessions = userSessions.filter(session => session.completedCycles < session.totCycles && session.dateTime < now);
+        res.json(incompleteSessions);
+    } catch (error) {
+        console.log("Error in /pomodoro/sessions/read/incomplete: ", error);
+        res.status(500).send("Error while reading incomplete sessions");
+    }
+});
+
 
 // POST request to get informations on the stats of the last week of pomodoro sessions. Note: to access the information, read the .data field of the received JSON.
 app.post("/pomodoro/sessions/read/week_stats", async (req, res) => {
@@ -702,6 +732,21 @@ app.post("/checkUsername", async (req, res) => {
     }
 });
 
+// Given a prefix and the current user's username, returns an array containing his friends' usernames that match the prefix
+app.get("/user/friends/searchByPrefix", async (req, res) => {
+    const prefix = req.query.prefix;
+    const currentUser = req.query.currentUser
+    try {
+        const friends = await User.findOne({ username: currentUser }).select('friends');
+        const friendsUsernames = friends.friends;
+        const filteredUsers = friendsUsernames.filter(friend => friend.startsWith(prefix));
+        res.json(filteredUsers);
+    } catch (error) {
+        console.error("Error while searching for users: ", error);
+        res.status(500).send("Server error while searching for users");
+    }
+});
+
 app.post("/user/updateData", async (req, res) => {
     const { name, oldUsername, username, passw, mail } = req.body;
 
@@ -791,7 +836,7 @@ app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il rem
     }
 });
 
-async function sendMessageSupport(to, from, text, data = "") {
+async function sendMessageSupport(to, from, text, data = undefined) {
     var newMessage = new Message({
         from: from.username,
         type: text,
@@ -806,13 +851,14 @@ app.post("/user/sendMessage", async (req, res) => {
     const msg = req.body;
 
     try {
-        var toUser = await User.findOne({ username: msg.toUser });
-        var fromUser = await User.findOne({ username: msg.fromUser });
+        const toUser = await User.findOne({ username: msg.toUser });
+        const fromUser = await User.findOne({ username: msg.fromUser });
+        const msgData = msg.data;
 
-        await sendMessageSupport(toUser, fromUser, msg.message);
+        await sendMessageSupport(toUser, fromUser, msg.message, msgData);
         res.send({ message: "Messaggio inviato" });
     } catch (error) {
-        res.status(500).send("Errore del server nell'invio del messaggio");
+        res.status(500).send("Errore del server nell'invio del messaggio: ", error);
     }
 });
 
@@ -880,6 +926,7 @@ app.post("/user/checkMessages", async (req, res) => {
 }*/
 
 app.post("/user/messages/:msgID/accept", async (req, res) => {
+    let response = { message: "OK" };
     try {
         var msg = await Message.findOne({ _id: req.params.msgID });
         var fromUser = await User.findOne({ username: msg.from });
@@ -894,6 +941,20 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
             var note = await Note.findOne({ _id: msg.data });
             note.view_list.push(toUser.username);
             await note.save();
+        } else if (msg.type == "pomodoro") {
+            console.log("accetto richiesta di pomodoro");
+            console.log("messaggio: ", msg);
+            const newSession = new Session({
+                user: toUser.username,
+                state: "idle",
+                completedCycles: 0,
+                totCycles: msg.data.totCycles,
+                studyTime: msg.data.studyTime,
+                restTime: msg.data.restTime,
+                dateTime: new Date(Date.now() + fromUser.deltaTime)
+            });
+            await newSession.save();
+            response.newSessionId = newSession._id;
         }
         console.log("messaggi dentro l'inbox: ");
         for (let m of toUser.inbox) {
@@ -920,7 +981,7 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
         await User.findByIdAndUpdate({ _id: toUser._id }, { friends: toUser.friends, inbox: toUser.inbox });
         await User.findByIdAndUpdate({ _id: fromUser._id }, { friends: fromUser.friends });
 
-        res.send({ message: "OK" });
+        res.send(response);
     } catch (error) {
         res.status(500).send("Error while fetching msg and users for accepting message");
     }
@@ -1173,7 +1234,7 @@ app.get("/getSharedEvents/:userName", async (req, res) => {
 app.post("/addEvent", async (req, res) => {
     try {
         console.log("/addEvent " + req.body);
-        const { userName, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
+        const { userName, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, cycles, studyTime, restTime, priority,
             has_notification, notification_modes, notification_advance, notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
             addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         const NewEvent = new Event({
@@ -1188,6 +1249,10 @@ app.post("/addEvent", async (req, res) => {
             recurring_rule: recurring_rule,
             ev_type: ev_type,
             pomodoro: pomodoro,
+            cycles: cycles,
+            studyTime: studyTime,
+            restTime: restTime,
+            pomodoroId: -1,
             priority: priority,
             has_notification: has_notification,
             notification_modes: notification_modes,
@@ -1204,6 +1269,19 @@ app.post("/addEvent", async (req, res) => {
             participants_refused: participants_refused,
             timezone: timezone
         });
+        if (pomodoro) {
+            let newSession = new Session({
+                user: userName,
+                state: "idle",
+                completedCycles: 0,
+                totCycles: cycles,
+                studyTime: studyTime,
+                restTime: restTime,
+                dateTime: date_start
+            });
+            newSession.save();
+            NewEvent.pomodoroId = newSession._id;
+        }
         await NewEvent.save();
         console.log("added event= " + NewEvent);
         await manageEventParticipants(NewEvent, Event, User);
@@ -1217,7 +1295,7 @@ app.post("/addEvent", async (req, res) => {
 app.post("/editEvent", async (req, res) => {
     try {
         console.log("/editEvent " + req.body);
-        const { userName, eventId, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, priority,
+        const { userName, eventId, title, description, date_start, date_end, place, all_day, is_recurring, recurring_rule, ev_type, pomodoro, cycles, studyTime, restTime, pomodoroId, priority,
             has_notification, notification_modes, notification_advance, notification_advance_date, notification_repetitions, notification_interval, notification_num_sent, notification_stop,
             addParticipants, selectedParticipants, participants_waiting, participants_accepted, participants_refused, timezone } = req.body;
         console.log("ricerca di eventId=" + req.body.eventId);
@@ -1227,6 +1305,34 @@ app.post("/editEvent", async (req, res) => {
                 message: "event not found"
             });
         } else {
+            if (event_.pomodoro && !pomodoro) { // Event was previously a pomodoro event, now not anymore
+                await Session.findByIdAndDelete(event_.pomodoroId);
+                event_.pomodoroId = -1;
+            } else if (!event_.pomodoro && pomodoro) { // Event was not a pomodoro event, now it is
+                // create pomodoro session and link it to event
+                let newSession = new Session({
+                    user: userName,
+                    state: "idle",
+                    completedCycles: 0,
+                    totCycles: cycles,
+                    studyTime: studyTime,
+                    restTime: restTime,
+                    dateTime: date_start
+                });
+                await newSession.save();
+                event_.pomodoroId = newSession._id;
+            } else if (event_.pomodoro && pomodoro &&
+                (event_.studyTime != studyTime || event_.restTime != restTime || event_.cycles != cycles)
+            ) { // Event was and still is a pomodoro event, but some parameters changed
+                //update session
+                let session = await Session.findById(event_.pomodoroId);
+                session.totCycles = cycles;
+                session.studyTime = studyTime;
+                session.restTime = restTime;
+                session.dateTime = date_start;
+                await session.save();
+            }
+
             event_.title = title;
             event_.description = description;
             event_.date_start = date_start;
@@ -1237,6 +1343,9 @@ app.post("/editEvent", async (req, res) => {
             event_.recurring_rule = recurring_rule;
             event_.ev_type = ev_type;
             event_.pomodoro = pomodoro;
+            event_.cycles = cycles;
+            event_.studyTime = studyTime;
+            event_.restTime = restTime;
             event_.priority = priority;
             event_.has_notification = has_notification;
             event_.notification_modes = notification_modes;

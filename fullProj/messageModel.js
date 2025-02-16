@@ -7,10 +7,10 @@ mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true }
 const messageSchema = new mongoose.Schema({
     from: String,
     type: String,
-    data: {type: String, default: ""},
-    seen: {type: Boolean, default: false}
+    data: { type: Object, default: undefined },
+    seen: { type: Boolean, default: false }
 });
 
 const Message = mongoose.model("Message", messageSchema);
 
-module.exports = {Message,messageSchema};
+module.exports = { Message, messageSchema };

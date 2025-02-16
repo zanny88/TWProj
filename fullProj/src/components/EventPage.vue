@@ -65,7 +65,7 @@
             </div>
 
             <div class="mb-3 form-switch">
-                <input type="checkbox" id="recurringEvent" class="form-check-input" v-model="event.isRecurring" :disabled="isReadOnly" />
+                <input type="checkbox" id="recurringEvent" class="form-check-input" v-model="event.isRecurring" :disabled="isReadOnly || event.pomodoro" />
                 <label for="recurringEvent" class="form-check-label switch-label-margin">Recurring event</label>
             </div>
 
@@ -150,11 +150,26 @@
             </div>
 
             <div class="mb-4 form-switch d-flex align-items-center">
-                <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly" />
+                <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly || event.isRecurring" />
                 <label for="pomodoro" class="form-check-label switch-label-margin">Pomodoro event</label>
                 <button v-if="formType === 'Save' && event.pomodoro" type="button" class="btn btn-danger" style="margin-left: 3cm;" @click="openPomodoro">
                 Pomodoro
                 </button>
+            </div>
+            
+            <div v-if="event.pomodoro" class="mb-3">
+                <label for="cycles" class="form-label">Cycles</label>
+                <input type="number" id="cycles" class="form-control" v-model="event.cycles" :disabled="isReadOnly" />
+            </div>
+            
+            <div v-if="event.pomodoro" class="mb-3">
+                <label for="studyTime" class="form-label">Study time (minutes)</label>
+                <input type="number" id="studyTime" class="form-control" v-model="event.studyTime" :disabled="isReadOnly" />
+            </div>
+            
+            <div v-if="event.pomodoro" class="mb-3">
+                <label for="restTime" class="form-label">Rest time (minutes)</label>
+                <input type="number" id="restTime" class="form-control" v-model="event.restTime" :disabled="isReadOnly" />
             </div>
 
 
@@ -404,6 +419,10 @@ const event = reactive({
     untilDate: null,
     eventTypeNotAvailable: false,
     pomodoro: false,
+    cycles: 5, // Default value for cycles (only used if pomodoro is true)
+    studyTime: 30, // Default value for study time in minutes (only used if pomodoro is true)
+    restTime: 5, // Default value for rest time in minutes (only used if pomodoro is true)
+    pomodoroId: -1, // Default value for pomodoro id (only used if pomodoro is true)
     recurring_rule: '',
     priority: 2,                    // default: 2=Normal
     //variabili per la gestione dei partecipanti
@@ -517,6 +536,10 @@ async function getEvent(eventId){
         event.recurring_rule = event_.recurring_rule;
         event.eventTypeNotAvailable = (event_.ev_type === 'notAvailable');
         event.pomodoro = event_.pomodoro;
+        event.cycles = event_.cycles;
+        event.studyTime = event_.studyTime;
+        event.restTime = event_.restTime;
+        event.pomodoroId = event_.pomodoroId;
         event.priority = event_.priority || 2;
         event.addParticipants = event_.addParticipants || false;
         event.selectedParticipants = event_.selectedParticipants || [];
@@ -579,7 +602,17 @@ async function getEvent(eventId){
     }
 }
 
+watch(() => event.pomodoro, (newVal) => {
+    if (newVal) {
+        event.isRecurring = false;
+    }
+})
 
+watch(() => event.isRecurring, (newVal) => {
+    if (newVal) {
+        event.pomodoro = false;
+    }
+})
 
 async function submit(rrule){
     // Se la notifica è abilitata, almeno un canale deve essere scelto
@@ -616,6 +649,9 @@ async function submit(rrule){
                 recurring_rule: rrule,
                 ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event'),
                 pomodoro: event.pomodoro,
+                cycles: event.cycles,
+                studyTime: event.studyTime,
+                restTime: event.restTime,
                 priority: event.priority,
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
@@ -681,6 +717,10 @@ async function submit(rrule){
                 recurring_rule: rrule,
                 ev_type: (event.eventTypeNotAvailable ? 'notAvailable' : 'Event'),
                 pomodoro: event.pomodoro,
+                cycles: event.cycles,
+                studyTime: event.studyTime,
+                restTime: event.restTime,
+                pomodoroId: event.pomodoroId,
                 priority: event.priority,
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,

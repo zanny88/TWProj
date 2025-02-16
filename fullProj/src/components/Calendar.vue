@@ -71,20 +71,29 @@
 
 		<!-- Lista degli eventi -->
 		<div class="event-list mt-3">
+		  
 		  <div v-for="event in CalDateEvents" :key="event.id" v-if="isEventLoaded" class="event-item mb-2">
 			<button type="button" class="btn btn-outline-primary events w-100 text-start" @click="editEvent(event.id)" title="Edit event">
 			  {{ event.title }}
 			</button>
 		  </div>
+		  <div v-if="incompletePomodoroSessions.length > 0">
+			<h5>Incomplete Pomodoro Sessions:</h5>
+			<div v-for="session in incompletePomodoroSessions" :key="session._id" class="event-item mb-2">
+			  <button type="button" class="btn btn-outline-secondary w-100 text-start" @click="router.push({ path: '/pomodoro/' + session._id })" title="Open Pomodoro Session">
+				{{ session.studyTime }}min study, {{ session.restTime }}min rest, {{ session.completedCycles }} / {{ session.totCycles }} - {{ dayjs(session.dateTime).format('DD/MM/YYYY') }}
+			  </button>
+			</div>
+		  </div>
 		</div>
 		</div>
 
-		<!-- Attività -->
+		<!-- Attivitï¿½ -->
 		<div class="section activities-section mt-5">
 		<div class="d-flex justify-content-between align-items-center">
-		<!-- Titolo e pulsante per aggiungere attività -->
+		<!-- Titolo e pulsante per aggiungere attivitï¿½ -->
 		<h3 class="d-flex align-items-center mb-0">
-			<!-- Pulsante per aggiungere un'attività -->
+			<!-- Pulsante per aggiungere un'attivitï¿½ -->
 			<button type="button" class="btn btn-primary task-icon arrow me-2" @click="addActivity" title="Add activity">
 			<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
 				<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z" />
@@ -92,7 +101,7 @@
 			</button>
 			Activities
 		</h3>
-		<!-- Switch per mostrare le attività completate -->
+		<!-- Switch per mostrare le attivitï¿½ completate -->
 		<div class="form-check form-switch">
 			<input class="form-check-input" type="checkbox" id="completedSwitch" v-model="Activities_completed" />
 			<label class="form-check-label" for="completedSwitch">
@@ -101,7 +110,7 @@
 		</div>
 		</div>
 
-		<!-- Lista delle attività -->
+		<!-- Lista delle attivitï¿½ -->
 		<div class="activity-list mt-3" v-if="isActivityLoaded">
 			<div v-for="activity in CalDateActivities" :key="activity.id" class="activity-item mb-2 d-flex align-items-center">
 				<div v-if="activity.is_completed" class="me-1">
@@ -141,14 +150,16 @@ dayjs.extend(customParseFormat);
 import { useTimeMachineStore } from '../stores/timeMachine';
 const timeMachineStore = useTimeMachineStore();
 
+const incompletePomodoroSessions = ref([]);
 
 const VIEW_MODE_MONTH = "dayGridMonth";
 const VIEW_MODE_WEEK = "timeGridWeek";
 const VIEW_MODE_DAY = "timeGridDay";
 const api_url = inject('api_url');
+const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const router = useRouter();
 const props = defineProps(['mode','calDate']);
-const CalViewMode = ref(                                    //Modalità di visualizzazione del calendario
+const CalViewMode = ref(                                    //Modalitï¿½ di visualizzazione del calendario
 	props.mode === "CW" ? VIEW_MODE_WEEK :
 	props.mode === "CD" ? VIEW_MODE_DAY :
 	VIEW_MODE_MONTH
@@ -169,6 +180,7 @@ const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-
 watch(currentTime, async() => {
 	FullCalDate.value = dayjs(currentTime.value).toISOString().substring(0, 10);
 	await nextTick();
+	await loadIncompletePomodoroSessions();
 });
 //********************************************************************************************************************
 
@@ -182,7 +194,7 @@ if (props.calDate != undefined && props.calDate != "0"){
 	if (parsedDate.isValid()) {
 		ActiveCalDate.value = parsedDate.toDate();
 	} else {
-		console.error("La stringa di data fornita non è valida.");
+		console.error("La stringa di data fornita non ï¿½ valida.");
 	}
 }
 
@@ -274,7 +286,7 @@ const CalDateEvents = computed(() => {
 
 
 
-//Elenco attività
+//Elenco attivitï¿½
 const CalDateActivities = computed(() => {
 	//alert("CalDateActivities");
 	const act = [];
@@ -290,7 +302,7 @@ const CalDateActivities = computed(() => {
 				item.end = dayjs(activity.end).toDate();
 				item.title = 'End date: ' + dayjs(activity.end).format('DD/MM/YYYY') + ' - ';
 			} else {
-				item.end = dayjs('9999-12-31').toDate();          //Metto data massima così nell'ordinamento vanno dopo
+				item.end = dayjs('9999-12-31').toDate();          //Metto data massima cosï¿½ nell'ordinamento vanno dopo
 			}
 			item.title += activity.title;
 			//alert("item="+JSON.stringify(item));
@@ -330,10 +342,10 @@ async function loadEventsAndActivities(){
         Events.value = Events.value.concat(res.data);
 		await nextTick();
 		//alert("ris event=" + Events.value);
-		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attività
+		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attivitï¿½
 		Activities.value = res.data;
 		await nextTick();
-		res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
+		res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attivitï¿½ condivise
         Activities.value = Activities.value.concat(res.data);
 		await nextTick();
 		//alert("ris activity=" + Activities.value +" - #"+Activities.value.length);
@@ -365,6 +377,16 @@ function addActivity(){
 
 function editActivity(activityId){
 	router.push({path: "/editActivity/" + activityId + "/" + getCallbackStr()});   //passaggio al componente ActivityPage.vue
+}
+
+async function loadIncompletePomodoroSessions() {
+  try {
+    const res = await axios.post(pomodoro_sessions_api_url + "read/incomplete", { user: user, now: currentTime.value });
+    incompletePomodoroSessions.value = res.data;
+	// console.log("incompletePomodoroSessions: ", incompletePomodoroSessions.value);
+  } catch (error) {
+    console.error("Error fetching pomodoro sessions: ", error);
+  }
 }
 
 function toDayView(){
@@ -424,9 +446,9 @@ const calendarOptions = reactive/*ref*/({
       cell.classList.add('selected-day');
     }
   },
-  firstDay: 1,     //La settimana inizia dal lunedì
+  firstDay: 1,     //La settimana inizia dal lunedï¿½
   datesSet: (info) => {
-	// Verifica se la vista corrente è la vista giornaliera
+	// Verifica se la vista corrente ï¿½ la vista giornaliera
 	if (CalViewMode.value === VIEW_MODE_DAY) {
 	  // Ottieni la data corrente visualizzata
 	  const currentDate = info.start; // In day view, start dovrebbe essere la data del giorno
@@ -455,7 +477,11 @@ const calendarOptions = reactive/*ref*/({
 	if (info.event.extendedProps.class === 'activity'){
 		editActivity(info.event.id);
 	} else if (info.event.extendedProps.class === 'event' || info.event.extendedProps.class === 'notAvailable'){
-        editEvent(info.event.id);
+        if (info.event.extendedProps.pomodoro){
+			router.push({path: "/pomodoro/" + info.event.extendedProps.pomodoroId});
+		} else {
+			editEvent(info.event.id);
+		}
 	}
   },
   dayCellClassNames: (arg) => {
@@ -486,7 +512,7 @@ watch(FullCalDate, (newDate) => {
 	}
 });
 
-//Funzione che indica se un'attività è scaduta ma non ancora completata
+//Funzione che indica se un'attivitï¿½ ï¿½ scaduta ma non ancora completata
 function isActivityExpired(activity) {
 	if (!activity.end || activity.is_completed) return false;
 	const now = new Date(currentTime.value);
@@ -540,6 +566,8 @@ onMounted(async () => {
 		end: new Date(Today.value.getTime() + 24 * 60 * 60 * 1000), // Fine del giorno
 		allDay: true,
 	});
+	await nextTick();
+	await loadIncompletePomodoroSessions();
 });
 </script>
 

@@ -94,8 +94,44 @@
                 </div>
             </div>
 
-            <button type="submit" @click.prevent="handleSubmit" class="badge badge-pill mt-2" id="start-btn">START
-                STUDYING</button>
+            <div class="flex-row justify-content-evenly align-items-center">
+                <button type="submit" @click.prevent="handleSubmit" class="badge badge-pill mt-2" id="start-btn">START
+                    STUDYING</button>
+
+                <!-- Invite friend button -->
+                <button type="button" class="btn btn-dark" id="inviteModalToggleBtn" @click="toggleInviteFriendModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-plus-fill" viewBox="0 0 16 16">
+                        <path d="M1 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                        <path fill-rule="evenodd" d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5"/>
+                    </svg>
+                </button>
+            </div>
+
+
+            <!-- Invite friend modal -->
+            <div class="modal fade" id="inviteFriendModal" tabindex="-1" role="dialog" aria-labelledby="inviteFriendModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="inviteFriendModalTitle">Invite Friend</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="invite-friend-container mt-3">
+                                <input type="text" v-model="friendSearch" @input="searchFriends" placeholder="Search friend by username" class="form-control" id="searchFriendInput"/>
+                                <ul v-if="friendSuggestions.length > 0" class="list-group mt-2">
+                                    <li v-for="friend in friendSuggestions.slice(0,3)" :key="friend" @click="inviteFriend(friend)" class="list-group-item list-group-item-action">
+                                        {{ friend }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="row col-10 col-sm-8 mt-1 mb-1" id="control-btns-container">
                 <button class="btn badge badge-pill col-4 control-btn" id="skip-next-btn" disabled
@@ -164,11 +200,22 @@ let availM = ref(0);
 let modalTitle = ref('');
 let modalBody = ref('');
 
+const inviteFriendModal = ref(null);
+
+function toggleInviteFriendModal() {
+    if (inviteFriendModal.value) {
+        inviteFriendModal.value.toggle();
+    }
+}
+
 let notifModal; // Notification modal shown when starting a cycle, switching between study and rest and at the end of each cycle
 let suggestionsStructsArray = []; // Array of objects; each objects represents a suggestion given based on the provided available time
 let interval; // Used for the interval-based function to update the timer while studying/resting
 let end_time; // End time for the currently active study/rest phase
 let loaded_session = false;
+
+let friendSearch = ref('');
+let friendSuggestions = ref([]);
 
 let start_pause_time;
 let end_pause_time;
@@ -237,6 +284,7 @@ const defaultCycles = [
 onMounted(async () => {
     window.bootstrap = require('/node_modules/bootstrap/dist/js/bootstrap');
 
+    inviteFriendModal.value = new bootstrap.Modal(document.getElementById('inviteFriendModal'), {});
     const buttons = [...document.querySelectorAll("#suggestions>button")];
     let i = -1;
     for (const btn of buttons) {
@@ -408,6 +456,7 @@ function disable_form_inputs() {
     for (const el of input_list) {
         el.disabled = true;
     }
+    document.getElementById("searchFriendInput").disabled = false;
 }
 
 // Enables all inputs in the form
@@ -600,6 +649,35 @@ async function updateSession() {
     let res = await axios.post(`${pomodoro_sessions_api_url}update`, currentSession.value);
 }
 
+async function searchFriends() {
+    if (friendSearch.value.length >= 2) {
+        try {
+            const response = await axios.get(`${api_url}user/friends/searchByPrefix?prefix=${friendSearch.value}&currentUser=${atob(token.split('.')[1])}`);
+            friendSuggestions.value = response.data;
+            await nextTick();
+            console.log("friendSuggestions: ", friendSuggestions.value);
+        } catch (error) {
+            console.error(error);
+        }
+    } else {
+        friendSuggestions.value = [];
+    }
+}
+
+async function inviteFriend(username) {
+    const user = atob(token.split('.')[1]);
+    const data = { 
+        studyTime: studyT.value, 
+        restTime: restT.value, 
+        totCycles: cyclesTot.value
+    };
+    
+    await axios.post(`${api_url}user/sendMessage`, { toUser: username, fromUser: user, message: "pomodoro", data: data });
+    alert(`Invitation sent to ${username}`);
+    friendSearch.value = '';
+    friendSuggestions.value = [];
+}
+
 </script>
 
 <style scoped>
@@ -737,6 +815,25 @@ label {
     letter-spacing: 0.2em;
     font-weight: 700;
     color: var(--my-green);
+}
+
+
+.invite-friend-container {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.invite-friend-container .form-control {
+    margin-bottom: 10px;
+}
+
+.invite-friend-container .list-group-item {
+    cursor: pointer;
+}
+
+#inviteModalToggleBtn{
+    font-size: 0.5rem;
 }
 
 #tomato {
