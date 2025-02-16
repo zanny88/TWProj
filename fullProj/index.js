@@ -706,6 +706,23 @@ app.post("/checkUsername", async (req, res) => {
     }
 });
 
+// Given a prefix and the current user's username, returns an array containing his friends' usernames that match the prefix
+app.get("/user/friends/searchByPrefix", async (req, res) => {
+    const prefix = req.query.prefix;
+    const currentUser = req.query.currentUser
+    try {
+        const friends = await User.findOne({ username: currentUser }).select('friends');
+        const friendsUsernames = friends.friends;
+        console.log("friendsUsernames: ", friendsUsernames);
+        const filteredUsers = friendsUsernames.filter(friend => friend.startsWith(prefix));
+        console.log("filteredUsers: ", filteredUsers);
+        res.json(filteredUsers);
+    } catch (error) {
+        console.error("Error while searching for users: ", error);
+        res.status(500).send("Server error while searching for users");
+    }
+});
+
 app.post("/user/updateData", async (req, res) => {
     const { name, oldUsername, username, passw, mail } = req.body;
 
@@ -791,7 +808,7 @@ app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il rem
     }
 });
 
-async function sendMessageSupport(to, from, text, data = "") {
+async function sendMessageSupport(to, from, text, data = undefined) {
     var newMessage = new Message({
         from: from.username,
         type: text,
@@ -806,13 +823,14 @@ app.post("/user/sendMessage", async (req, res) => {
     const msg = req.body;
 
     try {
-        var toUser = await User.findOne({ username: msg.toUser });
-        var fromUser = await User.findOne({ username: msg.fromUser });
+        const toUser = await User.findOne({ username: msg.toUser });
+        const fromUser = await User.findOne({ username: msg.fromUser });
+        const msgData = msg.data;
 
-        await sendMessageSupport(toUser, fromUser, msg.message);
+        await sendMessageSupport(toUser, fromUser, msg.message, msgData);
         res.send({ message: "Messaggio inviato" });
     } catch (error) {
-        res.status(500).send("Errore del server nell'invio del messaggio");
+        res.status(500).send("Errore del server nell'invio del messaggio: ", error);
     }
 });
 
@@ -880,6 +898,7 @@ app.post("/user/checkMessages", async (req, res) => {
 }*/
 
 app.post("/user/messages/:msgID/accept", async (req, res) => {
+    let response = { message: "OK" };
     try {
         var msg = await Message.findOne({ _id: req.params.msgID });
         var fromUser = await User.findOne({ username: msg.from });
@@ -894,6 +913,20 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
             var note = await Note.findOne({ _id: msg.data });
             note.view_list.push(toUser.username);
             await note.save();
+        } else if (msg.type == "pomodoro") {
+            console.log("accetto richiesta di pomodoro");
+            console.log("messaggio: ", msg);
+            const newSession = new Session({
+                user: toUser.username,
+                state: "idle",
+                completedCycles: 0,
+                totCycles: msg.data.totCycles,
+                studyTime: msg.data.studyTime,
+                restTime: msg.data.restTime,
+                dateTime: new Date(Date.now() + fromUser.deltaTime)
+            });
+            await newSession.save();
+            response.newSessionId = newSession._id;
         }
         console.log("messaggi dentro l'inbox: ");
         for (let m of toUser.inbox) {
@@ -920,7 +953,7 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
         await User.findByIdAndUpdate({ _id: toUser._id }, { friends: toUser.friends, inbox: toUser.inbox });
         await User.findByIdAndUpdate({ _id: fromUser._id }, { friends: fromUser.friends });
 
-        res.send({ message: "OK" });
+        res.send(response);
     } catch (error) {
         res.status(500).send("Error while fetching msg and users for accepting message");
     }
