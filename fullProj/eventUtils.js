@@ -93,16 +93,26 @@ function getRecurrenceDescription(recurringRule) {
       [RRule.MINUTELY]: 'every minute',
       [RRule.SECONDLY]: 'every second',
     };
+    const freqMap2 = {
+      [RRule.YEARLY]: 'years',
+      [RRule.MONTHLY]: 'months',
+      [RRule.WEEKLY]: 'weeks',
+      [RRule.DAILY]: 'days',
+      [RRule.HOURLY]: 'hours',
+      [RRule.MINUTELY]: 'minutes',
+      [RRule.SECONDLY]: 'seconds',
+    };
     const freqStr = freqMap[options.freq] || 'custom frequency';
     descriptions.push(`Recurs ${freqStr}`);
 
     // Interval
     if (options.interval && options.interval > 1) {
-      descriptions.push(`every ${options.interval} ${freqStr}`);  //${options.interval > 1 ? 's' : ''}`);
+      const freqStr2 = freqMap2[options.freq] || 'custom frequency';
+      descriptions.push(`every ${options.interval} ${freqStr2}`);
     }
 
     // ByDay
-    if (options.byweekday && options.byweekday.length > 0) {
+    if (options.byweekday && options.byweekday.length > 0 && !options.until && !options.count && !(!options.until && !options.count)) {
       const weekdaysMap = {
         MO: 'Monday',
         TU: 'Tuesday',
@@ -124,6 +134,10 @@ function getRecurrenceDescription(recurringRule) {
     // Count
     if (options.count) {
       descriptions.push(`for ${options.count} time(s)`);
+    }
+    //console.log(JSON.stringify(options));
+    if (!options.until && !options.count) {
+      descriptions.push('forever');
     }
 
     return descriptions.join(' ');
@@ -156,7 +170,7 @@ function getNotificationSummary(event) {
 }
 
 //Genera una stringa HTML da utilizzare in un'email di invito
-function generateEventInvitationHTML(event, user) {
+function generateEventInvitationHTML(event, user, ownerDB) {
   // Formatto le date d'inizio e fine
   const formatString = 'YYYY-MM-DD HH:mm';
   const startStr = event.date_start ? dayjs(event.date_start).format(formatString) : 'N/A';
@@ -176,6 +190,7 @@ function generateEventInvitationHTML(event, user) {
       };
   const priorityStr = map[event.priority] || 'Unknown';  //Priorità
   const notificationInfo = getNotificationSummary(event);  //Info sulle notifiche
+  const inviteStr = (ownerDB != null && ownerDB.name ? ownerDB.name + " invited you to the Event: " : "You're invited to the Event: ") + (event.title || 'Untitled Event');
 
   const acceptUrl = `${process.env.SERVER_URL}acceptEventInvitation/${event._id}/${user}`;
   const refuseUrl = `${process.env.SERVER_URL}refuseEventInvitation/${event._id}/${user}`;
@@ -224,7 +239,7 @@ function generateEventInvitationHTML(event, user) {
   </head>
   <body>
     <div class="container">
-      <h2>You're invited: ${event.title || 'Untitled Event'}</h2>
+      <h2>${inviteStr}</h2>
 
       <p><span class="section-title">Description:</span> <span class="info">${event.description || 'N/A'}</span></p>
       <p><span class="section-title">Place:</span> <span class="info">${event.place || 'N/A'}</span></p>
@@ -283,10 +298,11 @@ async function manageEventParticipants(event, Event, User) {
             }
             if (!overlapped) {
                 const userDB = await User.findOne({ username: user });
+                const ownerDB = await User.findOne({ username: event.owner });
                 //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
                 if (userDB && userDB.mail) {
                     //mando l'invito
-                    let html = generateEventInvitationHTML(event, user);
+                    let html = generateEventInvitationHTML(event, user, ownerDB);
                     console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
                     try {
                           const payload = {
@@ -335,7 +351,7 @@ const generateHTMLResponse = (title, message, color) => `
         <body>
             <div class="message">
                 <h1>${title}</h1>
-                <p>${message}</p>
+                <h2>${message}</h2>
             </div>
         </body>
     </html>
@@ -363,7 +379,7 @@ async function disableEventNotification(eventId, user, Event) {
             await event_.save();
             console.log("Notifications disabled for user:" + eventId + " " + user);
         }
-        return generateHTMLResponse("Notifications Disabled", "You have successfully disabled event notifications.", "#4CAF50");
+        return generateHTMLResponse("Notifications Disabled", "You have successfully disabled this event's notifications.", "#4CAF50");
     } catch (error) {
         console.error("ERROR: ", error);
         return `
@@ -468,4 +484,4 @@ async function refuseEventInvitation(eventId, user, Event) {
 }
 
 
-module.exports = { generateEventInvitationHTML, eventsOverlap, manageEventParticipants, disableEventNotification, acceptEventInvitation, refuseEventInvitation };
+module.exports = { manageEventParticipants, disableEventNotification, acceptEventInvitation, refuseEventInvitation };

@@ -25,8 +25,8 @@ import { sendMessage } from "./messageUtils.js";
 var friendName = ref('');
 const router = useRouter();
 const route = useRoute();
-const api_url = "http://localhost:3000/";
-//const api_url = inject('api_url');
+//const api_url = "http://localhost:3000/";
+const api_url = inject('api_url');
 const user = atob(localStorage.getItem('token').split('.')[1]);
 var formType = ref('');
 
@@ -34,7 +34,7 @@ async function addFriend(){
     console.log("richiesta api per aggiunta amico");
     try{
         if (formType.value == "Add"){
-            await sendMessage(friendName.value,user,"amicizia");
+            await sendMessage(friendName.value,user,"amicizia", api_url);
         }else{
             await axios.get(`${api_url}user/deleteFriend?friend=${friendName.value}&me=${user}`);
         }

@@ -3,6 +3,8 @@ import { inject } from 'vue';
 import dayjs from 'dayjs';
 import axios from 'axios';
 const api_url = 'http://localhost:3000/';
+//const api_url = 'http://192.168.1.196:3000/';
+//const api_url = "https://site232415.tw.cs.unibo.it/";
 
 export const useTimeMachineStore = defineStore('timeMachine', {
     state: () => ({

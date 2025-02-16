@@ -1,7 +1,6 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-dayjs().format();
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -15,7 +14,6 @@ export function prepareCalendarEvents(Events, Activities, user) {
 		const item = {};
 		item.id = event_._id;
 		item.allDay = event_.all_day;
-
 		if (event_.timezone) {
 			const startUtc = dayjs(event_.date_start).utc();
 			item.start = startUtc.tz(event_.timezone).toDate();
@@ -30,7 +28,6 @@ export function prepareCalendarEvents(Events, Activities, user) {
 		}
 		//if (event_.title ==="ev 11/1")
 		//    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
-
 		item.title = (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) + event_.title;
 		item.class = (event_.ev_type === 'notAvailable' ? 'notAvailable' : 'event');
 		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : (event_.pomodoro ? 'red' : (event_.owner === user ? 'blue' : 'violet')));
@@ -77,7 +74,6 @@ export function prepareCalendarEvents(Events, Activities, user) {
 //Funzione che trasforma una data in una stringa in formato iCalendar
 export const formatToICalendarDate = (date) => dayjs(date).format('YYYYMMDDTHHmmss');
 
-
-export function getAddEventPath() {
-	return "/editEvent/-1/Hp/" + dayjs(new Date()).format('DDMMYYYY');
+export function getAddEventPath(){
+	return "/editEvent/-1/Hp/" + dayjs().format('DDMMYYYY');
 }

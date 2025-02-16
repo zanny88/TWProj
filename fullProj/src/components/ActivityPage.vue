@@ -89,7 +89,6 @@
             <button v-if="formType === 'Save' && User === activity.owner" type="button"
                 :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'"
                 @click="toggleModify">Modify</button>
-            <!--<button type="button" class="btn btn-outline-danger" @click="remove" v-if="props.id!=-1">Remove</button>-->
             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal"
                 data-bs-target="#confirmDeleteModal"
                 v-if="formType === 'Save' && User === activity.owner">Remove</button>

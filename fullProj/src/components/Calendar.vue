@@ -145,7 +145,6 @@ import rrulePlugin from '@fullcalendar/rrule';
 import { prepareCalendarEvents, formatToICalendarDate } from './calendarUtils';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-dayjs().format();
 dayjs.extend(customParseFormat);
 
 import { useTimeMachineStore } from '../stores/timeMachine';
@@ -177,7 +176,7 @@ const user = atob(localStorage.getItem('token').split('.')[1]);
 //********************************************************************************************************************
 //TIME MACHINE
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
-const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
+//const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
 watch(currentTime, async() => {
 	FullCalDate.value = dayjs(currentTime.value).toISOString().substring(0, 10);
 	await nextTick();
@@ -491,6 +490,8 @@ const calendarOptions = reactive/*ref*/({
 		return ['selected-day'];
 	}
 	return [];
+  },
+  eventDrop: function(info) {   //TODO
   }
 });
 

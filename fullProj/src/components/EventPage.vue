@@ -152,6 +152,9 @@
             <div class="mb-4 form-switch d-flex align-items-center">
                 <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly || event.isRecurring" />
                 <label for="pomodoro" class="form-check-label switch-label-margin">Pomodoro event</label>
+                <button v-if="formType === 'Save' && event.pomodoro" type="button" class="btn btn-danger" style="margin-left: 3cm;" @click="openPomodoro">
+                Pomodoro
+                </button>
             </div>
             
             <div v-if="event.pomodoro" class="mb-3">
@@ -227,7 +230,7 @@
                     </div>
 
                     <div class="ms-4" v-if="notification.offsetType === 'exact'">
-                        <VueDatePicker v-model="notification.offsetTime" :format="timeFormat" :enable-time-picker="true" time-picker :auto-apply="true" placeholder="Select offset time" :disabled="isReadOnly" />
+                        <VueDatePicker v-model="notification.offsetTime" time-picker placeholder="Select offset time" model-type="timestamp" :disabled="isReadOnly" />
                     </div>
                 </div>
 
@@ -653,7 +656,7 @@ async function submit(rrule){
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
                 notification_advance: notification.offsetMinutes,
-                notification_advance_date: (notification.offsetTime ? dayjs(notification.offsetTime).toDate() : null),
+                notification_advance_date: (notification.offsetTime ? notification.offsetTime /*dayjs(notification.offsetTime).toDate()*/ : null),
                 notification_repetitions: notification.repeatCount,
                 notification_interval: notification.repeatInterval,
                 notification_num_sent: 0,
@@ -722,7 +725,7 @@ async function submit(rrule){
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
                 notification_advance: notification.offsetMinutes,
-                notification_advance_date: (notification.offsetTime ? dayjs(notification.offsetTime).toDate() : null),
+                notification_advance_date: (notification.offsetTime ? notification.offsetTime /*dayjs(notification.offsetTime).toDate()*/ : null),
                 notification_repetitions: notification.repeatCount,
                 notification_interval: notification.repeatInterval,
                 notification_num_sent: 0,
@@ -1068,6 +1071,10 @@ watch(() => event.endDate, (newEndDate) => {
 //alert("Event.="+JSON.stringify(event));
 
 //alert("event.startDate="+event.startDate+", event.endDate="+event.endDate );
+
+const openPomodoro = () => {
+  router.push({path: "/pomodoro"});
+};
 </script>
 
 
