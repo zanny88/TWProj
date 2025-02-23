@@ -184,6 +184,11 @@ watch(currentTime, async() => {
 });
 //********************************************************************************************************************
 
+// Definizione delle opzioni del calendario
+const calendarRef = ref(null);
+const FullCalDate = ref(new Date(currentTime.value).toISOString().substring(0, 10));     //Data attiva del calendario
+
+
 
 
 const today = computed(() => new Date(currentTime.value));
@@ -193,6 +198,8 @@ if (props.calDate != undefined && props.calDate != "0"){
 	const parsedDate = dayjs(props.calDate, 'DDMMYYYY');
 	if (parsedDate.isValid()) {
 		ActiveCalDate.value = parsedDate.toDate();
+        //alert("parsedDate="+parsedDate+", FullCalDate="+FullCalDate.value); 
+        FullCalDate.value = dayjs(parsedDate).format('YYYY-MM-DD');
 	} else {
 		console.error("La stringa di data fornita non � valida.");
 	}
@@ -201,7 +208,7 @@ if (props.calDate != undefined && props.calDate != "0"){
 
 //Eventi del giorno selezionato del calendario
 const CalDateEvents = computed(() => {
-	//alert("CalDateEvents");
+	//alert("CalDateEvents, ActiveCalDate="+ActiveCalDate.value);
 	const date = ActiveCalDate.value;
 	const ev = [];
 	for (let i = 0; i < Events.value.length; i++){
@@ -212,7 +219,12 @@ const CalDateEvents = computed(() => {
 			continue;
 		}
 		const eventStartDate = dayjs(event_.date_start).toDate();
-		const eventEndDate = dayjs(event_.date_end).toDate();
+		let eventEndDate;
+        if (event_.all_day) {
+            eventEndDate = dayjs(event_.date_end).add(-1, 'day').toDate()
+        } else {
+            eventEndDate = dayjs(event_.date_end).toDate();
+        }
 		if ((eventStartDate <= date && eventEndDate >= date) || (eventStartDate.getFullYear() == date.getFullYear() && eventStartDate.getMonth() == date.getMonth() && eventStartDate.getDate() == date.getDate())){
 			const item = {};
 			item.id = event_._id;
@@ -246,7 +258,16 @@ const CalDateEvents = computed(() => {
 	const eventsOnDate = events.filter(event => {
 		//alert("event="+JSON.stringify(event));
 		const start = new Date(event.start);
-		const end = event.end ? new Date(event.end) : start;
+        let end;
+        if (event.end) {
+            if (event.allDay){
+                end = dayjs(event.end).add(-1, 'day').toDate();
+            } else {
+                end = new Date(event.end);
+            }
+        } else {
+            end = start;
+        }
 		return (
 			date >= new Date(start.setHours(0, 0, 0, 0)) &&
 			date <= new Date(end.setHours(23, 59, 59, 999))
@@ -418,9 +439,6 @@ function toMonthView(){
 
 
 
-// Definizione delle opzioni del calendario
-const calendarRef = ref(null);
-const FullCalDate = ref(new Date(currentTime.value).toISOString().substring(0, 10));     //Data attiva del calendario
 
 const calendarOptions = reactive/*ref*/({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
@@ -429,11 +447,11 @@ const calendarOptions = reactive/*ref*/({
   events: CalendarEvents,
   editable: true,
   selectable: true, // Abilita la selezione dei giorni
-  select: (info) => {
-	// Quando si seleziona una data o un intervallo, aggiorna la data attiva
-	FullCalDate.value = info.startStr;
-	ActiveCalDate.value = dayjs(FullCalDate.value).toDate();
-  },
+  //select: (info) => {
+  //// Quando si seleziona una data o un intervallo, aggiorna la data attiva
+  //FullCalDate.value = info.startStr;   alert("select:"+info.startStr);
+  //ActiveCalDate.value = dayjs(FullCalDate.value).toDate();
+  //},
   dateClick: (info) => { // Aggiungi questo blocco
     ActiveCalDate.value = dayjs(info.date).toDate();
     FullCalDate.value = dayjs(info.date).format('YYYY-MM-DD');

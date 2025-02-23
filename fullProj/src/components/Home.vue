@@ -703,9 +703,9 @@ async function get_today_events() {
         // Filtra gli eventi per oggi utilizzando FullCalendar
         const eventsToday = calendar.getEvents().filter(event => {
             const eventDate = new Date(event.start);
-            return eventDate >= startOfDay && eventDate < endOfDay;
+            return eventDate >= startOfDay && eventDate < endOfDay && event.extendedProps.class !== 'notAvailable';  //Non prendo gli eventi di tipo NotAvailable
         }).slice(0, 6);            //Prendo fino a 6 elementi
-        //alert("eventsToday="+JSON.stringify(eventsToday));
+        //alert("today="+today+", eventsToday="+JSON.stringify(eventsToday));
         //Lista ordinata per data iniziale crescente
         eventsToday.sort((a, b) => {
             const dataA = new Date(a.start);

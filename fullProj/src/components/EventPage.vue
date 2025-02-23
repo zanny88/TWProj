@@ -261,12 +261,12 @@
             <!-- NOTIFICATION SECTION END -->
 
 
-            <div v-if="Friends.length > 0" class="mb-3 form-switch">
+            <div v-if="Friends.length > 0 && (formType === 'Create' || User === event.owner)" class="mb-3 form-switch">
                 <input type="checkbox" id="addParticipants" class="form-check-input" v-model="event.addParticipants" :disabled="isReadOnly" />
                 <label for="addParticipants" class="form-check-label switch-label-margin">Add participants</label>
             </div>
 
-            <div v-if="event.addParticipants">
+            <div v-if="event.addParticipants && (formType === 'Create' || User === event.owner)">
                 <table class="table">
                 <thead>
                     <tr>

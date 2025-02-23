@@ -10,7 +10,7 @@
                 <div class="row" style="display: flex; flex-direction: row; align-items: center; width: 100%;">
                     <div style="display: flex; justify-content: center; align-items: center; padding-top: 15px; padding-bottom: 10px; border-bottom: 2px solid lightgray; text-align: center; width: 100%; gap: 10px;">
                         <h5 style="margin: 0;" v-if="username">{{ username }}</h5>
-                        <p style="margin: 0;">amici: {{ friend_number }}</p>
+                        <p style="margin: 0;">friends: {{ friend_number }}</p>
                     </div>
                 </div>
                 <div class="row" style="display: flex; flex-direction: row; align-items: center; padding: 10px;">
