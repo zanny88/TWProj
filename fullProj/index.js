@@ -1590,13 +1590,8 @@ if (notificationEnabled) {
     const notificationPollingInterval = process.env.NOTIFICATION_POLLING_INTERVAL;
     // Controlla notifiche ogni notificationPollingInterval secondi
     setInterval(async () => {
-        const users = await User.find();
-        users.forEach(user => {
-            let time = (user.deltaTime != undefined ? new Date(Date.now() + user.deltaTime) : new Date());
-            //console.log(`controllo gli eventi per l'utente ${user.username}, considerando l'orario ${time}`);
-            checkAndSendNotifications(Event, User, user.username, time);
-            checkAndSendActivityNotifications(Activity, User, user.username, time);
-        });
+        checkAndSendNotifications(Event, User);
+        checkAndSendActivityNotifications(Activity, User);
     }, notificationPollingInterval * 1000);
 }
 
@@ -1645,7 +1640,8 @@ app.post("/setTime", async (req, res) => {
         }
 
         utente.deltaTime = (new Date(newTime) - new Date());
-        console.log("deltaTime=" + utente.deltaTime);
+        //console.log("deltaTime=" + utente.deltaTime);
+        console.log("deltaTime= " + `${Math.floor(utente.deltaTime / 86400000)}:${String(Math.floor(utente.deltaTime / 3600000) % 24).padStart(2, '0')}:${String(Math.floor(utente.deltaTime / 60000) % 60).padStart(2, '0')}:${String(Math.floor(utente.deltaTime / 1000) % 60).padStart(2, '0')}`);
         await User.findByIdAndUpdate({ _id: utente._id }, { deltaTime: utente.deltaTime });
         res.status(200).send("OK");
     } catch (error) {

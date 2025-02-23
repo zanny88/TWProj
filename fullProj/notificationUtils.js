@@ -3,7 +3,7 @@ const dayjs = require('dayjs');
 const axios = require('axios');
 
 //Funzione che, ogni N secondi, controlla tutti gli eventi con has_notification=true e verifica se è il momento di inviare la notifica, considerando anche le ricorrenze.
-async function checkAndSendNotifications(MongoDBEvent, MongoDBUser, userName, time) {
+async function checkAndSendNotifications(MongoDBEvent, MongoDBUser) {
   //console.log("checkAndSendNotifications-START");
   try {
     const events = await MongoDBEvent.find({
@@ -11,7 +11,6 @@ async function checkAndSendNotifications(MongoDBEvent, MongoDBUser, userName, ti
       $or: [{ is_recurring: true }, { $expr: { $not: { $in: ["$owner", "$notification_stop"] } } }]       //Ricorrenti oppure owner NON presente in notification_stop
     });
 
-    const now = new Date(time);
     //Costruisce un dizionario delle coppie (username, mail) per gli utenti che hanno mail configurata
     const emailDictionary = {};
     const emailUsers = await MongoDBUser.find({ mail: { $exists: true, $ne: null } });
@@ -28,11 +27,13 @@ async function checkAndSendNotifications(MongoDBEvent, MongoDBUser, userName, ti
 
     for (const ev of events) {
       //console.log("gestione evento: "+JSON.stringify(ev));
+      const userDB = await MongoDBUser.findOne({ username: ev.owner });
+      if (!userDB) {
+          continue;
+      }
+      const now = (userDB.deltaTime != undefined ? new Date(Date.now() + userDB.deltaTime) : new Date());
       const users = [ev.owner, ...(ev.participants_accepted || [])];        //utente che ha creato l'evento e tutti gli eventuali utenti che hanno accettato l'invito
       for (const user of users) {
-        if (user != userName) {
-          continue;
-        }
         //console.log("gestione evento '" + ev.title + "' per utente " + user);
         if (!emailDictionary[user]) {
           console.error("utente " + user + " privo di mail");
@@ -65,14 +66,14 @@ async function notification_handleSingleEvent(event, now, user, email) {
       return;
     }
     const N = getEventNotification_Number(event, now);
-    console.log("N_evento="+N+" ("+event.title+") ["+now.toString("dd/MM/yyyy HH:mm:ss")+"]");
+    console.log("N_evento="+N+" ("+event.title+") ["+now+"]");
     if (event.notification_num_sent != N) {
       if (N > 0 && N <= event.notification_repetitions) {         //Bisogna mandare la notifica numero N
           await sendNotification(event, event.date_start, now, user, email);
       }
       //Aggiorna contatore delle notifiche inviate
       //console.log("numSent=" + numSent);
-      event.notification_num_sent = N;   // numSent + 1;
+      event.notification_num_sent = N;
       console.log("numSent=" + event.notification_num_sent);
       await event.save();
     }
@@ -152,7 +153,7 @@ function getRecurringEventNotification_Number(event, now, nextOccurrence) {
     } else {
         baseDate = copyTimeToDate(nextOccurrence, event.notification_advance_date);
     }
-    console.log("baseDate="+baseDate);
+    //console.log("baseDate="+baseDate);
     const calc = (now - baseDate) / (interval * 60000);
     if (calc < 0) {
         return 0;
@@ -167,7 +168,6 @@ async function sendNotification(event, occurrenceDate, now, user, email) {
       console.log("Email a " + email);
       let html = getEventNotificationHtml(event, now, user);
       console.log(html);
-
       console.log("event.owner=" + event.owner);
       console.log("event.title=" + event.title);
       try {
@@ -181,12 +181,6 @@ async function sendNotification(event, occurrenceDate, now, user, email) {
         console.error("Errore: " + error);
       }
     }
-
-    //console.log(
-    //  `Invio notifica per l'evento "${event.title}" all'owner "${event.owner}"`,
-    //  occurrenceDate ? ` (occorrenza: ${occurrenceDate})` : ''
-    //);
-    //}
   } else {
     console.log(`Invio notifica standard per l'evento "${event.title}"`);
   }
@@ -224,7 +218,7 @@ function getNextOccurrence(event, referenceDate = new Date()) {
 
 //Genera una stringa HTML con i dati principali di un evento, per l'invio della notifica via mail
 function getEventNotificationHtml(event, now, user) {
-  const referenceDate = now; //new Date();
+  const referenceDate = now;
   let start;
   let end;
   if (event.is_recurring && event.recurring_rule) {
@@ -286,24 +280,40 @@ function getEventNotificationHtml(event, now, user) {
 
 
 //Funzione che, ogni N secondi, controlla tutte le attività scadute e verifica se è il momento di inviare la notifica.
-async function checkAndSendActivityNotifications(MongoDBActivity, MongoDBUser, userName, now) {
+async function checkAndSendActivityNotifications(MongoDBActivity, MongoDBUser) {
     try {
-        const yesterday = dayjs(now).add(-1, 'day').toDate();
         const activities = await MongoDBActivity.find({
             has_deadline: true,
-            is_completed: false,
-            end: { $lt: yesterday }
+            is_completed: false
+        });
+
+        //Costruisce un dizionario delle coppie (username, mail) per gli utenti che hanno mail configurata
+        const emailDictionary = {};
+        const emailUsers = await MongoDBUser.find({ mail: { $exists: true, $ne: null } });
+        if (!emailUsers) {
+          return;
+        }
+        emailUsers.forEach(emailUser => {
+          const { username, mail } = emailUser;
+          if (!emailDictionary[username]) {
+            emailDictionary[username] = mail;
+          }
         });
 
         for (const act of activities) {
-            if (act.owner !== userName && !act.participants_accepted.includes(userName)) {
+            const userDB = await MongoDBUser.findOne({ username: act.owner });
+            if (!userDB) {
+               continue;
+            }
+            //console.log("act="+JSON.stringify(act));
+            const now = (userDB.deltaTime != undefined ? new Date(Date.now() + userDB.deltaTime) : new Date());
+            const yesterday = dayjs(now).add(-1, 'day').toDate();
+            const diff_GG = (yesterday - act.end) / (1000 * 60 * 60 * 24);
+            if (diff_GG <= 0) {   //attività non ancora scaduta
                 continue;
             }
-            const numSent = act.notification_num_sent || 0;
-            //console.log("act="+JSON.stringify(act));
-            let priority;
-            const diff_GG = (yesterday - act.end) / (1000 * 60 * 60 * 24);
             //console.log("diff_GG="+diff_GG);
+            let priority;
             if (diff_GG < 3) {          //Sono passati meno di 3 giorni dalla fine dell'attività
                 priority = 'MEDIUM';
             } else if (diff_GG < 7) {   //Sono passati da 3 a 7 giorni dalla fine dell'attività
@@ -312,30 +322,37 @@ async function checkAndSendActivityNotifications(MongoDBActivity, MongoDBUser, u
                 priority = 'CRITICAL';
             }
             const N = getActivityNotification_Number(act, now);
-            //console.log("nextNotificationTime="+nextNotificationTime+", now="+now);
-            //if (nextNotificationTime < now) {
-            if (numSent != N) {
+            const numSent = act.notification_num_sent || 0;
+            const users = [act.owner, ...(act.participants_accepted || [])];        //utente che ha creato l'evento e tutti gli eventuali utenti che hanno accettato l'invito
+            for (const user of users) {
+              if (!emailDictionary[user]) {
+                console.error("utente " + user + " privo di mail");
+                continue;
+              }
+              if (numSent != N) {
                 if (N > 0) {
-                    const html = getActivityNotificationHtml(act, now, userName, priority);
+                    const html = getActivityNotificationHtml(act, priority);
                     try {
                         const payload = {
-                            to: userName,
+                            to: user,
                             subject: `Reminder for activity: ${act.title}`,
                             html: html
                         }
-                        console.log("Invio mail di notifica attività a " + userName + ", priority=" + priority);
+                        const email = emailDictionary[user];
+                        console.log("Invio mail di notifica attività a " + user + " (" + email + "), priority=" + priority);
                         console.log("html=" + html);
-                        //await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
+                        await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
                     } catch (error) {
                         console.error("Errore: "+error);
                     }
                 }
                 try {
-                    act.notification_num_sent = N; //numSent + 1;
+                    act.notification_num_sent = N;
                     act.save();
                 } catch (error) {
                     console.error("Errore: "+error);
                 }
+              }
             }
         }
     } catch (error) {
@@ -376,7 +393,7 @@ function getActivityNotification_Number(activity, now) {
 }
 
 
-function getActivityNotificationHtml(activity, now, user, priority) {
+function getActivityNotificationHtml(activity, priority) {
     if (!activity || !activity._id || !activity.title) {
         throw new Error('Invalid activity object');
     }
