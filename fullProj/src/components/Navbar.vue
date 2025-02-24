@@ -67,12 +67,7 @@
                     </form>
                 </ul>
                 <div class="me-3" id="user_profile">
-                    <router-link class="nav-link" to="/profile">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
-                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
-                            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/>
-                        </svg>
-                    </router-link>
+                    <router-link class="nav-link" to="/profile" v-html="profile_icon"></router-link>
                 </div>
                 <button class="btn btn-outline-dark" @click="logout()">Logout</button>
             </div>
@@ -81,13 +76,15 @@
 </template>
 
 <script setup>
-    import {inject,watch,ref,onMounted,computed} from "vue";
+    import {inject,watch,ref,onMounted,onUnmounted,computed} from "vue";
     import axios from "axios";
     import { useRouter, useRoute } from "vue-router";
 
     const api_url =inject('api_url');
     const router = useRouter();
     const route = useRoute();
+
+    var profile_icon = ref(``);
 
     var filter = ref('heading');
     var friendFilter = ref(false);
@@ -102,6 +99,8 @@
 
     var searchString = ref('');
     var hamburgerShowing = ref(false);
+
+    var checkInboxInterval = ref(null);
 
     const searchType = computed(() => {
         return filter.value == 'data' ? 'date' : 'search';
@@ -127,7 +126,41 @@
         updateCollapsed();
         window.addEventListener("resize", updateCollapsed);
         window.addEventListener("onload", updateCollapsed);
+
+        const checkInbox = async () => {
+            if (localStorage.getItem('token') !== null){
+                const u = atob(localStorage.getItem('token').split('.')[1]);
+                try{
+                    const r = await axios.post(`${api_url}user/checkInbox`,{user: u});
+                    if (r.data){
+                        profile_icon.value = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person-fill-exclamation" viewBox="0 0 16 16">
+                                <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0m-9 8c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/>
+                                <path d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-3.5-2a.5.5 0 0 0-.5.5v1.5a.5.5 0 0 0 1 0V11a.5.5 0 0 0-.5-.5m0 4a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+                            </svg>
+                        `;
+                    }else{
+                        profile_icon.value = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person-fill" viewBox="0 0 16 16">
+                                <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                            </svg>
+                        `;
+                    }
+                }catch(error){
+                    console.log("Error checking user inbox");
+                }
+                checkInboxInterval.value = setTimeout(checkInbox,5000);
+            }
+        };
+
+        checkInbox();
     });
+
+    onUnmounted(() =>  {
+        if (checkInboxInterval.value){
+            clearTimeout(checkInboxInterval.value);
+        }
+    })
 
     async function logout(){
         localStorage.removeItem('token');
@@ -182,6 +215,8 @@
         }
         
     }
+
+    
     
 </script>
 
