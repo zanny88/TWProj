@@ -120,15 +120,16 @@
 </template>
 
 <script setup>
-import { onMounted, ref, nextTick, inject, computed, reactive } from 'vue';
+import { onMounted, ref, nextTick, inject, computed, reactive, watch } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import dayjs from 'dayjs';
-//dayjs().format()
 //import customParseFormat from 'dayjs/plugin/customParseFormat';
 //dayjs.extend(customParseFormat)
+import { useTimeMachineStore } from '../stores/timeMachine';
+const timeMachineStore = useTimeMachineStore();
 
 const api_url = inject('api_url');
 const router = useRouter();
@@ -164,6 +165,17 @@ const isReadOnly = computed(() => {
     return !isModifying.value;
 });
 
+//********************************************************************************************************************
+//TIME MACHINE
+const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
+//const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
+watch(currentTime, async() => {
+    await nextTick();
+    console.log("currentTime changed: ", currentTime.value);
+});
+//********************************************************************************************************************
+
+
 function toggleModify() {
     isModifying.value = !isModifying.value;
 }
@@ -180,8 +192,9 @@ function validateEndDate() {
     if (props.id != '-1') {
         endDateError.value = false;
     } else {
-        const today = new Date();
+        const today = dayjs(currentTime.value).toDate();
         const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        //alert("today="+today+", todayMidnight="+todayMidnight);
         if (!activity.end || activity.end >= todayMidnight) {
             endDateError.value = false;
         } else {

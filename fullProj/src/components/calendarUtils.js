@@ -5,7 +5,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 
-export function prepareCalendarEvents(Events, Activities, user) {
+export function prepareCalendarEvents(Events, Activities, user, wideDescriptions) {
 	//alert("prepareCalendarEvents");
 	const calendarEvents = [];
 	//alert("Events.length="+Events.length);
@@ -28,7 +28,7 @@ export function prepareCalendarEvents(Events, Activities, user) {
 		}
 		//if (event_.title ==="ev 11/1")
 		//    alert("EVENT="+JSON.stringify(event_)+"\nITEM="+JSON.stringify(item)+"\nTIMEZONE="+Intl.DateTimeFormat().resolvedOptions().timeZone);
-		item.title = (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) + event_.title;
+		item.title = (wideDescriptions ? (event_.ev_type === 'notAvailable' ? 'Not available: ' : (event_.owner === user ? '' : 'Shared: ')) : '') + event_.title;
 		item.class = (event_.ev_type === 'notAvailable' ? 'notAvailable' : 'event');
 		item.backgroundColor = (event_.ev_type === 'notAvailable' ? 'gray' : (event_.pomodoro ? 'red' : (event_.owner === user ? 'blue' : 'violet')));
 		item.pomodoro = event_.pomodoro;
@@ -42,8 +42,8 @@ export function prepareCalendarEvents(Events, Activities, user) {
 				//console.log("item.duration="+item.duration);
 			}
 			//alert("ITEM="+JSON.stringify(item));
-			//item.all_day = event_.all_day;
 		}
+        item.editable = !event_.is_recurring;  //Editabile solo se non ricorrente
 		//console.log("item="+JSON.stringify(item));
 		calendarEvents.push(item);
 		//alert(item.title + ", " + JSON.stringify(item));

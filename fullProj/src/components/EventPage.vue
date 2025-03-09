@@ -389,7 +389,7 @@ const User = ref(user);
 //********************************************************************************************************************
 //TIME MACHINE
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
-const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
+//const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
 watch(currentTime, async() => {
     await nextTick();
     console.log("currentTime changed: ", currentTime.value);

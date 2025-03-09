@@ -370,7 +370,7 @@ async function loadEventsAndActivities(){
         Activities.value = Activities.value.concat(res.data);
 		await nextTick();
 		//alert("ris activity=" + Activities.value +" - #"+Activities.value.length);
-		CalendarEvents.value = prepareCalendarEvents(Events.value, Activities.value, user);
+		CalendarEvents.value = prepareCalendarEvents(Events.value, Activities.value, user, (window.innerWidth > 800));
 		//alert("CalendarEvents.value="+JSON.stringify(CalendarEvents.value));
 	}catch(error){
 		//alert('Error: '+error);
@@ -452,7 +452,7 @@ const calendarOptions = reactive/*ref*/({
   //FullCalDate.value = info.startStr;   alert("select:"+info.startStr);
   //ActiveCalDate.value = dayjs(FullCalDate.value).toDate();
   //},
-  dateClick: (info) => { // Aggiungi questo blocco
+  dateClick: (info) => {
     ActiveCalDate.value = dayjs(info.date).toDate();
     FullCalDate.value = dayjs(info.date).format('YYYY-MM-DD');
     // Aggiorna la classe 'selected-day'
@@ -509,9 +509,63 @@ const calendarOptions = reactive/*ref*/({
 	}
 	return [];
   },
-  eventDrop: function(info) {   //TODO
+  eventDrop: async function(info) {
+    await updateEventActivity(info);
   }
 });
+
+//Funzione che gestisce lo spostamento di un evento o di un'attività
+async function updateEventActivity(info) {
+    const newStartDate = new Date(info.event.start);
+    const newEndDate = (info.event.end == null ? newStartDate : (info.event.allDay ? dayjs(info.event.end).add(-1, 'day').toDate() : new Date(info.event.end)));
+    //alert("oldDate="+oldDate+", newDate="+newDate);
+    if (info.oldEvent.extendedProps.class === 'event') {  //Gestione dello spostamento di un evento
+        try{
+            //alert("info.oldEvent="+JSON.stringify(info.oldEvent));
+            const res = await axios.get(api_url + "getEvents/-1/" + info.oldEvent.id);
+            const Events = res.data;
+            await nextTick();
+            if (Events.length > 0) {
+                const event_ = Events[0];
+                event_.eventId = info.oldEvent.id;
+                event_.date_start = newStartDate;
+                event_.date_end = newEndDate;
+                event_.all_day = info.event.allDay;
+                event_.userName = event_.owner;
+                alert("event_="+JSON.stringify(event_));
+                const r = await axios.post(api_url + 'editEvent', event_);
+                await nextTick();
+                if(!r.data || r.data.message !== "OK"){
+                    console.error('Error: ' + r.data.message);
+                    //alert("Message= " + r.data.message);
+                }
+            }
+        } catch(error) {
+            console.error("Error editing event: ",error);
+            alert("error="+error);
+        }
+    } else {  //Gestione dello spostamento della data di fine di un'attività
+        try{
+            const res = await axios.get(api_url + "getActivities/-1/" + info.oldEvent.id);
+            const Activities = res.data;
+            await nextTick();
+            if (Activities.length > 0) {
+                const act = Activities[0];
+                act.activityId = info.oldEvent.id;
+                act.end = dayjs(newStartDate).startOf('day').toDate();
+                const r = await axios.post(api_url + 'editActivity', act);
+                if (r.data.message !== "OK") {
+                    console.log('Error: ' + r.data.message);
+                    //alert("Message= " + r.data.message);
+                }
+            }
+        } catch(error) {
+            console.error("Error editing activity: ",error);
+            alert("error="+error);
+        }
+    }
+}
+
 
 // Watch per aggiornare la visualizzazione del calendario quando l'utente seleziona una nuova vista
 watch(CalViewMode, (newView) => {
