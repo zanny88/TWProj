@@ -52,9 +52,19 @@
 			</div>
 			<FullCalendar ref="calendarRef" :options="calendarOptions" />
 		</div>
-		<button type="button" class="btn btn-outline-primary d-flex align-items-center" @click="generateICal" title="Download iCal">
-		  <div class="bi bi-calendar-plus me-2">Download iCal</div>
-		</button>
+        <div class="d-flex gap-2 mt-2">
+          <button type="button" class="btn btn-outline-primary d-flex align-items-center" @click="generateICal" title="Download iCal">
+            <div class="bi bi-calendar-plus me-2">Download iCal</div>
+          </button>
+
+          <button type="button" class="btn btn-outline-primary d-flex align-items-center" @click="loadICal" title="Load iCal">
+            <div class="bi bi-calendar-plus me-2">Load iCal</div>
+          </button>
+          <!-- Input file nascosto -->
+          <input type="file" accept=".ics" ref="icalInput" @change="handleICalUpload" style="display: none" />
+        </div>
+        
+        
 	</div>
 	<div class="sections-container">
 		<!-- Eventi del giorno selezionato -->
@@ -137,6 +147,7 @@ import { computed, ref, nextTick, onMounted, inject, watch, reactive } from 'vue
 import {useRouter} from 'vue-router';
 import axios from 'axios';
 import { createEvents } from 'ics';
+import ICAL from 'ical.js';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -176,7 +187,6 @@ const user = atob(localStorage.getItem('token').split('.')[1]);
 //********************************************************************************************************************
 //TIME MACHINE
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
-//const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
 watch(currentTime, async() => {
 	FullCalDate.value = dayjs(currentTime.value).toISOString().substring(0, 10);
 	await nextTick();
@@ -511,15 +521,23 @@ const calendarOptions = reactive/*ref*/({
   },
   eventDrop: async function(info) {
     await updateEventActivity(info);
+  },
+  eventResize: async function(info) {
+    await updateEventActivity(info);
   }
 });
 
 //Funzione che gestisce lo spostamento di un evento o di un'attività
 async function updateEventActivity(info) {
     const newStartDate = new Date(info.event.start);
-    const newEndDate = (info.event.end == null ? newStartDate : (info.event.allDay ? dayjs(info.event.end).add(-1, 'day').toDate() : new Date(info.event.end)));
+    let newEndDate;
+    if (!info.event.end) {
+        newEndDate = (info.event.allDay ? newStartDate : dayjs(newStartDate).add(1, 'hour').toDate());
+    } else {
+        newEndDate = (info.event.allDay ? dayjs(info.event.end).add(-1, 'day').toDate() : new Date(info.event.end));
+    }
     //alert("oldDate="+oldDate+", newDate="+newDate);
-    if (info.oldEvent.extendedProps.class === 'event') {  //Gestione dello spostamento di un evento
+    if (info.oldEvent.extendedProps?.class === 'event') {  //Gestione dello spostamento di un evento
         try{
             //alert("info.oldEvent="+JSON.stringify(info.oldEvent));
             const res = await axios.get(api_url + "getEvents/-1/" + info.oldEvent.id);
@@ -532,7 +550,7 @@ async function updateEventActivity(info) {
                 event_.date_end = newEndDate;
                 event_.all_day = info.event.allDay;
                 event_.userName = event_.owner;
-                alert("event_="+JSON.stringify(event_));
+                //alert("event_="+JSON.stringify(event_));
                 const r = await axios.post(api_url + 'editEvent', event_);
                 await nextTick();
                 if(!r.data || r.data.message !== "OK"){
@@ -599,18 +617,21 @@ function generateICal() {
 	end: [dayjs(event.date_end).year(), dayjs(event.date_end).month() + 1, dayjs(event.date_end).date(), dayjs(event.date_end).hour(), dayjs(event.date_end).minute()],
 	title: event.title,
 	description: event.description,
-	location: event.location,
-	url: event.url,
+	location: event.place
   }));
 
-  const activities = Activities.value.map(activity => ({
-	start: [dayjs(activity.date_start).year(), dayjs(activity.date_start).month() + 1, dayjs(activity.date_start).date(), dayjs(activity.date_start).hour(), dayjs(activity.date_start).minute()],
-	end: [dayjs(activity.date_end).year(), dayjs(activity.date_end).month() + 1, dayjs(activity.date_end).date(), dayjs(activity.date_end).hour(), dayjs(activity.date_end).minute()],
-	title: activity.title,
-	description: activity.description,
-	location: activity.location,
-	url: activity.url,
-  }));
+    const activities = [];
+    Activities.value.forEach(activity => {
+        if (activity.end) {
+            const newAct = {
+                start: [dayjs(activity.end).year(), dayjs(activity.end).month() + 1, dayjs(activity.end).date(), dayjs(activity.end).hour(), dayjs(activity.end).minute()],
+                end: [dayjs(activity.end).year(), dayjs(activity.end).month() + 1, dayjs(activity.end).date(), dayjs(activity.end).hour(), dayjs(activity.end).minute()],
+                title: activity.title,
+                description: activity.description
+            }
+            activities.push(newAct);
+        }
+    });
 
   const allEvents = [...events, ...activities];
 
@@ -626,6 +647,96 @@ function generateICal() {
 	link.click();
   });
  }
+
+// Funzioni per il caricamento del file iCalendar
+const icalInput = ref(null);
+
+function loadICal() {
+  if (icalInput.value) {
+    icalInput.value.value = null; // reset per poter caricare lo stesso file più volte
+    icalInput.value.click();
+  }
+}
+
+async function handleICalUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    const icalText = evt.target.result;
+    let parsedEvents;
+    try {
+      // Utilizzo di ical.js per il parsing
+      parsedEvents = parseICal(icalText);
+    } catch(error) {
+      console.error("Errore nel parsing del file iCal: ", error);
+      return;
+    }
+    //Salvo gli event letti
+    try {
+      for (let i=0; i<parsedEvents.length; i++){
+        const vevent = parsedEvents[i];
+        const newevent = {
+                userName: user,
+                title: vevent.title,
+                description: '',
+                date_start: vevent.date_start,
+                date_end: vevent.date_end,
+                place: '',
+                all_day: vevent.all_day,
+                is_recurring: false,
+                recurring_rule: '',
+                ev_type: 'Event',
+                pomodoro: false,
+                cycles: 5,
+                studyTime: 30,
+                restTime: 5,
+                pomodoroId: -1,
+                priority: 2,
+                has_notification: false,
+                notification_modes: ['EMAIL'],
+                notification_num_sent: 0,
+                addParticipants: false,
+                selectedParticipants: [],
+                participants_waiting: [],
+                participants_accepted: [],
+                participants_refused: [],
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+            const r = await axios.post(`${api_url}addEvent`, newevent,{timeout: 5000});
+            if(!r.data || r.data.message !== "OK"){
+                console.error('Error: ' + r.data.message);
+            }
+        }
+      loadEventsAndActivities();
+      const calendarApi = calendarRef.value.getApi();
+      calendarApi.refetchEvents();
+	  calendarApi.changeView(CalViewMode.value);
+      await nextTick();
+    } catch(error) {
+      console.error("Errore nel salvataggio degli eventi: ", error);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Funzione per il parsing del file iCalendar usando ical.js
+function parseICal(icalText) {
+  const icalData = ICAL.parse(icalText);
+  const comp = new ICAL.Component(icalData);
+  const vevents = comp.getAllSubcomponents('vevent');
+  const events = [];
+  vevents.forEach(vevent => {
+    const event = new ICAL.Event(vevent);
+    events.push({
+      title: event.summary,
+      date_start: event.startDate.toJSDate(),
+      date_end: event.endDate.toJSDate(),
+      all_day: event.startDate.isDate  // true se l'evento è all-day
+    });
+  });
+  return events;
+}
   
 onMounted(async () => {
 	//alert('onMounted');

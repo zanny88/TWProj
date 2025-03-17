@@ -219,6 +219,7 @@ async function getActivity(activityId) {
                 const activityEnd = dayjs(act.end).toDate();
                 activity.end = new Date(activityEnd.getFullYear(), activityEnd.getMonth(), activityEnd.getDate());   //toglie le ore dalla data
             }
+            activity.is_completed = act.is_completed;
             activity.addParticipants = act.addParticipants;
             activity.selectedParticipants = act.selectedParticipants;
             activity.participants_waiting = act.participants_waiting;
