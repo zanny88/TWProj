@@ -832,7 +832,7 @@ app.get('/user/deleteFriend', async (req, res) => {//utilizzarla solo per il rem
     }
 });
 
-async function sendMessageSupport(to, from, text, data = undefined) {
+async function sendMessageSupport(to, from, text, data) {
     var newMessage = new Message({
         from: from.username,
         type: text,
@@ -845,6 +845,7 @@ async function sendMessageSupport(to, from, text, data = undefined) {
 
 app.post("/user/sendMessage", async (req, res) => {
     const msg = req.body;
+    console.log("msg: ",msg);
 
     try {
         const toUser = await User.findOne({ username: msg.toUser });
@@ -908,6 +909,8 @@ app.post("/user/checkMessages", async (req, res) => {
 
     user.inbox.map(msg => msg.seen = true);
     await user.save();
+
+    console.log("messaggi da segnare come letti: ", messages);
 
     messages.forEach(async (msg) => {
         var m = await Message.findOne({ _id: msg._id });
@@ -1027,7 +1030,6 @@ app.post("/user/:regType", async (req, res, next) => {
     var user = null;
 
     if (req.params.regType == "Login") {
-        console.log("TENTATO LOGIN DA TELEFONO");
         passport.authenticate('local', async (err, user, info) => {
             if (err) {
                 console.log("errore login in index");
