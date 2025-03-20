@@ -1,5 +1,5 @@
 <template>
-    <div class="lateral-menu" :class="{ open: isOpen }">
+    <div class="lateral-menu" :class="{ open: isOpen}">
       <div v-if="isOpen" class="overlay" @click="toggleMenu"></div>
   
       <transition name="slide">
@@ -18,7 +18,7 @@
 </template>
   
 <script setup>
-    import { ref, inject } from "vue";
+    import { ref, inject, watch } from "vue";
     import { useRouter } from "vue-router";
     import axios from "axios";
     import { sendMessage } from "./messageUtils";
@@ -29,7 +29,6 @@
 
     var receiver = ref('');
     var msg = ref('');
-    const user = atob(localStorage.getItem('token').split('.')[1]);
     const api_url = inject('api_url');
 
     // 🔥 Toggle per aprire/chiudere il menù
@@ -39,6 +38,7 @@
     };
 
     async function submit_msg(){
+        const user = atob(localStorage.getItem('token').split('.')[1]);
         console.log("Msg info: ",{to: receiver.value, msg: msg.value, from: user});
         sendMessage(receiver.value,user,msg.value,api_url);
         toggleMenu();
