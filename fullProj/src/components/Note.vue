@@ -39,6 +39,7 @@
     import {ref, onMounted, inject,watch} from "vue";
     import axios from "axios";
     import {useRouter,useRoute} from "vue-router";
+    import { marked } from "marked";
     const router = useRouter();
     const route = useRoute();
     const props = defineProps(['id']);
@@ -104,11 +105,7 @@
     }
 
     function formatContent(content){
-        return content
-            .replace(/#+\s(.*?)(\n|$)/g, '<h1>$1</h1>') // Titoli
-            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')     // Grassetto
-            .replace(/\*(.*?)\*/g, '<i>$1</i>')         // Corsivo
-            .replace(/\n/g, '<br>');
+        return marked.parse(content);
     }
 
     //appena il componente viene caricato si esegue la funzione per la ricerca dei dati della nota da visualizzare

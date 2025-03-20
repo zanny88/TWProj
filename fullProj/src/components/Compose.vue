@@ -89,6 +89,7 @@
     import axios from 'axios';
     import {useRouter,useRoute} from "vue-router";
     import { useTimeMachineStore } from '../stores/timeMachine';
+    import { marked } from "marked";
     const timeMachineStore = useTimeMachineStore();
 
     const api_url = inject('api_url');
@@ -150,11 +151,7 @@
     }
 
     function convertToHTML(data){
-        return data
-            .replace(/#+\s(.*?)(\n|$)/g, '<h1>$1</h1>') // Titoli
-            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')     // Grassetto
-            .replace(/\*(.*?)\*/g, '<i>$1</i>')         // Corsivo
-            .replace(/\n/g, '<br>');
+        return marked.parse(data);
     }
 
     const renderedContent = computed(() => {
@@ -168,7 +165,7 @@
     //funzione per cercare la parte della nota, se presente, dove si è indicato di voler creare un to-do con il simbolo [todo]
     //calcola l'indice di inizio e fine della zona del to-do ed estrae la sottostringa dal corpo della nota
     //la sottostringa del to-do non viene tolta dal corpo della nota
-    function check_for_todo(text) {
+    /*function check_for_todo(text) {
         var results = [];
         var startIndex = 0;
 
@@ -234,7 +231,7 @@
             }
         }
         return addTodos;
-    }
+    }*/
 
     //funzione di submit per il salvataggio del post
     async function submit(){
@@ -247,17 +244,17 @@
             }
         }
 
-        var todos_data = null;
+        /*var todos_data = null;
         var todo_objs = null;
         console.log(`tipo post in gestione: ${typeI.value}`);
         //se si vuole salvare una nota viene cercato il simbolo [todo]
         if(typeI.value == 0){//!!!NOTA!!! --> modificare per avere un array di più to-do obj
             todos_data = check_for_todo(post.value);
             todo_objs = create_todo_obj(todos_data);
-        }
+        }*/
         //payload per il salvataggio del post di base
         console.log("tolgo i todo dal corpo della nota");
-        console.log(`il primo todo inizia all'indice: ${start_todo_index} e l'ultimo todo finisce all'indice: ${final_todo_index}`);
+        //console.log(`il primo todo inizia all'indice: ${start_todo_index} e l'ultimo todo finisce all'indice: ${final_todo_index}`);
         const newPost = {
             ID: sent_to_modify.value != null ? sent_to_modify.value._id : null,//se si stava modificando un post già esistente viene aggiunto l'ID di questo 
             parent_id: null,
@@ -268,7 +265,7 @@
             date: currentTime.value,
             public: publicCheck.value,
             post_type: typeI.value,
-            todo_children: todo_objs.length > 0,
+            //todo_children: todo_objs.length > 0,
             author: user,
             share: [...usersToShare.value].join('-')
         };
@@ -278,7 +275,7 @@
 
         var promises = [];
         //getione creazione to-do trovato dentro al corpo di una nota 
-        if(todo_objs.length > 0){
+        /*if(todo_objs.length > 0){
             //se si stava creando una nuova nota allora il server restituirà il messaggio per l'aggiunta di un to-do
             if(res.data.message == "Add todo children"){
 
@@ -318,7 +315,7 @@
                     var r = await Promise.all(promises);
                 }
             }
-        }
+        }*/
         router.push({path: "/"});
     }
 

@@ -70,7 +70,7 @@
                 </div>
                 <router-link :to="`/note/${note._id}`" class="card-body note-link">
                     <h2 class="card-title">{{note.heading.substring(0,20) + (note.heading.length > 20 ? '...' : '')}}</h2>
-                    <p>{{note.content.substring(0,20) + (note.content.length > 20 ? '...' : '')}}</p>
+                    <div v-html="marked.parse(note.content.substring(0, 20)) + (note.content.length > 20 ? '...' : '')"></div>
                 </router-link>
                 <div class="card-footer">
                     <small class="text-body-secondary">
@@ -102,6 +102,7 @@
     import { onMounted, computed, ref, nextTick, inject} from "vue";
     import axios from 'axios';
     import {useRouter} from "vue-router";
+    import { marked } from "marked";
     const api_url = inject('api_url');
     const router = useRouter();
     const token = localStorage.getItem('token');
