@@ -6,7 +6,19 @@
         <div v-if="isOpen" class="sidebar">
           <h5>Send msg to users</h5>
           <div class="row">
-            <input type="text" v-model="receiver" placeholder="User username: "/>
+            <input type="text" v-model="receiver" placeholder="User username: " @input="searchUser()"/>
+
+            <div class="list-group position-absolute w-100" style="top: 58px; z-index: 1053; width: 100rem;" id="friends" v-if="receiver.length > 0 && userFound">
+                <div
+                    v-for="(el,index) in users"
+                    :key = "index"
+                    class="list-group-item list-group-item-action"
+                    @click="receiver = el.name; userFound = false;"
+                >
+                    {{ el.name }}
+                </div>
+            </div>
+
             <textarea v-model="msg" placeholder="Message: "></textarea>
           </div>
           <div class="row">
@@ -31,20 +43,58 @@
     var msg = ref('');
     const api_url = inject('api_url');
 
-    // 🔥 Toggle per aprire/chiudere il menù
+    var userFound = ref(false);
+    var users = ref([]);
+
     const toggleMenu = () => {
         isOpen.value = !isOpen.value;
+        receiver.value = '';
+        msg.value = '';
         emit("menuToggled", isOpen.value);
     };
 
     async function submit_msg(){
-        const user = atob(localStorage.getItem('token').split('.')[1]);
-        console.log("Msg info: ",{to: receiver.value, msg: msg.value, from: user});
-        sendMessage(receiver.value,user,msg.value,api_url);
-        toggleMenu();
+        const r = await axios.post(`${api_url}userSearch`,{username: receiver.value});
+        if(!r.data){
+            const user = atob(localStorage.getItem('token').split('.')[1]);
+            console.log("Msg info: ",{to: receiver.value, msg: msg.value, from: user});
+            sendMessage(receiver.value,user,msg.value,api_url);
+            toggleMenu();
+        }else{
+            alert("User not found");
+            receiver.value = '';
+            msg.value = '';
+        }
     }
 
-    // 🔥 Espone la funzione per essere chiamata da App.vue
+    async function searchUser(){
+        const user = atob(localStorage.getItem('token').split('.')[1]);
+        if(receiver.value != ""){
+            var friendPayload = {
+                user: user,
+                query: receiver.value,
+                filter: "friends",
+                friends: false
+            }
+            try{
+                const r = await axios.post(`${api_url}search`,friendPayload);
+                if(r.data.length > 0){
+                    users.value = r.data.map(e => ({
+                        name: e.username
+                    }));
+                    userFound.value = true;
+                }else{
+                    users.value = [];
+                    userFound.value = false;
+                }
+            }catch(error){
+                console.log("Error while searching for friends: ",error);
+                userFound.value = false;
+                users.value = [];
+            }
+        }
+    }
+
     defineExpose({ toggleMenu });
 </script>
   
