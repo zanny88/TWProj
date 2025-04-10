@@ -216,16 +216,6 @@
                         <router-link class="preview-title col" to="/showNote">NOTES</router-link>
                     </div>
 
-                    <div class="badge position-absolute top-0 start-0 ms-3 ms-md-5 mt-0"
-                        style="z-index: 1000;">
-                        <button type="button" class="btn btn-info text-white d-flex align-items-center justify-content-center" id="addNoteBtn" @click="goToAddNotePage()">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
-                              </svg>
-                        </button>
-
-                    </div>
-
                     <div class="form-check form-switch position-absolute top-0 end-0 me-3 me-md-5 mt-0"
                         style="z-index: 1000;">
                         <label class="form-check-label" for="flexSwitchCheckNote">
@@ -273,6 +263,7 @@
         </div>
 
     </div>
+    <FullCalendar ref="calendarRef" :options="calendarOptions" style="display:none" />
 </template>
 
 <!--
@@ -614,18 +605,21 @@ Palette 1:
 import { inject, ref, onMounted, watch, computed } from "vue";
 import axios from 'axios';
 import { nextTick } from 'vue';
-import { Calendar } from '@fullcalendar/core';
+import isoWeek from 'dayjs/plugin/isoWeek';
+dayjs.extend(isoWeek);
+import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import rrulePlugin from '@fullcalendar/rrule';
 import { prepareCalendarEvents } from './calendarUtils';
 import dayjs from 'dayjs';
-import {useRouter} from 'vue-router';
+
 import { marked } from "marked";
 
 import { useTimeMachineStore } from '../stores/timeMachine';
 const timeMachineStore = useTimeMachineStore();
 
-const router = useRouter();
 const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const notes_api_url = inject('notes_api_url');
@@ -633,8 +627,11 @@ const token = localStorage.getItem('token');
 
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
 const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf());
-watch(currentTime, () => {
+watch(currentTime, async () => {
     update_previews();
+    FullCalDate.value = dayjs(currentTime.value).toISOString().substring(0, 10);
+ 	await nextTick();
+    calendarRef.value.getApi().gotoDate(dayjs(currentTime.value).toDate());
 });
 
 const latestPomodoroSession = ref({});
@@ -660,10 +657,6 @@ const calendarToggle = ref(false);
 const pomodoroToggle = ref(false);
 const latestNoteToggle = ref(true);
 
-function goToAddNotePage() {
-    router.push('/create');
-}
-
 async function update_previews() {
     get_latest_pomodoro_stats(); //Must manage time server-side in index.js
     get_pomodoro_week_stats(); //Must manage time server-side in index.js
@@ -672,22 +665,25 @@ async function update_previews() {
     get_this_week_events();
 }
 
+const CalEvents = ref([]);
+const calendarRef = ref(null);
+const FullCalDate = ref(dayjs(currentTime.value).format('YYYY-MM-DD'));
+
+const calendarOptions = ref({
+    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
+    initialView: "timeGridWeek",
+    initialDate: FullCalDate.value, // Imposta la data iniziale
+    firstDay: 1,     //La settimana inizia dal lunedì
+    events: CalEvents
+});
+
 async function get_today_events() {
     const Events = ref([]);
     const Activities = ref([]);
     today_events.value = [];
     today_activities.value = [];
 
-    // Crea un elemento DOM temporaneo e non aggiungerlo al DOM visibile
-    const tempEl = document.createElement('div');
-
-    // Inizializza FullCalendar sull'elemento temporaneo
-    const calendar = new Calendar(tempEl, {
-        plugins: [dayGridPlugin, rrulePlugin]
-    });
-
-    // Renderizza il calendario (anche se non è visibile)
-    calendar.render();
+    
 
     try {
         var user;
@@ -706,22 +702,20 @@ async function get_today_events() {
         res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
         Activities.value = Activities.value.concat(res.data);
         await nextTick();
-        //alert("Events.value="+JSON.stringify(Events.value));
-        //alert("Activities.value="+JSON.stringify(Activities.value));
-        const calendarEvents = prepareCalendarEvents(Events.value, Activities.value, user);
-        //alert("CalendarEvents.value="+JSON.stringify(calendarEvents));
-        calendar.addEventSource(calendarEvents);
+        CalEvents.value = prepareCalendarEvents(Events.value, Activities.value, user, false);
+        await nextTick();
 
 
         const today = new Date(currentTime.value);
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        const endOfDay = dayjs(startOfDay).add(1, 'day').toDate();
 
         // Filtra gli eventi per oggi utilizzando FullCalendar
-        const eventsToday = calendar.getEvents().filter(event => {
-            const eventDate = new Date(event.start);
-            return eventDate >= startOfDay && eventDate < endOfDay && event.extendedProps.class !== 'notAvailable';  //Non prendo gli eventi di tipo NotAvailable
-        }).slice(0, 6);            //Prendo fino a 6 elementi
+        const eventsToday = calendarRef.value.getApi().getEvents().filter(event => {
+            const startDate = new Date(event.start);
+            const endDate = (event.end == null ? startDate : new Date(event.end));  //Se endDate coincide con startDate, FullCalendar imposta endDate=null, quindi prendo endDate=startDate
+            return endDate >= startOfDay && startDate < endOfDay && event.extendedProps.class !== 'notAvailable';  //Non prendo gli eventi di tipo NotAvailable
+        });
         //alert("today="+today+", eventsToday="+JSON.stringify(eventsToday));
         //Lista ordinata per data iniziale crescente
         eventsToday.sort((a, b) => {
@@ -737,16 +731,14 @@ async function get_today_events() {
             }
             title += ev.title;
             //console.log("ev="+title);
-            if (ev.extendedProps.class == "activity")
+            if (ev.extendedProps.class == "activity"){
                 today_activities.value.push(title);
+            }
             else today_events.value.push(title);
         }
     } catch (error) {
         //alert('Error: '+error);
         console.error("Error fetching events and activities: ", error);
-    } finally {
-        // Distruggi l'istanza di FullCalendar per liberare risorse
-        calendar.destroy();
     }
 }
 
@@ -755,17 +747,6 @@ async function get_this_week_events() {
     const Activities = ref([]);
     this_week_events.value = [];
     this_week_activities.value = [];
-
-    // Crea un elemento DOM temporaneo e non aggiungerlo al DOM visibile
-    const tempEl = document.createElement('div');
-
-    // Inizializza FullCalendar sull'elemento temporaneo
-    const calendar = new Calendar(tempEl, {
-        plugins: [dayGridPlugin, rrulePlugin]
-    });
-
-    // Renderizza il calendario (anche se non è visibile)
-    calendar.render();
 
     try {
         var user;
@@ -784,18 +765,19 @@ async function get_this_week_events() {
         res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attività condivise
         Activities.value = Activities.value.concat(res.data);
         await nextTick();
-        const calendarEvents = prepareCalendarEvents(Events.value, Activities.value, user);
-        calendar.addEventSource(calendarEvents);
-
-        const today = new Date(currentTime.value);
-        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-        const endOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 7));
+        CalEvents.value = prepareCalendarEvents(Events.value, Activities.value, user);
+        await nextTick();
+         
+        const today = dayjs(currentTime.value);
+        const startOfWeek = today.startOf('isoWeek').toDate(); // Lunedì della settimana corrente
+        const endOfWeek = today.endOf('isoWeek').toDate();     // Domenica della settimana corrente
 
         // Filtra gli eventi per questa settimana utilizzando FullCalendar
-        const eventsThisWeek = calendar.getEvents().filter(event => {
-            const eventDate = new Date(event.start);
-            return eventDate >= startOfWeek && eventDate < endOfWeek;
-        }).slice(0, 6);            //Prendo fino a 6 elementi
+        const eventsThisWeek = calendarRef.value.getApi().getEvents().filter(event => {
+            const startDate = new Date(event.start);
+            const endDate = (event.end == null ? startDate : new Date(event.end));  //Se endDate coincide con startDate, FullCalendar imposta endDate=null, quindi prendo endDate=startDate
+            return endDate >= startOfWeek && startDate < endOfWeek && event.extendedProps.class !== 'notAvailable';  //Non prendo gli eventi di tipo NotAvailable
+        });
         eventsThisWeek.sort((a, b) => {
             const dataA = new Date(a.start);
             const dataB = new Date(b.start);
@@ -803,16 +785,13 @@ async function get_this_week_events() {
         });
         for (let i = 0; i < eventsThisWeek.length; i++) {
             const ev = eventsThisWeek[i];
-            let title = ev.start.getDate() + "/" + (ev.start.getMonth() + 1) + " ";
-            title += ev.title;
+            const title = ev.start.getDate() + "/" + (ev.start.getMonth() + 1) + " " + ev.title;
             if (ev.extendedProps.class == "activity")
                 this_week_activities.value.push(title);
             else this_week_events.value.push(title);
         }
     } catch (error) {
         console.error("Error fetching events and activities: ", error);
-    } finally {
-        calendar.destroy();
     }
 }
 
