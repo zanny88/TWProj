@@ -216,6 +216,16 @@
                         <router-link class="preview-title col" to="/showNote">NOTES</router-link>
                     </div>
 
+                    <div class="badge position-absolute top-0 start-0 ms-3 ms-md-5 mt-0"
+                        style="z-index: 1000;">
+                        <button type="button" class="btn btn-info text-white d-flex align-items-center justify-content-center" id="addNoteBtn" @click="goToAddNotePage()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+                              </svg>
+                        </button>
+
+                    </div>
+
                     <div class="form-check form-switch position-absolute top-0 end-0 me-3 me-md-5 mt-0"
                         style="z-index: 1000;">
                         <label class="form-check-label" for="flexSwitchCheckNote">
@@ -609,12 +619,13 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import rrulePlugin from '@fullcalendar/rrule';
 import { prepareCalendarEvents } from './calendarUtils';
 import dayjs from 'dayjs';
-
+import {useRouter} from 'vue-router';
 import { marked } from "marked";
 
 import { useTimeMachineStore } from '../stores/timeMachine';
 const timeMachineStore = useTimeMachineStore();
 
+const router = useRouter();
 const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const notes_api_url = inject('notes_api_url');
@@ -648,6 +659,10 @@ const this_week_activities = ref([]);
 const calendarToggle = ref(false);
 const pomodoroToggle = ref(false);
 const latestNoteToggle = ref(true);
+
+function goToAddNotePage() {
+    router.push('/create');
+}
 
 async function update_previews() {
     get_latest_pomodoro_stats(); //Must manage time server-side in index.js

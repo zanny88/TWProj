@@ -310,7 +310,8 @@ app.post("/compose", async (req, res) => {
                 place: place,
                 tags: tags.split(',').map(tag => tag.trim()),
                 date: date,
-                last_modify: date
+                last_modify: date,
+                view_list: share.split('-').map(tag => tag.trim()).filter(item => item != "")
             });
         }
     } else {
@@ -845,7 +846,7 @@ async function sendMessageSupport(to, from, text, data) {
 
 app.post("/user/sendMessage", async (req, res) => {
     const msg = req.body;
-    console.log("msg: ",msg);
+    console.log("msg: ", msg);
 
     try {
         const toUser = await User.findOne({ username: msg.toUser });

@@ -2,19 +2,11 @@
     <h1>Compose</h1>
     <div class="compose-container">
         <div class="form-container">
-            <div id="row" style="text-align: center;">
-                <label for="noteB">Note:</label>
-                <input type="radio" id="noteB" name="typeNote" value="note" checked @click="typeI = 0"/><!--@click indica l'azione da compiere quando il bottone viene cliccato, ovvero cambiare la visualizzazione della label per la textarea del body del post-->
-                <label for="todoB">ToDo:</label>
-                <input type="radio" id="todoB" name="typeNote" value="todo" @click="typeI = 1"/>
-                <label for="publicCheck">Public:</label>
-                <input type="checkbox" id="public" v-model="publicCheck"/>
-            </div>
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="col-lg-4 col-md-4 col-sm-4">
                     <div class="form-floating">
-                        <input type="text" v-model="title" class="form-control" id="notetitle"/>
-                        <label for="notetitle" id="titleLabel">Title</label>
+                        <input type="text" v-model="title" class="form-control" id="notetitle" required/>
+                        <label for="notetitle" id="titleLabel">Title (required)</label>
                     </div>
                 </div>
             </div>
@@ -22,7 +14,7 @@
                 <div class="col-lg-4 col-md-4 col-sm-4">
                     <div class="form-floating">
                         <textarea v-model="post" class="form-control" placeholder="Write note here" id="textArea" style="height: 100px; white-space: pre-wrap;" wrap="off" required></textarea>
-                        <label for="textArea">{{ insertType[typeI] }}</label>
+                        <label for="textArea">Note body (required)</label>
                     </div>
                 </div>
             </div>
@@ -42,7 +34,13 @@
                     </div>
                 </div>
             </div>
-            <div class="row d-flex position-relative" style="justify-content: center; align-items: center;" id="input_friends">
+
+            <div id="row" style="text-align: center;">
+                <input type="checkbox" id="public" v-model="publicCheck"/>
+                <label for="public"> Public</label>
+            </div>
+
+            <div v-if="!publicCheck" class="row d-flex position-relative" style="justify-content: center; align-items: center;" id="input_friends">
                 <div class="col-lg-4 col-md-4 col-sm-4 position-relative">
                     <div class="form-floating">
                         <textarea type="text" class="form-control" id="share" @input="searchUser()" @keydown.enter.prevent="appendUser(userName)" v-model="userName" style="width: 100%;"></textarea>
@@ -71,7 +69,7 @@
             
             <div class="row" style="position: relative; justify-content: center; align-items: center;">
                 <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
-                    <button type="button" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" :disabled="!publishDisabled" @click.prevent="submit">Publish</button>
+                    <button type="button" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" :disabled="publishDisabled" @click.prevent="submit">Publish</button>
                 </div>
             </div>
         </div>
@@ -159,7 +157,7 @@
     })
 
     const publishDisabled = computed(() => {
-        return title.value && post.value && tags.value && place.value;
+        return !title.value || !post.value;
     })
 
     //funzione per cercare la parte della nota, se presente, dove si è indicato di voler creare un to-do con il simbolo [todo]
@@ -265,7 +263,6 @@
             date: currentTime.value,
             public: publicCheck.value,
             post_type: typeI.value,
-            //todo_children: todo_objs.length > 0,
             author: user,
             share: [...usersToShare.value].join('-')
         };
@@ -334,7 +331,7 @@
             place.value = sent_to_modify.value.place;
             publicCheck.value = sent_to_modify.value.public;
             typeI.value = 0;
-            for(let user of sent_to_modify.value.view_list){
+            for(let user of sent_to_modify.value.share){
                 usersToShare.value.push(user);
             }
         }
