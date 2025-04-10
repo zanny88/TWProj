@@ -331,7 +331,7 @@
             place.value = sent_to_modify.value.place;
             publicCheck.value = sent_to_modify.value.public;
             typeI.value = 0;
-            for(let user of sent_to_modify.value.share){
+            for(let user of sent_to_modify.value.view_list){
                 usersToShare.value.push(user);
             }
         }
