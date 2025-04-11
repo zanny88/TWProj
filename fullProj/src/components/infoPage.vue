@@ -1,69 +1,63 @@
 <template>
     <Modal v-if="changeData">
-        <div style="position: relative; display: flex; justify-content: flex-end;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-x" id="del_friend" viewBox="0 0 16 16" @click="changeData = false">
-                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
-            </svg>
+        <div class="modal-header">
+            <h5 class="modal-title">Edit User Data</h5>
+            <button type="button" class="btn-close" @click="changeData = false"></button>
         </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="col-lg-4 col-md-4 col-sm-8">
-                <div class="form-floating">
-                    <input type="text" id="firstName" name="firstName" class="form-control" v-model="userInfo[0]" required/>
-                    <label for="firstName">First name: </label>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-lg-6 col-md-6 col-sm-12">
+                    <div class="form-floating mb-3">
+                        <input type="text" id="firstName" name="firstName" class="form-control" v-model="userInfo[0]" required />
+                        <label for="firstName">First Name</label>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-12">
+                    <div class="form-floating mb-3">
+                        <input type="text" id="lastName" name="lastName" class="form-control" v-model="userInfo[1]" required />
+                        <label for="lastName">Last Name</label>
+                    </div>
                 </div>
             </div>
-            <div class="col-lg-4 col-md-4 col-sm-8">
-                <div class="form-floating">
-                    <input type="text" id="lastName" name="lastName" class="form-control" v-model="userInfo[1]" required/>
-                    <label for="lastName">Last name: </label>
+            <div class="form-floating mb-3">
+                <input type="text" id="username" name="username" class="form-control" v-model="userInfo[2]" @input="showDismissibleAlert = false" required disabled />
+                <label for="username">Username</label>
+                <div v-show="showDismissibleAlert" class="alert alert-danger mt-2">
+                    Username already in use!
                 </div>
             </div>
-        </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="col-lg-8 col-md-8 col-sm-12">
-                <div class="form-floating">
-                    <input type="text" id="username" name="username" class="form-control" v-model="userInfo[2]" @input="showDismissibleAlert = false" required/>
-                    <label for="username">Username: </label>
-                </div>
+            <div class="form-floating mb-3 position-relative">
+                <input :type="passwordType" id="passwd" name="passwd" class="form-control" v-model="userInfo[3]" required />
+                <label for="passwd">Password</label>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" :class="['bi', 'eye-icon', eye_class]" viewBox="0 0 16 16" @click="passwVisib()" v-html="eye_icon"></svg>
+            </div>
+            <div class="form-floating mb-3">
+                <input type="email" id="mail" name="mail" class="form-control" v-model="userInfo[4]" required />
+                <label for="mail">Email</label>
             </div>
         </div>
-        <div v-show="showDismissibleAlert" style="background: red; color: black;">
-            Username already in use!
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="changeData = false">Cancel</button>
+            <button type="button" class="btn btn-primary" @click="saveUserData()">Save</button>
         </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="col-lg-8 col-md-8 col-sm-12">
-                <div class="form-floating" style="position: relative;">
-                    <input :type="passwordType" id="passwd" name="passwd" class="form-control" v-model="userInfo[3]" required/>
-                    <label for="passwd">Password:</label>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" :class="['bi','eye-icon',eye_class]" viewBox="0 0 16 16" @click="passwVisib()" v-html="eye_icon"></svg>
-                </div>
-            </div>
-        </div>
-        <div class="row" style="position: relative; justify-content: center; align-items: center;">
-            <div class="col-lg-8 col-md-8 col-sm-12" >
-                <div class="form-floating">
-                    <input type="email" id="mail" name="mail" class="form-control" v-model="userInfo[4]" required/>
-                    <label for="mail">Mail: </label>
-                </div>
-            </div>
-        </div>
-        <button class="btn btn-primary" @click="saveUserData()">Save</button>
     </Modal>
+
     <div class="card">
         <div class="card-header">
-            User data
+            <h5 class="user-data-title">User Data</h5>
         </div>
-        <div class="card-body" style="display: flex; flex-wrap: wrap;">
-            <div style="flex: 1;">
-                <p class="card-text" v-for="(val,index) in ['Name','Surname','Username','Password','Mail']">
-                    {{ val }}: {{ userInfo[index] }}
+        <div class="card-body d-flex flex-wrap">
+            <div class="user-info">
+                <p v-for="(val, index) in ['Name', 'Surname', 'Username', 'Password', 'Mail']" :key="index">
+                    <strong>{{ val }}:</strong> {{ userInfo[index] }}
                 </p>
-                <button class="btn btn-primary" @click="changeData = true;">Change data</button>
+                <button class="btn btn-primary mt-3" @click="changeData = true;">Edit Data</button>
             </div>
-            <div style="flex: 1; border-left: 1px solid lightgray; padding: 10px;">
-                Friends <span v-if="userFriends.length <= 0"> - None</span>:
-                <ul>
-                    <li v-for="(friend,index) in userFriends">{{ friend }}</li>
+            <div class="friends-list">
+                <h6>Friends</h6>
+                <span v-if="userFriends.length <= 0">None</span>
+                <ul v-else>
+                    <li v-for="(friend, index) in userFriends" :key="index">{{ friend }}</li>
                 </ul>
             </div>
         </div>
@@ -120,6 +114,18 @@ async function saveUserData(){
     }
 
     try{
+        var r = await axios.post(`${api_url}user/updateData`,newUserData);
+        const newToken = r.data.token;
+        localStorage.setItem('token',newToken);
+        showDismissibleAlert.value = false;
+        changeData.value = false;
+        router.go(0);
+    }catch(error){
+        console.log("Errore: ",error);
+    }
+
+    /*
+    try{
         var r = await axios.post(`${api_url}checkUsername`,{username: userInfo.value[2]});
 
         if(r.data.message == "OK"){
@@ -136,6 +142,7 @@ async function saveUserData(){
     }catch(error){
         console.log("Errore: ",error);
     }
+        */
 }
 
 async function getUserInfo(){
@@ -162,14 +169,109 @@ onMounted(() => {
 </script>
 
 <style scoped>
-    .bi-x:hover{
-        color: red;
-    }
-    .eye-icon{
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-    }
+/* Modal styling */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+}
+
+.user-data-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Card styling */
+.card {
+    margin-top: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: #00916e;
+    color: white;
+    padding: 15px;
+    border-radius: 10px 10px 0 0;
+}
+
+.card-body {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 20px;
+}
+
+.user-info {
+    flex: 1;
+    padding-right: 20px;
+}
+
+.friends-list {
+    flex: 1;
+    border-left: 1px solid #dee2e6;
+    padding-left: 20px;
+}
+
+/* Form styling */
+.form-floating {
+    margin-bottom: 15px;
+}
+
+.eye-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+/* Button styling */
+.btn-primary {
+    background-color: #00916e;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #00785c;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Alert styling */
+.alert {
+    font-size: 0.9rem;
+    padding: 10px;
+    border-radius: 5px;
+}
 </style>
