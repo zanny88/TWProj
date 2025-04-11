@@ -6,17 +6,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Reenie+Beanie&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 
 
     <div class="background"></div>
 
 
-    <div class="container-fluid">
+    <div class="container-fluid ps-4 pe-4">
 
         <div id="header">
-            <h1>Notes Viewer</h1>
+            <h1>Notes</h1>
             <div style="display: flex; align-items: center; gap: 5px;">
-                <button id="filter" class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button id="filter" class="btn btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Order
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
                         <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5"/>
@@ -48,8 +49,8 @@
                         </div>
                     </li>
                 </ul>
-                <button v-html="HTMLS[revSort]" v-if="sorting" class="btn" type="button" @click="reverseSort"></button>
-                <button type="button" class="btn" id="add">
+                <button v-html="HTMLS[revSort]" v-if="sorting" class="btn btn-light" type="button" @click="reverseSort"></button>
+                <button type="button" class="btn btn-light" id="add">
                     <router-link to="/create" style="color: black; text-decoration: none;">Add Note</router-link>
                 </button>
             </div>
@@ -212,7 +213,9 @@
 }
 
 #header h1{
-    font-family: Poppins;
+    font-family: Montserrat, sans-serif;
+    font-size: 3rem;
+    font-weight: 900;
     text-transform: uppercase;
     color: white;
 }

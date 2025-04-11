@@ -841,6 +841,7 @@ label {
     width: 100%;
     height: 200px;
     top: 0px;
+    pointer-events: none;
 }
 
 #tomato * {

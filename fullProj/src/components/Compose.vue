@@ -1,82 +1,88 @@
 <template>
-    <h1>Compose</h1>
-    <div class="compose-container">
-        <div class="form-container">
-            <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                <div class="col-lg-4 col-md-4 col-sm-4">
-                    <div class="form-floating">
-                        <input type="text" v-model="title" class="form-control" id="notetitle" required/>
-                        <label for="notetitle" id="titleLabel">Title (required)</label>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <div class="background"></div>
+    <div id="compose" class="container-fluid">
+        <h1 class="ps-4">Compose a new note</h1>
+        <div class="compose-container">
+            <div class="form-container">
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <input type="text" v-model="title" class="form-control" id="notetitle" required/>
+                            <label for="notetitle" id="titleLabel">Title<span class="required-star">*</span></label>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                <div class="col-lg-4 col-md-4 col-sm-4">
-                    <div class="form-floating">
-                        <textarea v-model="post" class="form-control" placeholder="Write note here" id="textArea" style="height: 100px; white-space: pre-wrap;" wrap="off" required></textarea>
-                        <label for="textArea">Note body (required)</label>
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <textarea v-model="post" class="form-control" id="textArea" style="height: 100px; white-space: pre-wrap;" wrap="off" required></textarea>
+                            <label for="textArea">Note body<span class="required-star">*</span></label>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="row" style="position: relative; align-items: center; justify-content: center;">
-                <div class="col-lg-4 col-md-4 col-sm-4">
-                    <div class="form-floating">
-                        <textarea v-model="tags" class="form-control" placeholder="Write tags" id="tagsArea"></textarea>
-                        <label for="tagsArea">Tags</label>
+                <div class="row" style="position: relative; align-items: center; justify-content: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <textarea v-model="tags" class="form-control" id="tagsArea"></textarea>
+                            <label for="tagsArea">Tags</label>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                <div class="col-lg-4 col-md-4 col-sm-4">
-                    <div class="form-floating">
-                        <input type="text" v-model="place" class="form-control" id="placeArea"/>
-                        <label for="placeArea">Place</label>
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="col-lg-4 col-md-4 col-sm-4">
+                        <div class="form-floating">
+                            <input type="text" v-model="place" class="form-control" id="placeArea"/>
+                            <label for="placeArea">Place</label>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div id="row" style="text-align: center;">
-                <input type="checkbox" id="public" v-model="publicCheck"/>
-                <label for="public"> Public</label>
-            </div>
+                <div id="row" style="text-align: center;">
+                    <input type="checkbox" id="public" v-model="publicCheck"/>
+                    <label for="public"> Public</label>
+                </div>
 
-            <div v-if="!publicCheck" class="row d-flex position-relative" style="justify-content: center; align-items: center;" id="input_friends">
-                <div class="col-lg-4 col-md-4 col-sm-4 position-relative">
-                    <div class="form-floating">
-                        <textarea type="text" class="form-control" id="share" @input="searchUser()" @keydown.enter.prevent="appendUser(userName)" v-model="userName" style="width: 100%;"></textarea>
-                        <label for="search">View List:</label>
+                <div v-if="!publicCheck" class="row d-flex position-relative" style="justify-content: center; align-items: center;" id="input_friends">
+                    <div class="col-lg-4 col-md-4 col-sm-4 position-relative">
+                        <div class="form-floating">
+                            <textarea type="text" class="form-control" id="share" @input="searchUser()" @keydown.enter.prevent="appendUser(userName)" v-model="userName" style="width: 100%;"></textarea>
+                            <label for="search">Add users to view list:</label>
+                        </div>
+                    </div>
+                    <div class="list-group position-absolute w-100" style="top: calc(100% + 5px); z-index: 1050; width: 100%;" id="friends" v-if="userName.length > 0 && userFound">
+                        <div
+                            v-for="(el,index) in users"
+                            :key = "index"
+                            class="list-group-item list-group-item-action"
+                            @click="appendUser(el.name)"
+                        >
+                            {{ el.name }}
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-4 col-sm-4" v-if="usersToShare.length > 0">
+                        <div v-for="(friend,index) in usersToShare" :key="index" class="d-inline-block me-2">
+                            <span>{{ friend }}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x" id="del_friend" viewBox="0 0 16 16" @click="deleteFriend(index)">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
-                <div class="list-group position-absolute w-100" style="top: calc(100% + 5px); z-index: 1050; width: 100%;" id="friends" v-if="userName.length > 0 && userFound">
-                    <div
-                        v-for="(el,index) in users"
-                        :key = "index"
-                        class="list-group-item list-group-item-action"
-                        @click="appendUser(el.name)"
-                    >
-                        {{ el.name }}
-                    </div>
-                </div>
-                <div class="col-lg-4 col-md-4 col-sm-4" v-if="usersToShare.length > 0">
-                    <div v-for="(friend,index) in usersToShare" :key="index" class="d-inline-block me-2">
-                        <span>{{ friend }}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x" id="del_friend" viewBox="0 0 16 16" @click="deleteFriend(index)">
-                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
-                        </svg>
+                
+                <div class="row" style="position: relative; justify-content: center; align-items: center;">
+                    <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
+                        <button type="button" class="btn btn-success" style="margin-top: 10px;" id="publishB" :disabled="publishDisabled" @click.prevent="submit">Publish</button>
                     </div>
                 </div>
             </div>
-            
-            <div class="row" style="position: relative; justify-content: center; align-items: center;">
-                <div class="cool-lg-4 col-md-4 col-sm-4" style="position: relative; text-align: center;">
-                    <button type="button" class="btn btn-outline-info" style="margin-top: 10px;" id="publishB" :disabled="publishDisabled" @click.prevent="submit">Publish</button>
-                </div>
-            </div>
-        </div>
-        <div class="preview-container">
-            <h2>Preview</h2>
-            <div v-if="post.value !== ''" v-html="renderedContent" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+            <div v-if="post !== ''" class="preview-container">
+                <h4>Preview</h4>
+                <div v-html="renderedContent" style="background-color: white; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
 
+                </div>
             </div>
         </div>
     </div>
@@ -313,7 +319,7 @@
                 }
             }
         }*/
-        router.push({path: "/"});
+        router.push({path: "/showNote"});
     }
 
     function uploadToModify(){
@@ -378,6 +384,26 @@
 </script>
 
 <style scoped>
+    .background{
+        position: fixed;
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        margin: 0;
+        padding: 0;
+        background-color: #ffc;
+        background-image: url('/src/assets/textured-paper.png');
+        z-index: -1;
+    }
+    .compose-container{
+        color:#000;
+        background-color: #ffc;
+        background-image: url('/src/assets/textured-paper.png');
+    }
+    .required-star{
+        color: red;
+    }
     #del_friend:hover{
         cursor: pointer;
         color: red;
@@ -387,12 +413,30 @@
         flex-wrap: wrap;
     }
     .form-container, .preview-container{
-        flex: 1;
+        flex: 2;
         min-width: 300px;
         margin: 10px;
+        background-color: rgb(237, 237, 185);
+        background-image: url('/src/assets/textured-paper.png');
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        border: 1px solid #ccc;
     }
+
     .preview-container{
-        border-left: 1px solid #ccc;
         padding: 10px;
+    }
+
+    h1, h2, h3, h4 {
+        font-family: Montserrat, sans-serif;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .preview-container h4{
+        text-align: center;
+        font-size: 24px;
+        color: #333;
     }
 </style>
