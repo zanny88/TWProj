@@ -874,8 +874,8 @@ app.post("/user/checkInbox", async (req, res) => {
             console.log("ERRORE: ", error);
         }
 
-        var newMessages = user.inbox.filter(msg => msg.seen == false);
-        if (newMessages.length > 0) {
+        var newMessages = user?.inbox?.filter(msg => msg.seen == false);
+        if (newMessages && newMessages.length > 0) {
             res.json(true);
         } else {
             res.json(false);
