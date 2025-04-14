@@ -21,7 +21,7 @@ app.provide('loggedIn', loggedIn);
 
 const api_url = "http://localhost:3000/";
 //const api_url = "http://192.168.1.196:3000/";
-//const api_url = "https://site232415.tw.cs.unibo.it/";
+//const api_url = "https://site232415.tw.cs.unibo.it/"; [PER IL DISI] cambiare url api
 app.provide('api_url', api_url);
 
 const pomodoro_sessions_api_url = `${api_url}pomodoro/sessions/`;
