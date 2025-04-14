@@ -153,11 +153,11 @@ app.use('/fonts',express.static(global.rootDir + '/public/fonts'));
 app.use('/img',express.static(global.rootDir + '/public/img'));
 
 app.get('/',async function (req,res){
-    res.sendFile(path.join(__dirname,'public','index.html'));
+    res.sendFile(path.join(__dirname,'/public','index.html'));
 });
 
 app.get('*',async function (req,res){
-    res.sendFile(path.join(__dirname,'public','index.html'));
+    res.sendFile(path.join(__dirname,'/public','index.html'));
 });
 */
 
