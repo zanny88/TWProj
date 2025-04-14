@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const { messageSchema } = require('./messageModel');
-require('dotenv').config();
+require('dotenv').config(); //[PER IL DISI] aggiungi { path: '/webapp/.env' } dentro a config()
 const mongoDBUri = process.env.MONGODB_URI;
 
 mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
