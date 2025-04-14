@@ -44,7 +44,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use(passport.initialize());
 
-require('dotenv').config();
+require('dotenv').config(); //[PER IL DISI] aggiungi { path: '/webapp/.env' } dentro a config()
 const mongoDBUri = process.env.MONGODB_URI;
 mongoose.connect(mongoDBUri, { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -1655,6 +1655,6 @@ app.post("/setTime", async (req, res) => {
 
 
 
-app.listen(3000, () => {
+app.listen(3000, () => { // [PER IL DISI] cambia a porta 8000
     console.log("app listening on port 3000");
 });
