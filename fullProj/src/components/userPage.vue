@@ -65,7 +65,7 @@
 
     var token;
 
-    let username;
+    let username = ref('');
 
     let friend_number = ref('');
 
@@ -93,7 +93,7 @@
 
     setInterval(async () => {
         if(token != null){
-            var newMessage = await axios.post(`${api_url}user/checkInbox`, { user: username });
+            var newMessage = await axios.post(`${api_url}user/checkInbox`, { user: username.value });
             if(newMessage.data){
                 handleNewMessage();
             }else{
@@ -105,7 +105,7 @@
 
     async function friendNumber(){
         try{
-            var r = await axios.get(`${api_url}user/info/${username}`);
+            var r = await axios.get(`${api_url}user/info/${username.value}`);
             await nextTick();
 
             if(r && r.data && r.data.friends){
