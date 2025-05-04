@@ -442,7 +442,7 @@ app.post("/todos/tasks/check", async (req, res) => {
     try {
         var r = await Todo.findById(todo_id);
         if (!r) {
-            res.status(404).send("Todo not found");
+            return res.status(404).send("Todo not found");
         }
         var comp = r.completed;
         comp[task_index] = true;
@@ -642,7 +642,7 @@ app.post("/pomodoro/sessions/delete", async (req, res) => {
     try {
         var target = await Session.findById(_id);
         if (!target) {
-            res.status(404).send("Session not found");
+            return res.status(404).send("Session not found");
         }
 
         await Session.findByIdAndDelete(_id);
@@ -697,6 +697,8 @@ app.post("/duplicateNote/:id", async (req, res) => {
             public: n.public,
             heading: n.heading,
             content: n.content,
+            date: n.date,
+            last_modify: n.last_modify,
             place: n.place,
             tags: n.tags
         });
@@ -863,18 +865,18 @@ app.post("/user/checkInbox", async (req, res) => {
         try {
             var user = await User.findOne({ username: username });
             if (!user) {
-                res.status(404).send("User not found");
+                return res.status(404).send("User not found");
             }
         } catch (error) {
-            res.status(500).send("Error while fetching user for messages");
             console.log("ERRORE: ", error);
+            return res.status(500).send("Error while fetching user for messages");
         }
 
         var newMessages = user.inbox.filter(msg => msg.seen == false);
         if (newMessages && newMessages.length > 0) {
-            res.json(true);
+            return res.json(true);
         } else {
-            res.json(false);
+            return res.json(false);
         }
     } catch (error) {
         console.log("Error fetching user for inbox check: ", error);
@@ -886,7 +888,7 @@ app.get("/user/getMessages", async (req, res) => {
     try {
         var user = await User.findOne({ username: username });
         if (!user) {
-            res.status(404).send("User not found");
+            return res.status(404).send("User not found");
         }
 
         res.json(user.inbox);
@@ -951,6 +953,14 @@ app.post("/user/messages/:msgID/accept", async (req, res) => {
             });
             await newSession.save();
             response.newSessionId = newSession._id;
+        } else if (msg.type && msg.type.startsWith("An invitation for an ")) {
+            if (msg.data && msg.data.eventId) {
+                console.log("accetto invito ad evento condiviso: " + toUser.username);
+                await acceptEventInvitation(msg.data.eventId, toUser.username, Event)
+            } else if (msg.data && msg.data.activityId) {
+                console.log("accetto invito ad attività condifisa: "+toUser.username);
+                await acceptActivityInvitation(msg.data.activityId, toUser.username, Activity)
+            }
         }
         console.log("messaggi dentro l'inbox: ");
         for (let m of toUser.inbox) {
@@ -989,6 +999,15 @@ app.post("/user/messages/:msgID/delete", async (req, res) => {
         var msg = await Message.findOne({ _id: req.params.msgID });
         var toUser = await User.findOne({ username: req.body.u });
 
+        if (msg.type && msg.type.startsWith("An invitation for an ")) {
+            if (msg.data && msg.data.eventId) {
+                console.log("rifiuto invito ad evento condiviso: " + toUser.username);
+                await refuseEventInvitation(msg.data.eventId, toUser.username, Event)
+            } else if (msg.data && msg.data.activityId) {
+                console.log("rifiuto invito ad attività condifisa: "+toUser.username);
+                await refuseActivityInvitation(msg.data.activityId, toUser.username, Activity)
+            }
+        }
         console.log("UTENTE DA CUI ELIMINARE IL MESSAGGIO: ", toUser.name);
         console.log("INBOX UTENTE: ", toUser.inbox);
         console.log("MESSAGGIO DA ELIMINARE: ", msg);
@@ -1008,14 +1027,12 @@ app.post("/user/messages/:msgID/delete", async (req, res) => {
 app.get("/user/info/:user", async (req, res) => {
     try {
         var u = await User.findOne({ username: req.params.user });
-
         if (!u) {
-            res.status(404).send("Utente non trovato");
+            return res.status(404).send("Utente non trovato");
         }
-
-        res.json(u);
+        return res.json(u);
     } catch (error) {
-        res.status(500).send("Errore (nel server) durante il fetch dell'utente per le info");
+        return res.status(500).send("Errore (nel server) durante il fetch dell'utente per le info");
     }
 });
 
@@ -1163,7 +1180,7 @@ async function processUsers(users, filter, query, searchUser) {
 
 app.post('/search', async (req, res) => {
     if (!req.body.query) {
-        res.status(400).send("Query parameter is required");
+        return res.status(400).send("Query parameter is required");
     }
     try {
         const query = req.body.query;
@@ -1296,7 +1313,7 @@ app.post("/editEvent", async (req, res) => {
         console.log("ricerca di eventId=" + req.body.eventId);
         const event_ = await Event.findOne({ _id: eventId, owner: userName });
         if (!event_) {
-            res.json({
+            return res.json({
                 message: "event not found"
             });
         } else {
@@ -1376,7 +1393,7 @@ app.post("/deleteEvent", async (req, res) => {
         const event_ = await Event.findOne({ _id: eventId, owner: userName });
         if (!event_) {
             console.error("Evento non trovato: " + eventId);
-            res.json({
+            return res.json({
                 message: "event not found"
             });
         } else {
@@ -1491,7 +1508,7 @@ app.post("/editActivity", async (req, res) => {
         const activity = await Activity.findOne({ _id: activityId, owner: owner });
         if (!activity) {
             console.error("Attività non trovata!");
-            res.json({
+            return res.json({
                 message: "activity not found"
             });
         } else {
@@ -1524,7 +1541,7 @@ app.post("/deleteActivity", async (req, res) => {
         const activity_ = await Activity.findOne({ _id: activityId, owner: userName });
         if (!activity_) {
             console.error("Attivita non trovata: " + activityId);
-            res.json({
+            return res.json({
                 message: "activity not found"
             });
         } else {
@@ -1635,7 +1652,7 @@ app.post("/setTime", async (req, res) => {
         var utente = await User.findOne({ username: user });
 
         if (!utente) {
-            res.status(404).send("User not found");
+            return res.status(404).send("User not found");
         }
 
         utente.deltaTime = (new Date(newTime) - new Date());

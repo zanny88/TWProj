@@ -300,12 +300,28 @@ async function manageEventParticipants(event, Event, User) {
                 const userDB = await User.findOne({ username: user });
                 const ownerDB = await User.findOne({ username: event.owner });
                 //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
+                const formatString = 'YYYY-MM-DD HH:mm';
+                const startStr = event.date_start ? dayjs(event.date_start).format(formatString) : 'N/A';
+                const endStr = event.date_end ? dayjs(event.date_end).format(formatString) : 'N/A';
+                const map = {
+                      1: 'Low',
+                      2: 'Normal',
+                      3: 'High',
+                      4: 'Highest',
+                    };
+                const priorityStr = map[event.priority] || 'Unknown';  //Priorità
+                const eventDescription = '\nDescription: ' + event.title +
+                                         '\nPlace: ' + event.place +
+                                         '\nStarts: ' + startStr +
+                                         '\nEnds: ' + endStr +
+                                         '\nAll Day: ' + (event.all_day ? 'Yes' : 'No') +
+                                         '\nPriority: ' + priorityStr;
                 if (userDB && userDB.mail) {
                     //mando l'invito
                     let html = generateEventInvitationHTML(event, user, ownerDB);
                     console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
                     try {
-                          const payload = {
+                          let payload = {
                             to: user,
                             subject: `Invitation for event: ${event.title}`,
                             html: html
@@ -313,11 +329,36 @@ async function manageEventParticipants(event, Event, User) {
                           await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
                           event.participants_waiting.push(user);
                           await event.save();
+                          
+                          //mando anche il messaggio all'utente
+                          payload = {
+                            toUser: user,
+                            fromUser: event.owner,
+                            message: 'An invitation for an event has been sent to you by ' + event.owner + ':' +
+                                     eventDescription +
+                                     '\n\nYou can accept or refuse it using the buttons here or in the email.',
+                            data: {
+                              eventId: event._id
+                            }
+                          }
+                          await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
                       } catch (error) {
                           console.error("Errore: "+error);
                       }
                 } else {
                     console.error("Invito all'evento non inviato a " + user + " per mancanza di mail configurata!");
+                    //mando il messaggio all'utente
+                    const payload = {
+                      toUser: user,
+                      fromUser: event.owner,
+                      message: 'An invitation for an event has been sent to you by ' + event.owner + ':' +
+                               eventDescription +
+                               '\n\nYou can accept or refuse it using the buttons here.\nTo receive an email as well for further invitations set the email in User Data.',
+                      data: {
+                        eventId: event._id
+                      }
+                    }
+                    await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
                 }
             }
         }

@@ -119,9 +119,7 @@ async function notification_handleRecurringEvent(event, now, user, email) {
     } else if (event.notification_stop.includes(user)) {
       return;
     }
-    const interval = event.notification_interval || 0;
-    const numSent = event.notification_num_sent || 0;
-    const advance = event.notification_advance || 0;
+    //const numSent = event.notification_num_sent || 0;
     const N = getRecurringEventNotification_Number(event, now, nextOccurrence);
     console.log("N_ric="+N+" ("+event.title+") ["+now.toString("dd/MM/yyyy HH:mm:ss")+"]");
 
@@ -174,7 +172,7 @@ async function sendNotification(event, occurrenceDate, now, user, email) {
         const payload = {
           to: user, //event.owner,
           subject: `Reminder for event: ${event.title}`,
-          html: html //`Ciao ${event.owner}, ti ricordiamo che l'evento "${event.title}" è in programma per il giorno ${occurrenceDate || event.date_end}.`
+          html: html
         }
         await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
       } catch (error) {
@@ -200,13 +198,13 @@ function copyTimeToDate(date, dateWithTime) {
 
 //Calcola la prossima occorrenza di un evento ricorrente
 function getNextOccurrence(event, referenceDate = new Date()) {
-  if (!event.isRecurring || !event.recurring_rule) {
+  if (!event.is_recurring || !event.recurring_rule) {
     return null;
   }
   const rruleString = event.recurring_rule.replace('RRULE:', '');
   const options = RRule.parseString(rruleString);
 
-  const dtstart = event.allDay ? event.startDate : copyTimeToDate(event.startDate, event.startTime);
+  const dtstart = event.date_start ;  //event.allDay ? event.date_start : copyTimeToDate(event.date_start, event.startTime);
   if (!dtstart) return null;
   options.dtstart = dtstart;
   const rule = new RRule(options);
