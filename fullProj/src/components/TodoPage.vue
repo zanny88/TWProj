@@ -63,7 +63,8 @@
     import Modal from './Modal.vue';
     import { useRouter } from "vue-router";
 
-    const api_url = "http://localhost:3000/";
+    //const api_url = "http://localhost:3000/";
+    const api_url = inject('api_url');
     const router = useRouter();
 
     var Todos = ref([]);

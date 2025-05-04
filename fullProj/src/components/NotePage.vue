@@ -71,7 +71,7 @@
                 </div>
                 <router-link :to="`/note/${note._id}`" class="card-body note-link">
                     <h2 class="card-title">{{note.heading.substring(0,20) + (note.heading.length > 20 ? '...' : '')}}</h2>
-                    <div v-html="marked.parse(note.content.substring(0, 20)) + (note.content.length > 20 ? '...' : '')"></div>
+                    <div v-html="marked.parse(note.content.substring(0, 201)) + (note.content.length > 201 ? '...' : '')"></div>
                 </router-link>
                 <div class="card-footer">
                     <small class="text-body-secondary">

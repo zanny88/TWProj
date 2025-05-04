@@ -22,7 +22,7 @@
                     <p class="card-text" v-if="selectedMsg.type == 'pomodoro'">
                         Join me for a Pomodoro session! Study Time: {{ selectedMsg.data.studyTime }} mins, Rest Time: {{ selectedMsg.data.restTime }} mins, Total Cycles: {{ selectedMsg.data.totCycles }}
                     </p>
-                    <p class="card-text" v-if="selectedMsg.type != 'amicizia' && selectedMsg.type != 'condivisione' && selectedMsg.type != 'pomodoro'">
+                    <p class="card-text" style="white-space: pre-line;" v-if="selectedMsg.type != 'amicizia' && selectedMsg.type != 'condivisione' && selectedMsg.type != 'pomodoro'">
                         {{ selectedMsg.type }}
                     </p>
                     <div class="action-buttons">

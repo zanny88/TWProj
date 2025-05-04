@@ -24,7 +24,7 @@
                         </p>
                         <div class="card-text">
                             <div style="display: flex; justify-content: space-between;">
-                                <small class="text-muted">Tags: {{ note.tags == [] ? note.tags.map(tag => "#"+tag).join(', ') : "(none)" }}</small>
+                                <small class="text-muted">Tags: {{ !note.tags || note.tags.length == 0 || (note.tags.length == 1 && note.tags[0] == "") ? "(none)" : note.tags.map(tag => "#"+tag).join(', ') }}</small>
                                 <small class="text-muted">Last modified: {{ new Date(note.last_modify).toDateString() }}</small>
                             </div>
                         </div>

@@ -524,7 +524,8 @@ const calendarOptions = reactive/*ref*/({
   },
   eventResize: async function(info) {
     await updateEventActivity(info);
-  }
+  },
+  height: 'auto'
 });
 
 //Funzione che gestisce lo spostamento di un evento o di un'attività

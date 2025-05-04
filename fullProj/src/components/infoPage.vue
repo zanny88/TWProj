@@ -48,8 +48,8 @@
         </div>
         <div class="card-body d-flex flex-wrap">
             <div class="user-info">
-                <p v-for="(val, index) in ['Name', 'Surname', 'Username', 'Password', 'Mail']" :key="index">
-                    <strong>{{ val }}:</strong> {{ userInfo[index] }}
+                <p v-for="(val, index) in ['First Name', 'Last Name', 'Username', 'Password', 'Email']" :key="index">
+                    <span v-if="index != 3"><strong>{{ val }}:</strong> {{ userInfo[index] }}</span>
                 </p>
                 <button class="btn btn-primary mt-3" @click="changeData = true;">Edit Data</button>
             </div>

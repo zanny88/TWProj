@@ -65,9 +65,9 @@
 
     var token;
 
-    let username = ref('');
+    const username = ref('');
 
-    let friend_number = ref('');
+    const friend_number = ref('');
 
     var inbox_icon = ref(`
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-inbox-fill" viewBox="0 0 16 16">
@@ -120,7 +120,7 @@
 
     onMounted(() => {
         token = localStorage.getItem('token');
-        username = atob(token.split('.')[1]);
+        username.value = atob(token.split('.')[1]);
         friendNumber();
     })
 </script>

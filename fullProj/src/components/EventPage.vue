@@ -85,6 +85,7 @@
                             :format="format"
                             :enable-time-picker="false"
                             :auto-apply="true"
+                            :class="{'is-invalid': endDateError}"
                             :disabled="isReadOnly"
                         />
                         <div v-if="endDateError" class="invalid-feedback">
@@ -103,6 +104,113 @@
                     </div>
                 </div>
 
+                <div class="mb-3 form-switch">
+                    <input type="checkbox" id="recurringEvent" class="form-check-input" v-model="event.isRecurring" :disabled="isReadOnly || event.pomodoro" />
+                    <label for="recurringEvent" class="form-check-label switch-label-margin">Recurring event</label>
+                </div>
+
+                <!-- Selezione della frequenza -->
+                <div v-if="event.isRecurring" class="mb-3">
+                    <label for="frequency" class="form-label">Frequency</label>
+                    <select id="frequency" class="form-select" v-model="event.frequency" :disabled="isReadOnly">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="specific_day_month">Specific Day of the Month</option>
+                        <option value="specific_weekday_month">Specific Weekday of the Month</option>
+                    </select>
+                </div>
+                <div v-if="frequencyError" class="invalid-feedback">
+                    Frequency is required for recurring events!
+                </div>
+                <div v-if="event.frequency === 'specific_day_month'" class="mb-3">
+                    <label for="specificDay" class="form-label">Choose the Day of the Month</label>
+                    <input type="number" id="specificDay" class="form-control" min="1" max="31" v-model="event.specificDay" placeholder="Enter day of the month (e.g. 4)" :class="{'is-invalid': specificDayError}" :disabled="isReadOnly" />
+                    <div v-if="specificDayError" class="invalid-feedback">
+                        The day of the month is required if frequency is "Specific Day of the Month"!
+                    </div>
+                </div>
+
+                <div v-if="event.frequency === 'specific_weekday_month'" class="mb-3">
+                    <label for="weekNumber" class="form-label">Choose Week Number</label>
+                    <select id="weekNumber" class="form-select" v-model="event.weekNumber" :class="{ 'is-invalid': specificWeekdayError && !event.weekNumber }" :disabled="isReadOnly">
+                        <option value="first">First</option>
+                        <option value="second">Second</option>
+                        <option value="third">Third</option>
+                        <option value="fourth">Fourth</option>
+                        <option value="last">Last</option>
+                    </select>
+                    <div v-if="specificWeekdayError && !event.weekNumber" class="invalid-feedback">
+                        Week Number is required if frequency is "Specific Weekday of the Month"!
+                    </div>
+
+                    <label for="weekday" class="form-label mt-3">Choose the Day of the Week</label>
+                    <select id="weekday" class="form-select" v-model="event.weekday" :class="{ 'is-invalid': specificWeekdayError && !event.weekday }" :disabled="isReadOnly">
+                        <option value="monday">Monday</option>
+                        <option value="tuesday">Tuesday</option>
+                        <option value="wednesday">Wednesday</option>
+                        <option value="thursday">Thursday</option>
+                        <option value="friday">Friday</option>
+                        <option value="saturday">Saturday</option>
+                        <option value="sunday">Sunday</option>
+                    </select>
+                    <div v-if="specificWeekdayError && !event.weekday" class="invalid-feedback">
+                        Weekday is required if frequency is "Specific Weekday of the Month"!
+                    </div>
+                </div>
+
+                <div v-if="event.isRecurring" class="mb-3">
+                    <label class="form-label">Recurrence End Option</label>
+                    <div>
+                        <div class="form-check">
+                            <input type="radio" id="repeatForever" value="forever" class="form-check-input" v-model="event.recurringEndOption" :disabled="isReadOnly" />
+                            <label for="repeatForever" class="form-check-label">Repeat Forever</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" id="repeatNTimes" value="untilCount" class="form-check-input" v-model="event.recurringEndOption" :disabled="isReadOnly" />
+                            <label for="repeatNTimes" class="form-check-label">
+                                Repeat N times
+                                <input type="number" min="1" v-model="event.repeatCount" class="form-control mt-2" v-if="event.recurringEndOption === 'untilCount'" :disabled="isReadOnly" />
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" id="repeatUntilDate" value="untilDate" class="form-check-input" v-model="event.recurringEndOption" :disabled="isReadOnly"/>
+                            <label for="repeatUntilDate" class="form-check-label">
+                                Repeat until specific date
+                                <VueDatePicker v-model="event.untilDate" :format="format" :enable-time-picker="false" :auto-apply="true" v-if="event.recurringEndOption === 'untilDate'" />
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4 form-switch">
+                    <input type="checkbox" id="eventTypeNotAvailable" class="form-check-input" v-model="event.eventTypeNotAvailable" :disabled="isReadOnly" />
+                    <label for="eventTypeNotAvailable" class="form-check-label switch-label-margin">Event type: not available</label>
+                </div>
+
+                <div class="mb-4 form-switch d-flex align-items-center">
+                    <input type="checkbox" id="pomodoro" class="form-check-input" v-model="event.pomodoro" :disabled="isReadOnly || event.isRecurring" />
+                    <label for="pomodoro" class="form-check-label switch-label-margin">Pomodoro event</label>
+                    <button v-if="formType === 'Save' && event.pomodoro" type="button" class="btn btn-danger" style="margin-left: 3cm;" @click="openPomodoro">
+                    Pomodoro
+                    </button>
+                </div>
+                
+                <div v-if="event.pomodoro" class="mb-3">
+                    <label for="cycles" class="form-label">Cycles</label>
+                    <input type="number" id="cycles" class="form-control" v-model="event.cycles" :disabled="isReadOnly" />
+                </div>
+                
+                <div v-if="event.pomodoro" class="mb-3">
+                    <label for="studyTime" class="form-label">Study time (minutes)</label>
+                    <input type="number" id="studyTime" class="form-control" v-model="event.studyTime" :disabled="isReadOnly" />
+                </div>
+                
+                <div v-if="event.pomodoro" class="mb-3">
+                    <label for="restTime" class="form-label">Rest time (minutes)</label>
+                    <input type="number" id="restTime" class="form-control" v-model="event.restTime" :disabled="isReadOnly" />
+                </div>
                 <div class="mb-3">
                     <label for="priority" class="form-label">Priority</label>
                     <select
@@ -118,26 +226,163 @@
                     </select>
                 </div>
 
-                <div class="mt-4 d-flex justify-content-between">
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        @click="saveEvent"
-                        v-if="formType === 'Create' || User === event.owner"
-                    >
-                        {{ formType }}
-                    </button>
-                    
-                <button v-if="formType === 'Save' && User === event.owner" type="button" :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'" @click="toggleModify">Modify</button>
-                    <button
-                        type="button"
-                        class="btn btn-secondary"
-                        @click="cancel"
-                    >
-                        Cancel
-                    </button>
+                <!-- NOTIFICATION SECTION START -->
+                <div class="mb-3 form-switch mt-4">
+                    <input type="checkbox" id="reminderEnabled" class="form-check-input" v-model="notification.enabled" :disabled="isReadOnly" />
+                    <label for="reminderEnabled" class="form-check-label switch-label-margin">Enable notification</label>
+                </div>
+
+                <!-- Se il reminder è abilitato, mostra i parametri di configurazione -->
+                <div v-if="notification.enabled">
+
+                    <!-- Canali di notifica -->
+                    <!--<div class="mb-3">
+                        <label class="form-label">Notification channels</label>
+                        <div class="form-check">
+                            <input type="checkbox" id="alertChannel" class="form-check-input" v-model="notification.channels.alert" :disabled="isReadOnly" />
+                            <label for="alertChannel" class="form-check-label">Alert</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" id="emailChannel" class="form-check-input" v-model="notification.channels.email" :disabled="isReadOnly" />
+                            <label for="emailChannel" class="form-check-label">Email</label>
+                        </div>
+                        <div v-if="channelsError" class="text-danger">
+                            Please choose at least one channel!
+                        </div>
+                    </div>-->
+
+                    <div class="mb-3">
+                        <label class="form-label">Notification offset</label>
+
+                        <div class="form-check">
+                            <input type="radio" id="offsetTypeMinutes" class="form-check-input" value="minutes" v-model="notification.offsetType" :disabled="isReadOnly" />
+                            <label for="offsetTypeMinutes" class="form-check-label">Offset in minutes</label>
+                        </div>
+
+                        <div class="ms-4" v-if="notification.offsetType === 'minutes'">
+                            <select v-model="notification.offsetMinutes" class="form-select w-auto mt-1" :disabled="isReadOnly">
+                                <option v-for="opt in offsetOptions" :key="opt" :value="opt">
+                                    {{ formatOffsetOption(opt) }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-check mt-2">
+                            <input type="radio" id="offsetTypeExact" class="form-check-input" value="exact" v-model="notification.offsetType" :disabled="isReadOnly" />
+                            <label for="offsetTypeExact" class="form-check-label">Exact time</label>
+                        </div>
+
+                        <div class="ms-4" v-if="notification.offsetType === 'exact'">
+                            <VueDatePicker v-model="notification.offsetTime" time-picker placeholder="Select offset time" model-type="timestamp" :disabled="isReadOnly" />
+                        </div>
+                    </div>
+
+                    <!-- Ripetizioni -->
+                    <div class="mb-3">
+                        <label class="form-label">Repetitions</label>
+                        <input type="number" class="form-control w-auto" min="0" v-model="notification.repeatCount" placeholder="0 = indefinite" :disabled="isReadOnly" />
+                        <div class="form-text">Use 0 for repetitions until stopped</div>
+                    </div>
+
+                    <!-- Intervallo tra ripetizioni -->
+                    <div class="mb-3">
+                        <label class="form-label">Interval between notifications (minutes)</label>
+                        <select v-model="notification.repeatInterval" class="form-select w-auto" @change="checkCustomInterval" :disabled="isReadOnly">
+                            <option value="1">1 minute</option>
+                            <option value="5">5 minutes</option>
+                            <option value="10">10 minutes</option>
+                            <option value="15">15 minutes</option>
+                            <option value="30">30 minutes</option>
+                            <option value="60">60 minutes</option>
+                            <option value="-1">Custom...</option>
+                        </select>
+                        <div class="mt-2" v-if="notification.isCustomRepeatInterval">
+                            <input type="number" class="form-control w-auto" min="1" v-model="notification.customRepeatInterval" placeholder="Enter custom minutes" :disabled="isReadOnly" />
+                        </div>
+                    </div>
+                </div>
+                <!-- NOTIFICATION SECTION END -->
+
+
+                <div v-if="Friends.length > 0 && (formType === 'Create' || User === event.owner)" class="mb-3 form-switch">
+                    <input type="checkbox" id="addParticipants" class="form-check-input" v-model="event.addParticipants" :disabled="isReadOnly" />
+                    <label for="addParticipants" class="form-check-label switch-label-margin">Add participants</label>
+                </div>
+
+                <div v-if="event.addParticipants && (formType === 'Create' || User === event.owner)">
+                    <table class="table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="friend in Friends" :key="friend.username">
+                            <td>
+                                <input type="checkbox" class="form-check-input" v-model="event.selectedParticipants" :value="friend.username" :disabled="isReadOnly" />
+                            </td>
+                            <td>{{ friend.username }}</td>
+                            <td>{{ friend.name }}</td>
+                            <td>
+                                <BIconHourglassSplit v-if="event.participants_waiting.includes(friend.username)" class="text-secondary" title="Waiting" />
+                                <BIconCheckCircle v-else-if="event.participants_accepted.includes(friend.username)" class="text-success" title="Accepted" />
+                                <BIconXCircle v-else-if="event.participants_refused.includes(friend.username)" class="text-danger" title="Refused" />
+                            </td>
+                        </tr>
+                    </tbody>
+                    </table>
+                </div>
+                
+                
+                <div class="mb-3">
+                  <label for="timezone" class="form-label">Time zone</label>
+                  <select
+                    id="timezone"
+                    class="form-select"
+                    v-model="event.timezone"
+                    :disabled="isReadOnly"
+                  >
+                    <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
+                  </select>
+                </div>
+                
+                <div v-if="formType === 'Save' && User !== event.owner">
+                    --- This event is editable only by the owner ---
+                </div>
+                
+                <div class="mt-4 d-flex justify-content-between align-items-center gap-2">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary" @click="saveEvent" v-if="formType === 'Create' || User === event.owner">{{ formType }}</button>
+                        <button type="button" class="btn btn-outline-secondary" @click="cancel">Cancel</button>
+                    </div>
+                    <button v-if="formType === 'Save' && User === event.owner" type="button" :class="isModifying ? 'btn btn-primary' : 'btn btn-outline-primary'" @click="toggleModify">Modify</button>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" v-if="formType === 'Save' && User === event.owner">Remove</button>
                 </div>
             </form>
+        </div>
+    </div>
+    
+    <!-- FINESTRA MODALE PER LA CONFERMA RIMOZIONE -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    Are you sure you want to delete this event?
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal" @click="remove">Yes, delete</button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -265,11 +510,6 @@ const formatOffsetOption = (val) => {
         case 2880: return '2 days before';
         default: return `${val} min before`;
     }
-};
-
-// Formato orario per VueDatePicker
-const timeFormat = (date) => {
-    return dayjs(date).format('HH:mm');
 };
 
 const checkCustomInterval = () => {
@@ -938,12 +1178,6 @@ const openPomodoro = () => {
 
 .btn-secondary:hover {
     background-color: #5a6268;
-}
-
-/* Error messages */
-.invalid-feedback {
-    font-size: 0.9rem;
-    color: #dc3545;
 }
 
 /* Responsive design */
