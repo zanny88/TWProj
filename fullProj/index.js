@@ -1289,14 +1289,14 @@ app.post("/deleteActivity", async (req, res) => {
     }
 });
 
-//gestione accettazione di invito ad un evento per un utente
+//gestione accettazione di invito ad un'attività per un utente
 app.get("/acceptActivityInvitation/:activityId/:user", async (req, res) => {
     const activityId = req.params.activityId;
     const user = req.params.user;
     res.send(await acceptActivityInvitation(activityId, user, Activity));
 });
 
-//gestione rifiuto di invito ad un evento per un utente
+//gestione rifiuto di invito ad un'attività per un utente
 app.get("/refuseActivityInvitation/:activityId/:user", async (req, res) => {
     const activityId = req.params.activityId;
     const user = req.params.user;

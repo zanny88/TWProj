@@ -50,7 +50,7 @@ function getEventOccurrences(event, rangeStart, rangeEnd, maxOccurrences = 1000)
   return results;
 }
 
-//Funzione che, dati due eventi (eventA, eventB), restituisce true se esiste almeno una sovrapposizione nel range considerato.
+//Funzione che, dati due eventi (eventA, eventB), restituisce true se esiste almeno una sovrapposizione.
 function eventsOverlap(eventA, eventB) {
   const rangeStart = dayjs.min(dayjs(eventA.date_start), dayjs(eventB.date_start)).toDate();
   const rangeEnd = dayjs.max(dayjs(eventA.date_end), dayjs(eventB.date_end)).toDate();
@@ -76,7 +76,6 @@ function eventsOverlap(eventA, eventB) {
 
 
 //Restituisce una descrizione in inglese della ricorrenza
-// Modifica della funzione getRecurrenceDescription
 function getRecurrenceDescription(recurringRule) {
   try {
     const rule = rrulestr(recurringRule);
@@ -148,7 +147,7 @@ function getRecurrenceDescription(recurringRule) {
 
 
 
-//Ritorna una breve descrizione della configurazione di notifica
+//Restituisce una breve descrizione della configurazione di notifica
 function getNotificationSummary(event) {
   if (!event.has_notification) {
     return 'No notifications enabled.';
