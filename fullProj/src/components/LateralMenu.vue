@@ -57,7 +57,6 @@
         const r = await axios.post(`${api_url}userSearch`,{username: receiver.value});
         if(!r.data){
             const user = atob(localStorage.getItem('token').split('.')[1]);
-            console.log("Msg info: ",{to: receiver.value, msg: msg.value, from: user});
             sendMessage(receiver.value,user,msg.value,api_url);
             toggleMenu();
         }else{
@@ -88,7 +87,7 @@
                     userFound.value = false;
                 }
             }catch(error){
-                console.log("Error while searching for friends: ",error);
+                console.error("Error while searching for friends: ",error);
                 userFound.value = false;
                 users.value = [];
             }

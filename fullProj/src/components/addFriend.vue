@@ -31,7 +31,6 @@ const user = atob(localStorage.getItem('token').split('.')[1]);
 var formType = ref('');
 
 async function addFriend(){
-    console.log("richiesta api per aggiunta amico");
     try{
         if (formType.value == "Add"){
             await sendMessage(friendName.value,user,"amicizia", api_url);
@@ -39,8 +38,7 @@ async function addFriend(){
             await axios.get(`${api_url}user/deleteFriend?friend=${friendName.value}&me=${user}`);
         }
     }catch(error){
-        console.log("Errore con l'aggiunta di un amico");
-        console.log(error);
+        console.error("Errore con l'aggiunta di un amico: ", error);
     }
 
     router.push({path: "/"});

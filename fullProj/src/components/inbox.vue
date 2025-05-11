@@ -61,7 +61,7 @@ async function getMsg(){
 
         r = await axios.post(`${api_url}user/checkMessages`,{messages: msgs.value,u: user});
     }catch(error){
-        console.log("Errore nella gestione dei messaggi: ",error);
+        console.error("Errore nella gestione dei messaggi: ",error);
     }
 }
 
@@ -74,7 +74,7 @@ async function accept_msg(msg){
             router.push({path: '/'});
         }
     }catch(error){
-        console.log("Error while accepting message [in vue component]: ",error);
+        console.error("Error while accepting message [in vue component]: ",error);
     }
 }
 
@@ -83,7 +83,7 @@ async function delete_msg(msg){
         var r = await axios.post(`${api_url}user/messages/${msg._id}/delete`,{u: user});
         router.push({path: '/'});
     }catch(error){
-        console.log("Error while deleting message [in vue component]: ",error);
+        console.error("Error while deleting message [in vue component]: ",error);
     }
 }
 

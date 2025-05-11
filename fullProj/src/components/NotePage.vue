@@ -1,6 +1,3 @@
-<!-- TODO edit e delete da dropdown -->
-<!-- Capisci sorting-->
-
 <template>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -140,7 +137,7 @@
             Notes.value = res.data;
             await nextTick();
         }catch(error){
-            console.log("Error fetching notes: ",error);
+            console.error("Error fetching notes: ",error);
         }
     }
 
@@ -187,7 +184,7 @@
             await axios.post(`${api_url}Notes/delete/`, payload);
             Notes.value = Notes.value.filter(el => el._id != id);
         }catch(error){
-            console.log("Error: ",error);
+            console.error("Error: ",error);
         }
     }
 

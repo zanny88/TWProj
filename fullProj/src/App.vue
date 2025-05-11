@@ -53,8 +53,6 @@
 
   async function checkLogged() {
     if (localStorage.getItem('token') === null) {
-      console.log("fai il login");
-      console.log(localStorage.getItem('token'));
       router.push({ path: "/login" });
     }
   }

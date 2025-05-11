@@ -644,7 +644,6 @@ import rrulePlugin from '@fullcalendar/rrule';
 import { prepareCalendarEvents } from './calendarUtils';
 import dayjs from 'dayjs';
 import {useRouter} from 'vue-router';
-import { marked } from "marked";
 
 import { useTimeMachineStore } from '../stores/timeMachine';
 const timeMachineStore = useTimeMachineStore();
@@ -750,7 +749,6 @@ async function get_today_events() {
             const endDate = (event.end == null ? startDate : new Date(event.end));  //Se endDate coincide con startDate, FullCalendar imposta endDate=null, quindi prendo endDate=startDate
             return endDate >= startOfDay && startDate < endOfDay && event.extendedProps.class !== 'notAvailable';  //Non prendo gli eventi di tipo NotAvailable
         });
-        //alert("today="+today+", eventsToday="+JSON.stringify(eventsToday));
         //Lista ordinata per data iniziale crescente
         eventsToday.sort((a, b) => {
             const dataA = new Date(a.start);
@@ -764,14 +762,12 @@ async function get_today_events() {
                 title = dayjs(ev.start).format('HH:mm') + " - " + dayjs(ev.end).format('HH:mm') + ' ';
             }
             title += ev.title;
-            //console.log("ev="+title);
             if (ev.extendedProps.class == "activity"){
                 today_activities.value.push(title);
             }
             else today_events.value.push(title);
         }
     } catch (error) {
-        //alert('Error: '+error);
         console.error("Error fetching events and activities: ", error);
     }
 }
@@ -870,7 +866,6 @@ async function get_pomodoro_week_stats() {
 
 async function get_note_preview() {
 
-    // const user = (await axios.post(`${api_url}getUser`)).data.name;
     var user;
 
     if (token != null) {

@@ -235,22 +235,6 @@
                 <!-- Se il reminder è abilitato, mostra i parametri di configurazione -->
                 <div v-if="notification.enabled">
 
-                    <!-- Canali di notifica -->
-                    <!--<div class="mb-3">
-                        <label class="form-label">Notification channels</label>
-                        <div class="form-check">
-                            <input type="checkbox" id="alertChannel" class="form-check-input" v-model="notification.channels.alert" :disabled="isReadOnly" />
-                            <label for="alertChannel" class="form-check-label">Alert</label>
-                        </div>
-                        <div class="form-check">
-                            <input type="checkbox" id="emailChannel" class="form-check-input" v-model="notification.channels.email" :disabled="isReadOnly" />
-                            <label for="emailChannel" class="form-check-label">Email</label>
-                        </div>
-                        <div v-if="channelsError" class="text-danger">
-                            Please choose at least one channel!
-                        </div>
-                    </div>-->
-
                     <div class="mb-3">
                         <label class="form-label">Notification offset</label>
 
@@ -429,10 +413,8 @@ const User = ref(user);
 //********************************************************************************************************************
 //TIME MACHINE
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
-//const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
 watch(currentTime, async() => {
     await nextTick();
-    console.log("currentTime changed: ", currentTime.value);
 });
 //********************************************************************************************************************
 
@@ -527,7 +509,6 @@ const timezones = ref(timeZonesNames);
 
 var formType = ref('');
 
-//alert('props='+JSON.stringify(props));
 if (props.id == '-1'){
     event.startDate = dayjs(props.eventDate, 'DDMMYYYY', true).toDate();
     event.endDate = event.startDate;
@@ -538,8 +519,6 @@ if (props.id == '-1'){
     event.startTime = next10.second(0).millisecond(0).toDate().getTime();
     event.endTime = dayjs(event.startTime).add(1, 'hour').toDate().getTime();
     //date_start.value = dayjs(props.eventDate, 'DDMMYYYY', true).format('YYYY-MM-DD');
-    //alert("event.startDate="+event.startDate+", event.endDate="+event.endDate +", date_start.value=" +date_start.value);
-    //alert("Event="+JSON.stringify(event));
 }
 
 
@@ -551,16 +530,13 @@ async function getEvent(eventId){
         const Events = res.data;
         await nextTick();
         const event_ = Events[0];
-        //alert("event_= " + JSON.stringify(event_));
         event.owner = event_.owner;
         event.title = event_.title;
         event.description = event_.description;
-        //event.startDate = dayjs(event_.date_start).toDate();
         const startUtc = dayjs(event_.date_start).utc();
         event.startDate = startUtc.tz(event.timezone).toDate();
 
         event.startTime = dayjs(event.startDate).toDate().getTime();
-        //event.endDate = dayjs(event_.date_end).toDate();
         const endUtc = dayjs(event_.date_end).utc();
         event.endDate = endUtc.tz(event.timezone).toDate();
         
@@ -582,8 +558,6 @@ async function getEvent(eventId){
         event.participants_accepted = event_.participants_accepted || [];
         event.participants_refused = event_.participants_refused || [];
         event.timezone = event_.timezone || 'Europe/Rome'; // Intl.DateTimeFormat().resolvedOptions().timeZone;
-        //alert(event.timezone);
-        //alert("event= " + JSON.stringify(event));
         parseRRule(event.recurring_rule);
 
 
@@ -633,7 +607,6 @@ async function getEvent(eventId){
         }
     }catch(error){
         console.error("Error adding event: ",error);
-        alert("error="+error);
     }
 }
 
@@ -691,7 +664,7 @@ async function submit(rrule){
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
                 notification_advance: notification.offsetMinutes,
-                notification_advance_date: (notification.offsetTime ? notification.offsetTime /*dayjs(notification.offsetTime).toDate()*/ : null),
+                notification_advance_date: (notification.offsetTime ? notification.offsetTime : null),
                 notification_repetitions: notification.repeatCount,
                 notification_interval: notification.repeatInterval,
                 notification_num_sent: 0,
@@ -707,28 +680,22 @@ async function submit(rrule){
                 newevent.date_start = new Date(event.startDate.getFullYear(), event.startDate.getMonth(), event.startDate.getDate());
                 newevent.date_end = new Date(event.endDate.getFullYear(), event.endDate.getMonth(), event.endDate.getDate());
             } else{
-                //newevent.date_start = copyTimeToDate(event.startDate, event.startTime);
                 const userStartDate = copyTimeToDate(event.startDate, event.startTime); 
                 const startUTC = dayjs(userStartDate).tz(event.timezone, true).utc();
                 newevent.date_start = startUTC.toDate();
                 
-                //newevent.date_end = copyTimeToDate(event.endDate, event.endTime);
                 const userEndDate = copyTimeToDate(event.endDate, event.endTime); 
                 const endUTC = dayjs(userEndDate).tz(event.timezone, true).utc();
                 newevent.date_end = endUTC.toDate();
             }
             
-            //console.log("bb, newevent=" + JSON.stringify(newevent));
-            //alert("bb, newevent=" + JSON.stringify(newevent));
             const r = await axios.post(`${api_url}addEvent`, newevent,{timeout: 5000});
             if(r.data && r.data.message == "OK"){
                 callback();
             }else{
                 console.error('Error: ' + r.data.message);
-                //alert("Message= " + r.data.message);
             }
         }catch(error){
-            alert("Errore: "+error);
             console.error("Errore: ", error);
         }
     }else{  //Modifica di un evento
@@ -746,7 +713,6 @@ async function submit(rrule){
                 title: event.title,
                 description: event.description,
                 place: event.location,
-                //participants: participants.value,
                 all_day: event.allDay,
                 is_recurring: event.isRecurring,
                 recurring_rule: rrule,
@@ -760,7 +726,7 @@ async function submit(rrule){
                 has_notification: notification.enabled,
                 notification_modes: notif_modes,
                 notification_advance: notification.offsetMinutes,
-                notification_advance_date: (notification.offsetTime ? notification.offsetTime /*dayjs(notification.offsetTime).toDate()*/ : null),
+                notification_advance_date: (notification.offsetTime ? notification.offsetTime : null),
                 notification_repetitions: notification.repeatCount,
                 notification_interval: notification.repeatInterval,
                 notification_num_sent: 0,
@@ -776,27 +742,21 @@ async function submit(rrule){
                 event_.date_start = new Date(event.startDate.getFullYear(), event.startDate.getMonth(), event.startDate.getDate());
                 event_.date_end = new Date(event.endDate.getFullYear(), event.endDate.getMonth(), event.endDate.getDate());
             } else{
-                //event_.date_start = copyTimeToDate(event.startDate, event.startTime);
                 const userStartDate = copyTimeToDate(event.startDate, event.startTime); 
                 const startUTC = dayjs(userStartDate).tz(event.timezone, true).utc();
                 event_.date_start = startUTC.toDate();
                 
-                //event_.date_end = copyTimeToDate(event.endDate, event.endTime);
                 const userEndDate = copyTimeToDate(event.endDate, event.endTime); 
                 const endUTC = dayjs(userEndDate).tz(event.timezone, true).utc();
                 event_.date_end = endUTC.toDate();
             }
-            //alert('pre-axios event_=' + JSON.stringify(event_) + ", " + api_url + 'editEvent');
             const r = await axios.post(api_url + 'editEvent', event_);
-            //alert('post-axios');
             if(r.data.message == "OK"){
                 callback();
             }else{
                 console.log(r.data.message);
-                //alert("Message= " + r.data.message);
             }
         }catch(error){
-            alert("Errore: "+error);
             console.error("Errore: ", error);
         }
     }
@@ -805,15 +765,12 @@ async function submit(rrule){
 function copyTimeToDate(date1, dateWithTime){
     let date = dayjs(date1).toDate();
     let dateTime = dayjs(dateWithTime).toDate();
-    //alert("copyTimeToDate("+date+","+dateTime);
     date.setHours(dateTime.getHours());
     date.setMinutes(dateTime.getMinutes());
-    //alert("date="+date);
     return date;
 }
 
 function cancel(){
-    //alert("Event.="+JSON.stringify(event));
     callback();
 }
 
@@ -828,11 +785,9 @@ async function remove(){
             callback();
         }else{
             console.log(r.data.message);
-            //alert("Message= " + r.data.message);
         }
     }catch(error){
         console.error("Errore: ", error);
-        alert("Error: "+error);
     }
 }
 
@@ -854,16 +809,13 @@ function callback(){
 
 //Funzione che legge gli amici dell'utente connesso
 async function readFriends(){
-    //alert("Friends");
     try{
         const res = await axios.get(api_url + "getUserFriends/" + user);
         Friends.value = res.data;
         await nextTick();
     } catch(error) {
         console.error("Error reading friends: ",error);
-        alert("error="+error);
     }
-    //alert("Friends="+JSON.stringify(Friends.value));
 }
 
 onMounted(async () => {
@@ -888,7 +840,6 @@ const saveEvent = () => {
 
     // Controllo delle date
     if (event.endDate && event.startDate && dayjs(event.endDate).isBefore(dayjs(event.startDate), 'day')) {
-        //if (event.endDate < event.startDate) {
         endDateError.value = true;
         return;
     } else {
@@ -975,14 +926,8 @@ const saveEvent = () => {
             rruleParts.push(`UNTIL=${event.untilDate.toISOString().slice(0,10).replace(/-/g,"")}`);
         }
         rrule = `RRULE:${rruleParts.join(';')}`;
-        console.log("RRULE:", rrule);
     }
-
-    console.log("Event Data:", event);
-    console.log("RRULE:", rrule);
-    //alert('RRULE: '+rrule);
     submit(rrule);
-    //alert(`Event saved successfully!\nRRULE: ${rrule}`);
 };
 
 
@@ -1068,7 +1013,6 @@ const parseRRule = (rrule) => {
     } else {
         event.recurringEndOption = 'forever';
     }
-    console.log("Parsed Event Data:", event);
 };
 
 
@@ -1086,7 +1030,6 @@ watch(() => event.startDate, (newStartDate) => {
     }
 
     // Reset dell'errore se necessario
-    //if (event.endDate < event.startDate) {
     if (event.endDate && event.startDate && dayjs(event.endDate).isBefore(dayjs(event.startDate), 'day')) {
         endDateError.value = true;
     } else {
@@ -1096,16 +1039,12 @@ watch(() => event.startDate, (newStartDate) => {
 
 //Watch per validare End Date
 watch(() => event.endDate, (newEndDate) => {
-    //if (newEndDate && event.startDate && newEndDate < event.startDate) {
     if (newEndDate && event.startDate && dayjs(newEndDate).isBefore(dayjs(event.startDate), 'day')) {
         endDateError.value = true;
     } else {
         endDateError.value = false;
     }
 });
-//alert("Event.="+JSON.stringify(event));
-
-//alert("event.startDate="+event.startDate+", event.endDate="+event.endDate );
 
 const openPomodoro = () => {
   router.push({path: "/pomodoro"});

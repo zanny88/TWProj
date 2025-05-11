@@ -1,4 +1,4 @@
-const axios = require('axios'); 
+const axios = require('axios');
 
 //Funzione che genera una stringa HTML per l'invito ad un'attività
 function generateActivityInvitationHTML(activity, user, ownerDB) {
@@ -14,7 +14,7 @@ function generateActivityInvitationHTML(activity, user, ownerDB) {
         endDate = new Date(activity.end).toLocaleString('en-US', {
             weekday: 'long', year: 'numeric', month: 'long',
             day: 'numeric'
-        });   
+        });
     } else {
         endDate = 'N/A';
     }
@@ -94,25 +94,23 @@ async function manageActivityParticipants(activity, User) {
             }
             const userDB = await User.findOne({ username: user });
             const ownerDB = await User.findOne({ username: activity.owner });
-            //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
-            
+
             let endDate;
             if (activity.end) {
                 endDate = new Date(activity.end).toLocaleString('en-US', {
                     weekday: 'long', year: 'numeric', month: 'long',
                     day: 'numeric'
-                });   
+                });
             } else {
                 endDate = 'N/A';
             }
             const activityDescription = '\nTitle: ' + activity.title +
-                                        '\nDescription: ' + activity.description +
-                                        '\nEnd Date: ' + endDate;
+                '\nDescription: ' + activity.description +
+                '\nEnd Date: ' + endDate;
 
             if (userDB && userDB.mail) {
                 //mando l'invito
                 let html = generateActivityInvitationHTML(activity, user, ownerDB);
-                console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
                 try {
                     let payload = {
                         to: user,
@@ -122,36 +120,36 @@ async function manageActivityParticipants(activity, User) {
                     await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
                     activity.participants_waiting.push(user);
                     await activity.save();
-                    
+
                     //mando anche il messaggio all'utente
                     payload = {
-                      toUser: user,
-                      fromUser: activity.owner,
-                      message: 'An invitation for an activity has been sent to you by ' + activity.owner + ':' +
-                               activityDescription +
-                               '\n\nYou can accept or refuse it using the buttons in the email.',
-                      data: {
-                        activityId: activity._id
-                      }
+                        toUser: user,
+                        fromUser: activity.owner,
+                        message: 'An invitation for an activity has been sent to you by ' + activity.owner + ':' +
+                            activityDescription +
+                            '\n\nYou can accept or refuse it using the buttons in the email.',
+                        data: {
+                            activityId: activity._id
+                        }
                     }
-                  await axios.post(`${process.env.SERVER_URL}user/sendMessage`,payload);
+                    await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
                 } catch (error) {
-                    console.error("Errore: "+error);
+                    console.error("Errore: " + error);
                 }
             } else {
                 console.error("Invito ad attività non inviato a " + user + " per mancanza di mail configurata!");
                 //mando il messaggio all'utente
                 const payload = {
-                  toUser: user,
-                  fromUser: activity.owner,
-                  message: 'An invitation for an activity has been sent to you by ' + activity.owner + ':' +
-                           activityDescription +
-                           '\n\nYou can accept or refuse it using the buttons here.\nTo receive an email as well for further invitations set the email in User Data.',
-                  data: {
-                    activityId: activity._id
-                  }
+                    toUser: user,
+                    fromUser: activity.owner,
+                    message: 'An invitation for an activity has been sent to you by ' + activity.owner + ':' +
+                        activityDescription +
+                        '\n\nYou can accept or refuse it using the buttons here.\nTo receive an email as well for further invitations set the email in User Data.',
+                    data: {
+                        activityId: activity._id
+                    }
                 }
-                await axios.post(`${process.env.SERVER_URL}user/sendMessage`,payload);
+                await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
             }
         }
     } catch (error) {
@@ -188,8 +186,7 @@ async function acceptActivityInvitation(activityId, user, Activity) {
             activity.participants_accepted.push(user);
         }
         await activity.save();
-        console.log("Activity accepted:" + activityId + " " + user);
-        
+
         return `
             <html>
                 <head>
@@ -262,8 +259,7 @@ async function refuseActivityInvitation(activityId, user, Activity) {
             activity.participants_refused.push(user);
         }
         await activity.save();
-        console.log("Activity refused:" + activityId + " " + user);
-        
+
         return `
             <html>
                 <head>

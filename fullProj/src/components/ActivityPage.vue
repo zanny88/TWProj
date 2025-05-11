@@ -129,8 +129,6 @@ import { useRouter } from 'vue-router';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import dayjs from 'dayjs';
-//import customParseFormat from 'dayjs/plugin/customParseFormat';
-//dayjs.extend(customParseFormat)
 import { useTimeMachineStore } from '../stores/timeMachine';
 const timeMachineStore = useTimeMachineStore();
 
@@ -171,10 +169,8 @@ const isReadOnly = computed(() => {
 //********************************************************************************************************************
 //TIME MACHINE
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
-//const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
 watch(currentTime, async() => {
     await nextTick();
-    console.log("currentTime changed: ", currentTime.value);
 });
 //********************************************************************************************************************
 
@@ -197,7 +193,6 @@ function validateEndDate() {
     } else {
         const today = dayjs(currentTime.value).toDate();
         const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        //alert("today="+today+", todayMidnight="+todayMidnight);
         if (!activity.end || activity.end >= todayMidnight) {
             endDateError.value = false;
         } else {
@@ -209,7 +204,6 @@ function validateEndDate() {
 
 async function getActivity(activityId) {
     try {
-        //const res = await axios.get(api_url + "getActivities/" + user + "/" + activityId);
         const res = await axios.get(api_url + "getActivities/-1/" + activityId);
         const Activities = res.data;
         await nextTick();
@@ -231,7 +225,6 @@ async function getActivity(activityId) {
         }
     } catch (error) {
         console.error("Error fetching activity: ", error);
-        //alert("error="+error);
     }
 }
 
@@ -262,17 +255,14 @@ async function submit() {
                 participants_accepted: activity.participants_accepted,
                 participants_refused: activity.participants_refused
             };
-            //alert("bb, api_url="+api_url+", newActivity="+JSON.stringify(newActivity));
             const r = await axios.post(api_url + 'addActivity', newActivity);
             if (r.data.message == "OK") {
                 callbackToCalendar();
             } else {
                 console.log(r.data.message);
-                //alert("Message= " + r.data.message);
             }
         } catch (error) {
             console.error("Errore: ", error);
-            alert("Error: " + error);
         }
     } else {  //Modifica di un'attività
         try {
@@ -294,11 +284,9 @@ async function submit() {
                 callbackToCalendar();
             } else {
                 console.log(r.data.message);
-                //alert("Message= " + r.data.message);
             }
         } catch (error) {
             console.error("Errore: ", error);
-            //alert("Error: "+error);
         }
     }
 }
@@ -318,11 +306,9 @@ async function remove() {
             callbackToCalendar();
         } else {
             console.log(r.data.message);
-            //alert("Message= " + r.data.message);
         }
     } catch (error) {
         console.error("Errore: ", error);
-        alert("Error: " + error);
     }
 }
 
@@ -343,16 +329,13 @@ function callbackToCalendar() {
 
 //Funzione che legge gli amici dell'utente connesso
 async function readFriends() {
-    //alert("Friends");
     try {
         const res = await axios.get(api_url + "getUserFriends/" + user);
         Friends.value = res.data;
         await nextTick();
     } catch (error) {
         console.error("Error reading friends: ", error);
-        alert("error=" + error);
     }
-    //alert("Friends="+JSON.stringify(Friends.value));
 }
 
 onMounted(async () => {

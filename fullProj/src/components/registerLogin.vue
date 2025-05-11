@@ -164,7 +164,7 @@
                     showDismissibleAlertUsername.value = true;
                 }
             }
-            console.log("Errore: ", error);
+            console.error("Errore: ", error);
         }
 
     }

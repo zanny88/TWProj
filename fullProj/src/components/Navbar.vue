@@ -24,14 +24,12 @@
                             <ul class="dropdown-menu" id="navbarDropdownList" aria-labelledby="navbarDropdown" style="z-index: 1051;">
                                 <li><router-link class="dropdown-item" to="/calendar">Calendar</router-link></li>
                                 <li><router-link class="dropdown-item" to="/showNote">Notes</router-link></li>
-<!--                                <li><router-link class="dropdown-item" to="/showTodo">To&nbsp;Do</router-link></li>-->
                                 <li><router-link class="dropdown-item" to="/pomodoro">Pomodoro</router-link></li>
                             </ul>
                         </li>
                     <ul v-if="hamburgerShowing" id="ul-if-hamburgerShowing">
                         <li class="nav-item"><router-link class="nav-link" to="/calendar">Calendar</router-link></li>
                         <li class="nav-item"><router-link class="nav-link" to="/showNote">Notes</router-link></li>
-<!--                        <li class="nav-item"><router-link class="nav-link" to="/showTodo">To&nbsp;Do</router-link></li>-->
                         <li class="nav-item"><router-link class="nav-link" to="/pomodoro">Pomodoro</router-link></li>
                     </ul>
                     <form class="d-flex position-relative" role="search" id="searchForm">
@@ -96,10 +94,9 @@
     var searchResults = ref([]);
     var hasSearchresults = ref(false);
 
-    var loggedIn = inject("loggedIn");//variabile globale ref creata in main.js per controllare se l'utente è loggato o meno
+    var loggedIn = inject("loggedIn"); //variabile globale ref creata in main.js per controllare se l'utente è loggato o meno
     var token = inject('IDtoken');
     var val = ref(token.value == null);
-    //var token = ref(localStorage.getItem('token'));
 
     var searchString = ref('');
     var hamburgerShowing = ref(false);
@@ -146,7 +143,7 @@
                     `;
                 }
             }catch(error){
-                console.log("Error checking user inbox");
+                console.error("Error checking user inbox");
             }
         }
     },2000);
@@ -163,10 +160,6 @@
         loggedIn.value = false;
         router.push({path: "/login"});
     }
-
-    /*watch(loggedIn, (newLog,oldLog) => {
-        val.value = newLog;
-    });*/
 
     async function search(){
         
@@ -187,8 +180,6 @@
             filter: f,
             friends: fs
         };
-        console.log(`faccio una search dalla searchbar nell navbar con payload:`);
-        console.log(newSearch);
         try{
             const r = await axios.post(`${api_url}search`,newSearch);
             if(r.data.length > 0){
@@ -204,7 +195,6 @@
             }
 
         }catch(error){
-            console.log("Error during search: ",error);
             searchResults.value = [];
             hasSearchresults.value = false;
         }

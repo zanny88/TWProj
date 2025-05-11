@@ -109,12 +109,10 @@
             await nextTick();
 
             if(r && r.data && r.data.friends){
-                console.log(r);
                 friend_number.value = r.data.friends.length;
             }
         }catch(error){
-            console.log("Errore (nel componente) durante il fetch dell'utente per le info");
-            console.log(error);
+            console.error("Errore (nel componente) durante il fetch dell'utente per le info: ", error);
         }
     }
 

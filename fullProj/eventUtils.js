@@ -122,7 +122,7 @@ function getRecurrenceDescription(recurringRule) {
         SA: 'Saturday',
         SU: 'Sunday'
       };
-      const weekdays = options.byweekday.map(wd => weekdaysMap[wd.toString().slice(0,2)]).join(', ');
+      const weekdays = options.byweekday.map(wd => weekdaysMap[wd.toString().slice(0, 2)]).join(', ');
       descriptions.push(`on ${weekdays}`);
     }
 
@@ -135,7 +135,6 @@ function getRecurrenceDescription(recurringRule) {
     if (options.count) {
       descriptions.push(`for ${options.count} time(s)`);
     }
-    //console.log(JSON.stringify(options));
     if (!options.until && !options.count) {
       descriptions.push('forever');
     }
@@ -183,11 +182,11 @@ function generateEventInvitationHTML(event, user, ownerDB) {
   }
 
   const map = {
-        1: 'Low',
-        2: 'Normal',
-        3: 'High',
-        4: 'Highest',
-      };
+    1: 'Low',
+    2: 'Normal',
+    3: 'High',
+    4: 'Highest',
+  };
   const priorityStr = map[event.priority] || 'Unknown';  //Priorità
   const notificationInfo = getNotificationSummary(event);  //Info sulle notifiche
   const inviteStr = (ownerDB != null && ownerDB.name ? ownerDB.name + " invited you to the Event: " : "You're invited to the Event: ") + (event.title || 'Untitled Event');
@@ -268,103 +267,100 @@ function generateEventInvitationHTML(event, user, ownerDB) {
 
 //gestione degli eventuali partecipanti all'evento condiviso
 async function manageEventParticipants(event, Event, User) {
-    try {
-        if (!event || !event.selectedParticipants || event.selectedParticipants.length == 0) {
-            return;  //nulla da fare --> esco
-        }
-        const part_waiting = event.participants_waiting || [];
-        const part_accepted = event.participants_accepted || [];
-        const part_refused = event.participants_refused || [];
-        for (let i = 0; i < event.selectedParticipants.length; i++) {
-            const user = event.selectedParticipants[i];
-            if (part_waiting.includes(user) || part_accepted.includes(user) || part_refused.includes(user)) {
-                continue;
-            }
-            //Controllo se ci sono eventi di tipo "notAvailable" sovrapposti
-            const eventsNotAvailable = await Event.find({ owner: user, ev_type: 'notAvailable' });
-            if (!eventsNotAvailable) {
-                continue;
-            }
-            let overlapped = false;
-            for (let k = 0; k < eventsNotAvailable.length; k++) {
-                const ev = eventsNotAvailable[k];
-                if (eventsOverlap(event, ev)) {  //Evento "notAvailable" sovrapposto --> rifiuto in automatico l'invito
-                    overlapped = true;
-                    console.log("INVITO a " + user + ": Rifiuto automatico per sovrapposizione con evento 'notAvailable'.");
-                    event.participants_refused.push(user);
-                    await event.save();
-                    break;
-                }
-            }
-            if (!overlapped) {
-                const userDB = await User.findOne({ username: user });
-                const ownerDB = await User.findOne({ username: event.owner });
-                //console.log("userDB="+JSON.stringify(userDB)+" " + userDB + " " + userDB.mail + " " + userDB.username);
-                const formatString = 'YYYY-MM-DD HH:mm';
-                const startStr = event.date_start ? dayjs(event.date_start).format(formatString) : 'N/A';
-                const endStr = event.date_end ? dayjs(event.date_end).format(formatString) : 'N/A';
-                const map = {
-                      1: 'Low',
-                      2: 'Normal',
-                      3: 'High',
-                      4: 'Highest',
-                    };
-                const priorityStr = map[event.priority] || 'Unknown';  //Priorità
-                const eventDescription = '\nDescription: ' + event.title +
-                                         '\nPlace: ' + event.place +
-                                         '\nStarts: ' + startStr +
-                                         '\nEnds: ' + endStr +
-                                         '\nAll Day: ' + (event.all_day ? 'Yes' : 'No') +
-                                         '\nPriority: ' + priorityStr;
-                if (userDB && userDB.mail) {
-                    //mando l'invito
-                    let html = generateEventInvitationHTML(event, user, ownerDB);
-                    console.log("INVITO a " + user + " (" + userDB.mail + "): " + html);
-                    try {
-                          let payload = {
-                            to: user,
-                            subject: `Invitation for event: ${event.title}`,
-                            html: html
-                          }
-                          await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
-                          event.participants_waiting.push(user);
-                          await event.save();
-                          
-                          //mando anche il messaggio all'utente
-                          payload = {
-                            toUser: user,
-                            fromUser: event.owner,
-                            message: 'An invitation for an event has been sent to you by ' + event.owner + ':' +
-                                     eventDescription +
-                                     '\n\nYou can accept or refuse it using the buttons here or in the email.',
-                            data: {
-                              eventId: event._id
-                            }
-                          }
-                          await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
-                      } catch (error) {
-                          console.error("Errore: "+error);
-                      }
-                } else {
-                    console.error("Invito all'evento non inviato a " + user + " per mancanza di mail configurata!");
-                    //mando il messaggio all'utente
-                    const payload = {
-                      toUser: user,
-                      fromUser: event.owner,
-                      message: 'An invitation for an event has been sent to you by ' + event.owner + ':' +
-                               eventDescription +
-                               '\n\nYou can accept or refuse it using the buttons here.\nTo receive an email as well for further invitations set the email in User Data.',
-                      data: {
-                        eventId: event._id
-                      }
-                    }
-                    await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
-                }
-            }
-        }
-    } catch (error) {
-        console.error("Errore nella gestione dei partecipanti all'evento: ", error);
+  try {
+    if (!event || !event.selectedParticipants || event.selectedParticipants.length == 0) {
+      return;  //nulla da fare --> esco
     }
+    const part_waiting = event.participants_waiting || [];
+    const part_accepted = event.participants_accepted || [];
+    const part_refused = event.participants_refused || [];
+    for (let i = 0; i < event.selectedParticipants.length; i++) {
+      const user = event.selectedParticipants[i];
+      if (part_waiting.includes(user) || part_accepted.includes(user) || part_refused.includes(user)) {
+        continue;
+      }
+      //Controllo se ci sono eventi di tipo "notAvailable" sovrapposti
+      const eventsNotAvailable = await Event.find({ owner: user, ev_type: 'notAvailable' });
+      if (!eventsNotAvailable) {
+        continue;
+      }
+      let overlapped = false;
+      for (let k = 0; k < eventsNotAvailable.length; k++) {
+        const ev = eventsNotAvailable[k];
+        if (eventsOverlap(event, ev)) {  //Evento "notAvailable" sovrapposto --> rifiuto in automatico l'invito
+          overlapped = true;
+          event.participants_refused.push(user);
+          await event.save();
+          break;
+        }
+      }
+      if (!overlapped) {
+        const userDB = await User.findOne({ username: user });
+        const ownerDB = await User.findOne({ username: event.owner });
+        const formatString = 'YYYY-MM-DD HH:mm';
+        const startStr = event.date_start ? dayjs(event.date_start).format(formatString) : 'N/A';
+        const endStr = event.date_end ? dayjs(event.date_end).format(formatString) : 'N/A';
+        const map = {
+          1: 'Low',
+          2: 'Normal',
+          3: 'High',
+          4: 'Highest',
+        };
+        const priorityStr = map[event.priority] || 'Unknown';  //Priorità
+        const eventDescription = '\nDescription: ' + event.title +
+          '\nPlace: ' + event.place +
+          '\nStarts: ' + startStr +
+          '\nEnds: ' + endStr +
+          '\nAll Day: ' + (event.all_day ? 'Yes' : 'No') +
+          '\nPriority: ' + priorityStr;
+        if (userDB && userDB.mail) {
+          //mando l'invito
+          let html = generateEventInvitationHTML(event, user, ownerDB);
+          try {
+            let payload = {
+              to: user,
+              subject: `Invitation for event: ${event.title}`,
+              html: html
+            }
+            await axios.post(`${process.env.SERVER_URL}sendNotification`, payload);
+            event.participants_waiting.push(user);
+            await event.save();
+
+            //mando anche il messaggio all'utente
+            payload = {
+              toUser: user,
+              fromUser: event.owner,
+              message: 'An invitation for an event has been sent to you by ' + event.owner + ':' +
+                eventDescription +
+                '\n\nYou can accept or refuse it using the buttons here or in the email.',
+              data: {
+                eventId: event._id
+              }
+            }
+            await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
+          } catch (error) {
+            console.error("Errore: " + error);
+          }
+        } else {
+          console.error("Invito all'evento non inviato a " + user + " per mancanza di mail configurata!");
+          //mando il messaggio all'utente
+          const payload = {
+            toUser: user,
+            fromUser: event.owner,
+            message: 'An invitation for an event has been sent to you by ' + event.owner + ':' +
+              eventDescription +
+              '\n\nYou can accept or refuse it using the buttons here.\nTo receive an email as well for further invitations set the email in User Data.',
+            data: {
+              eventId: event._id
+            }
+          }
+          await axios.post(`${process.env.SERVER_URL}user/sendMessage`, payload);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Errore nella gestione dei partecipanti all'evento: ", error);
+  }
 }
 
 const generateHTMLResponse = (title, message, color) => `
@@ -400,12 +396,11 @@ const generateHTMLResponse = (title, message, color) => `
 
 
 async function disableEventNotification(eventId, user, Event) {
-    try {
-        console.log("/disableEventNotification " + eventId + " " + user);
-        const event_ = await Event.findOne({ _id: eventId });
-        if (!event_) {
-            console.error("Event not found: " + eventId);
-            return `
+  try {
+    const event_ = await Event.findOne({ _id: eventId });
+    if (!event_) {
+      console.error("Event not found: " + eventId);
+      return `
                 <html>
                     <head><title>Event Not Found</title></head>
                     <body>
@@ -414,16 +409,15 @@ async function disableEventNotification(eventId, user, Event) {
                     </body>
                 </html>
             `;
-        }
-        if (!event_.notification_stop.includes(user)) {
-            event_.notification_stop.push(user);
-            await event_.save();
-            console.log("Notifications disabled for user:" + eventId + " " + user);
-        }
-        return generateHTMLResponse("Notifications Disabled", "You have successfully disabled this event's notifications.", "#4CAF50");
-    } catch (error) {
-        console.error("ERROR: ", error);
-        return `
+    }
+    if (!event_.notification_stop.includes(user)) {
+      event_.notification_stop.push(user);
+      await event_.save();
+    }
+    return generateHTMLResponse("Notifications Disabled", "You have successfully disabled this event's notifications.", "#4CAF50");
+  } catch (error) {
+    console.error("ERROR: ", error);
+    return `
             <html>
                 <head><title>Error</title></head>
                 <body>
@@ -432,17 +426,17 @@ async function disableEventNotification(eventId, user, Event) {
                 </body>
             </html>
         `;
-    }
+  }
 }
 
 
 //gestione accettazione di invito ad un evento per un utente
 async function acceptEventInvitation(eventId, user, Event) {
-    try {
-        const event_ = await Event.findOne({ _id: eventId });
-        if (!event_) {
-            console.error("Event not found: " + eventId);
-            return `
+  try {
+    const event_ = await Event.findOne({ _id: eventId });
+    if (!event_) {
+      console.error("Event not found: " + eventId);
+      return `
                 <html>
                     <head><title>Event Not Found</title></head>
                     <body>
@@ -451,24 +445,23 @@ async function acceptEventInvitation(eventId, user, Event) {
                     </body>
                 </html>
             `;
-        }
-        const part_waiting = event_.participants_waiting || [];
-        const part_refused = event_.participants_refused || [];
-        if (part_waiting.includes(user)) {
-            event_.participants_waiting = part_waiting.filter(item => item !== user);
-        }
-        if (part_refused.includes(user)) {
-            event_.participants_refused = part_refused.filter(item => item !== user);
-        }
-        if (!event_.participants_accepted.includes(user)) {
-            event_.participants_accepted.push(user);
-        }
-        await event_.save();
-        console.log("Event accepted:" + eventId + " " + user);
-        return generateHTMLResponse("Event Accepted", "You have successfully accepted the event invitation.", "#4CAF50");
-    } catch (error) {
-        console.error("ERROR: ", error);
-        return `
+    }
+    const part_waiting = event_.participants_waiting || [];
+    const part_refused = event_.participants_refused || [];
+    if (part_waiting.includes(user)) {
+      event_.participants_waiting = part_waiting.filter(item => item !== user);
+    }
+    if (part_refused.includes(user)) {
+      event_.participants_refused = part_refused.filter(item => item !== user);
+    }
+    if (!event_.participants_accepted.includes(user)) {
+      event_.participants_accepted.push(user);
+    }
+    await event_.save();
+    return generateHTMLResponse("Event Accepted", "You have successfully accepted the event invitation.", "#4CAF50");
+  } catch (error) {
+    console.error("ERROR: ", error);
+    return `
             <html>
                 <head><title>Error</title></head>
                 <body>
@@ -477,16 +470,16 @@ async function acceptEventInvitation(eventId, user, Event) {
                 </body>
             </html>
         `;
-    }
+  }
 }
 
 //gestione rifiuto di invito ad un evento per un utente
 async function refuseEventInvitation(eventId, user, Event) {
-    try {
-        const event_ = await Event.findOne({ _id: eventId });
-        if (!event_) {
-            console.error("Event not found: " + eventId);
-            return `
+  try {
+    const event_ = await Event.findOne({ _id: eventId });
+    if (!event_) {
+      console.error("Event not found: " + eventId);
+      return `
                 <html>
                     <head><title>Event Not Found</title></head>
                     <body>
@@ -495,24 +488,23 @@ async function refuseEventInvitation(eventId, user, Event) {
                     </body>
                 </html>
             `;
-        }
-        const part_waiting = event_.participants_waiting || [];
-        const part_accepted = event_.participants_accepted || [];
-        if (part_waiting.includes(user)) {
-            event_.participants_waiting = part_waiting.filter(item => item !== user);
-        }
-        if (part_accepted.includes(user)) {
-            event_.participants_accepted = part_accepted.filter(item => item !== user);
-        }
-        if (!event_.participants_refused.includes(user)) {
-            event_.participants_refused.push(user);
-        }
-        await event_.save();
-        console.log("Event refused:" + eventId + " " + user);
-        return generateHTMLResponse("Event Refused", "You have successfully refused the event invitation.", "#f44336");
-    } catch (error) {
-        console.error("ERROR: ", error);
-        return `
+    }
+    const part_waiting = event_.participants_waiting || [];
+    const part_accepted = event_.participants_accepted || [];
+    if (part_waiting.includes(user)) {
+      event_.participants_waiting = part_waiting.filter(item => item !== user);
+    }
+    if (part_accepted.includes(user)) {
+      event_.participants_accepted = part_accepted.filter(item => item !== user);
+    }
+    if (!event_.participants_refused.includes(user)) {
+      event_.participants_refused.push(user);
+    }
+    await event_.save();
+    return generateHTMLResponse("Event Refused", "You have successfully refused the event invitation.", "#f44336");
+  } catch (error) {
+    console.error("ERROR: ", error);
+    return `
             <html>
                 <head><title>Error</title></head>
                 <body>
@@ -521,7 +513,7 @@ async function refuseEventInvitation(eventId, user, Event) {
                 </body>
             </html>
         `;
-    }
+  }
 }
 
 

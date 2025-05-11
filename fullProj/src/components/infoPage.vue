@@ -121,28 +121,8 @@ async function saveUserData(){
         changeData.value = false;
         router.go(0);
     }catch(error){
-        console.log("Errore: ",error);
+        console.error("Errore: ",error);
     }
-
-    /*
-    try{
-        var r = await axios.post(`${api_url}checkUsername`,{username: userInfo.value[2]});
-
-        if(r.data.message == "OK"){
-            r = await axios.post(`${api_url}user/updateData`,newUserData);
-            const newToken = r.data.token;
-            localStorage.setItem('token',newToken);
-            showDismissibleAlert.value = false;
-            changeData.value = false;
-            router.go(0);
-        }else{
-            userInfo.value[2] = "";
-            showDismissibleAlert.value = true;
-        }
-    }catch(error){
-        console.log("Errore: ",error);
-    }
-        */
 }
 
 async function getUserInfo(){
@@ -157,9 +137,8 @@ async function getUserInfo(){
         userInfo.value.push(utente.mail);
 
         userFriends.value = utente.friends;
-        console.log(userInfo.value);
     }catch(error){
-        console.log("Errore: ",error);
+        console.error("Errore: ",error);
     }
 }
 

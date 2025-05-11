@@ -28,7 +28,6 @@
                                 <small class="text-muted">Last modified: {{ new Date(note.last_modify).toDateString() }}</small>
                             </div>
                         </div>
-                        <!--<button type="button" class="btn-close" aria-label="Close" @click="deleteNote(note._id)"></button>-->
                     </div>
                 </div>
             </div>
@@ -67,7 +66,7 @@
                 isMenuDisabled.value = false;
             }
         }catch(error){
-            console.log("Error",error);
+            console.error("Error: ",error);
         }
     }
 
@@ -85,7 +84,7 @@
             const res = await axios.post(`${api_url}Notes/delete/`,payload);
             router.push({path: "/showNote"});
         }catch(error){
-            console.log("Error: ",error);
+            console.error("Error: ",error);
         }
     }
 

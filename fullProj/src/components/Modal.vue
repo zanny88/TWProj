@@ -7,7 +7,7 @@
 </template>
 <!--
     questo componente serve per visualizzare i to-do
-    il suo funzionamento è dato dal tag slot che prende l'html che viene racchiuso tra i tag <Modal> utilizzati nel componente TodoPage.vue e lo sostituisce ai tag slot
+    il suo funzionamento è dato dal tag slot che prende l'html che viene racchiuso tra i tag <Modal> e lo sostituisce ai tag slot
     inoltre viene applicato lo stile qui indicato
 -->
 <style scoped>

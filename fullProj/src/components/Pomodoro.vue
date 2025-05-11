@@ -224,9 +224,7 @@ let end_pause_time;
 //********************************************************************************************************************
 //TIME MACHINE
 const currentTime = computed(() => timeMachineStore.getCurrentTime.format('YYYY-MM-DD HH:mm:ss'));
-const currentTimeAsMs = computed(() => timeMachineStore.getCurrentTime.valueOf()); //TODO: remove if not used. currentTime in milliseconds
 watch(currentTime, async() => {
-    console.log("Current time changed: ", currentTime.value);
 	await nextTick();
 });
 //********************************************************************************************************************
@@ -279,7 +277,7 @@ const defaultCycles = [
     }
 ];
 
-// Automotically called when the component is mounted; sets up suggestionStructsArray with data from defaultCycles, initializes the form with
+// Automatically called when the component is mounted; sets up suggestionStructsArray with data from defaultCycles, initializes the form with
 // provided values or default ones (30 study + 5 rest, 5 cycles), enables the form
 onMounted(async () => {
     window.bootstrap = require('/node_modules/bootstrap/dist/js/bootstrap');
@@ -303,7 +301,7 @@ onMounted(async () => {
         if (session && session.data) {
             var sessionData = session.data;
             if (sessionData.totCycles == sessionData.completedCycles) {
-                console.log("Attempted to load an already completed session. Falling back on a new default session.");
+                //Attempted to load an already completed session. Falling back on a new default session.
                 defaultInit();
             }
             else {
@@ -323,17 +321,15 @@ onMounted(async () => {
                 else {
                     setup_tomato_study();
                 }
-
-                console.log("Loaded session. Current session:\n", currentSession.value);
             }
         }
         else {
-            console.log("Invalid session id prop. Falling back on a new default session.")
+            //Invalid session id prop. Falling back on a new default session.
             defaultInit();
         }
     }
     else {
-        console.log("Didn't load a pre-existing session.");
+        //Didn't load a pre-existing session.
         defaultInit();
     }
     document.getElementById('timer-display').textContent = "00:00";
@@ -355,7 +351,6 @@ function defaultInit() {
 }
 
 async function get_latest() {
-    // const user = (await axios.post(`${api_url}getUser`)).data.name;
     var user;
     if (token != null) {
         user = atob(token.split('.')[1]);
@@ -636,7 +631,6 @@ function expandCollapse() {
 }
 
 async function saveSession() {
-    console.log("Saving as a newly created session.");
     var sessionObj = {
         user: atob(token.split('.')[1]),
         ...currentSession.value
@@ -645,7 +639,6 @@ async function saveSession() {
 }
 
 async function updateSession() {
-    console.log("Updating the previously loaded session.");
     let res = await axios.post(`${pomodoro_sessions_api_url}update`, currentSession.value);
 }
 
@@ -655,7 +648,6 @@ async function searchFriends() {
             const response = await axios.get(`${api_url}user/friends/searchByPrefix?prefix=${friendSearch.value}&currentUser=${atob(token.split('.')[1])}`);
             friendSuggestions.value = response.data;
             await nextTick();
-            console.log("friendSuggestions: ", friendSuggestions.value);
         } catch (error) {
             console.error(error);
         }

@@ -208,24 +208,20 @@ if (props.calDate != undefined && props.calDate != "0"){
 	const parsedDate = dayjs(props.calDate, 'DDMMYYYY');
 	if (parsedDate.isValid()) {
 		ActiveCalDate.value = parsedDate.toDate();
-        //alert("parsedDate="+parsedDate+", FullCalDate="+FullCalDate.value); 
         FullCalDate.value = dayjs(parsedDate).format('YYYY-MM-DD');
 	} else {
-		console.error("La stringa di data fornita non � valida.");
+		console.error("La stringa di data fornita non e' valida.");
 	}
 }
 
 
 //Eventi del giorno selezionato del calendario
 const CalDateEvents = computed(() => {
-	//alert("CalDateEvents, ActiveCalDate="+ActiveCalDate.value);
 	const date = ActiveCalDate.value;
 	const ev = [];
 	for (let i = 0; i < Events.value.length; i++){
 		const event_ = Events.value[i];
-		//alert(JSON.stringify(event_));
 		if (event_.ev_type === 'notAvailable') {
-			//alert("notAvailable");
 			continue;
 		}
 		const eventStartDate = dayjs(event_.date_start).toDate();
@@ -239,7 +235,6 @@ const CalDateEvents = computed(() => {
 			const item = {};
 			item.id = event_._id;
 			item.title = '';
-			//alert("event_="+JSON.stringify(event_)+", eventStartDate="+eventStartDate+", event_.all_day="+event_.all_day);
 			if (!event_.all_day){
 				item.title = dayjs(eventStartDate).format('HH:mm') + ' ';
 				if (eventStartDate < eventEndDate){
@@ -247,17 +242,11 @@ const CalDateEvents = computed(() => {
 				}
 			}
 			item.title += event_.title;
-			//alert("item.title="+item.title);
 			item.date_start = eventStartDate;
 			if (event_.is_recurring){
-				//alert(JSON.stringify(event_));
 				item.rrule = `DTSTART=${formatToICalendarDate(event_.date_start)};` + event_.recurring_rule;
-				//alert(item.rrule);
-				console.log(item.rrule);
 			}
-			//console.log("item="+JSON.stringify(item));
 			ev.push(item);
-			//alert("push "+dayjs(eventDate).format('DD/MM/YYYY'));
 		}
 	}
 	
@@ -266,7 +255,6 @@ const CalDateEvents = computed(() => {
 	const events = calendarRef.value.getApi().getEvents();
 	//Filtra gli eventi validi in data
 	const eventsOnDate = events.filter(event => {
-		//alert("event="+JSON.stringify(event));
 		const start = new Date(event.start);
         let end;
         if (event.end) {
@@ -283,18 +271,17 @@ const CalDateEvents = computed(() => {
 			date <= new Date(end.setHours(23, 59, 59, 999))
 		);
 	});
-	//alert("eventsOnDate="+JSON.stringify(eventsOnDate));
+	
 	for (let i = 0; i < eventsOnDate.length; i++){
 		const event_ = eventsOnDate[i];
 		if (event_.extendedProps.class === 'notAvailable') {
-			//alert("notAvailable");
 			continue;
 		}
-		//alert("event_="+JSON.stringify(event_));
+		
 		if (!ev.some(item => item.id === event_.id) && event_.extendedProps.class == 'event'){   //Se non esiste ancora, lo aggiungo
 			const item = {};
 			item.id = event_.id;
-			//alert("event_.all_day="+event_.extendedProps.all_day);
+			
 			if (event_.allDay){
 				item.title = event_.title;
 			} else {
@@ -310,20 +297,18 @@ const CalDateEvents = computed(() => {
 		const dataB = new Date(b.date_start);
 		return dataA - dataB;
 	});
-	//alert("ev="+ev);
 	return ev;
 });
 
 
 
 
-//Elenco attivit�
+//Elenco attivita'
 const CalDateActivities = computed(() => {
-	//alert("CalDateActivities");
 	const act = [];
 	for (let i = 0; i < Activities.value.length; i++){
 		const activity = Activities.value[i];
-		//alert(JSON.stringify(activity));
+
 		if (Activities_completed.value || (!Activities_completed.value && !activity.is_completed)) {
 			const item = {};
 			item.id = activity._id;
@@ -333,10 +318,9 @@ const CalDateActivities = computed(() => {
 				item.end = dayjs(activity.end).toDate();
 				item.title = 'End date: ' + dayjs(activity.end).format('DD/MM/YYYY') + ' - ';
 			} else {
-				item.end = dayjs('9999-12-31').toDate();          //Metto data massima cos� nell'ordinamento vanno dopo
+				item.end = dayjs('9999-12-31').toDate();          //Metto data massima cosi' nell'ordinamento vanno dopo
 			}
 			item.title += activity.title;
-			//alert("item="+JSON.stringify(item));
 			act.push(item);
 		}
 	}
@@ -362,28 +346,22 @@ const isActivityLoaded = computed(() => Activities.value.length > 0);
 
 
 async function loadEventsAndActivities(){
-	//alert('loadEventsAndActivities');
 	try{
 		errorMessage.value = '';
 		let res = await axios.get(api_url + "getEvents/" + user + "/-1");    //Carica gli eventi
 		Events.value = res.data;
 		await nextTick();
-		//alert("ris event=" + Events.value);
 		res = await axios.get(api_url + "getSharedEvents/" + user);    //Carica gli eventi condivisi
         Events.value = Events.value.concat(res.data);
 		await nextTick();
-		//alert("ris event=" + Events.value);
-		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attivit�
+		res = await axios.get(api_url + "getActivities/" + user + "/-1");    //Carica le attivita'
 		Activities.value = res.data;
 		await nextTick();
-		res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attivit� condivise
+		res = await axios.get(api_url + "getSharedActivities/" + user);    //Carica le attivita' condivise
         Activities.value = Activities.value.concat(res.data);
 		await nextTick();
-		//alert("ris activity=" + Activities.value +" - #"+Activities.value.length);
 		CalendarEvents.value = prepareCalendarEvents(Events.value, Activities.value, user, (window.innerWidth > 800));
-		//alert("CalendarEvents.value="+JSON.stringify(CalendarEvents.value));
 	}catch(error){
-		//alert('Error: '+error);
 		errorMessage.value = 'Errore nel caricamento di eventi e attivita: '+error;
 		console.error("Error fetching events and activities: ",error);
 	}
@@ -414,7 +392,6 @@ async function loadIncompletePomodoroSessions() {
   try {
     const res = await axios.post(pomodoro_sessions_api_url + "read/incomplete", { user: user, now: currentTime.value });
     incompletePomodoroSessions.value = res.data;
-	// console.log("incompletePomodoroSessions: ", incompletePomodoroSessions.value);
   } catch (error) {
     console.error("Error fetching pomodoro sessions: ", error);
   }
@@ -450,18 +427,14 @@ function toMonthView(){
 
 
 
-const calendarOptions = reactive/*ref*/({
+const calendarOptions = reactive({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, rrulePlugin],
   initialView: CalViewMode.value,
   initialDate: FullCalDate.value, // Imposta la data iniziale
   events: CalendarEvents,
   editable: true,
   selectable: true, // Abilita la selezione dei giorni
-  //select: (info) => {
-  //// Quando si seleziona una data o un intervallo, aggiorna la data attiva
-  //FullCalDate.value = info.startStr;   alert("select:"+info.startStr);
-  //ActiveCalDate.value = dayjs(FullCalDate.value).toDate();
-  //},
+
   dateClick: (info) => {
     ActiveCalDate.value = dayjs(info.date).toDate();
     FullCalDate.value = dayjs(info.date).format('YYYY-MM-DD');
@@ -474,9 +447,9 @@ const calendarOptions = reactive/*ref*/({
       cell.classList.add('selected-day');
     }
   },
-  firstDay: 1,     //La settimana inizia dal luned�
+  firstDay: 1,     //La settimana inizia dal lunedi'
   datesSet: (info) => {
-	// Verifica se la vista corrente � la vista giornaliera
+	// Verifica se la vista corrente e' la vista giornaliera
 	if (CalViewMode.value === VIEW_MODE_DAY) {
 	  // Ottieni la data corrente visualizzata
 	  const currentDate = info.start; // In day view, start dovrebbe essere la data del giorno
@@ -500,8 +473,6 @@ const calendarOptions = reactive/*ref*/({
 	hour12: false
   },
   eventClick: (info) => {
-	//alert("event into.event="+JSON.stringify(info.event));
-	//alert("class="+info.event.extendedProps.class);
 	if (info.event.extendedProps.class === 'activity'){
 		editActivity(info.event.id);
 	} else if (info.event.extendedProps.class === 'event' || info.event.extendedProps.class === 'notAvailable'){
@@ -537,10 +508,8 @@ async function updateEventActivity(info) {
     } else {
         newEndDate = (info.event.allDay ? dayjs(info.event.end).add(-1, 'day').toDate() : new Date(info.event.end));
     }
-    //alert("oldDate="+oldDate+", newDate="+newDate);
     if (info.oldEvent.extendedProps?.class === 'event') {  //Gestione dello spostamento di un evento
         try{
-            //alert("info.oldEvent="+JSON.stringify(info.oldEvent));
             const res = await axios.get(api_url + "getEvents/-1/" + info.oldEvent.id);
             const Events = res.data;
             await nextTick();
@@ -551,17 +520,14 @@ async function updateEventActivity(info) {
                 event_.date_end = newEndDate;
                 event_.all_day = info.event.allDay;
                 event_.userName = event_.owner;
-                //alert("event_="+JSON.stringify(event_));
                 const r = await axios.post(api_url + 'editEvent', event_);
                 await nextTick();
                 if(!r.data || r.data.message !== "OK"){
                     console.error('Error: ' + r.data.message);
-                    //alert("Message= " + r.data.message);
                 }
             }
         } catch(error) {
             console.error("Error editing event: ",error);
-            alert("error="+error);
         }
     } else {  //Gestione dello spostamento della data di fine di un'attività
         try{
@@ -574,13 +540,11 @@ async function updateEventActivity(info) {
                 act.end = dayjs(newStartDate).startOf('day').toDate();
                 const r = await axios.post(api_url + 'editActivity', act);
                 if (r.data.message !== "OK") {
-                    console.log('Error: ' + r.data.message);
-                    //alert("Message= " + r.data.message);
+                    console.error('Error: ' + r.data.message);
                 }
             }
         } catch(error) {
             console.error("Error editing activity: ",error);
-            alert("error="+error);
         }
     }
 }
@@ -596,14 +560,12 @@ watch(CalViewMode, (newView) => {
 // Watch per cambiare la data visualizzata nel calendario quando 'FullCalDate' cambia
 watch(FullCalDate, (newDate) => {
 	if (calendarRef.value) {
-	//alert("watch, "+ActiveCalDate.value);
 		ActiveCalDate.value = dayjs(FullCalDate.value).toDate();
-	//alert("ActiveCalDate.value="+ActiveCalDate.value);
 		calendarRef.value.getApi().gotoDate(newDate); // Cambia la data del calendario
 	}
 });
 
-//Funzione che indica se un'attivit� � scaduta ma non ancora completata
+//Funzione che indica se un'attivita' e' scaduta ma non ancora completata
 function isActivityExpired(activity) {
 	if (!activity.end || activity.is_completed) return false;
 	const now = new Date(currentTime.value);
@@ -740,9 +702,7 @@ function parseICal(icalText) {
 }
   
 onMounted(async () => {
-	//alert('onMounted');
 	await loadEventsAndActivities();
-	//alert("CalendarEvents.value="+JSON.stringify(CalendarEvents.value));
 	const calendarApi = calendarRef.value.getApi();
 	calendarApi.changeView(CalViewMode.value);
 	calendarApi.select({
