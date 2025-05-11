@@ -170,7 +170,7 @@ const api_url = inject('api_url');
 const pomodoro_sessions_api_url = inject('pomodoro_sessions_api_url');
 const router = useRouter();
 const props = defineProps(['mode','calDate']);
-const CalViewMode = ref(                                    //Modalit� di visualizzazione del calendario
+const CalViewMode = ref(                                    //Modalità di visualizzazione del calendario
 	props.mode === "CW" ? VIEW_MODE_WEEK :
 	props.mode === "CD" ? VIEW_MODE_DAY :
 	VIEW_MODE_MONTH

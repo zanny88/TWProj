@@ -512,20 +512,17 @@ var formType = ref('');
 if (props.id == '-1'){
     event.startDate = dayjs(props.eventDate, 'DDMMYYYY', true).toDate();
     event.endDate = event.startDate;
-    //event.startTime = new Date(currentTime.value).getTime();
     const now = dayjs(currentTime.value);
     const remainder = 10 - (now.minute() % 10);
     const next10 = remainder === 10 ? now : now.add(remainder, 'minute');
     event.startTime = next10.second(0).millisecond(0).toDate().getTime();
     event.endTime = dayjs(event.startTime).add(1, 'hour').toDate().getTime();
-    //date_start.value = dayjs(props.eventDate, 'DDMMYYYY', true).format('YYYY-MM-DD');
 }
 
 
 
 async function getEvent(eventId){
     try{
-        //const res = await axios.get(api_url + "getEvents/" + user + "/" + eventId);
         const res = await axios.get(api_url + "getEvents/-1/" + eventId);
         const Events = res.data;
         await nextTick();
@@ -557,7 +554,7 @@ async function getEvent(eventId){
         event.participants_waiting = event_.participants_waiting || [];
         event.participants_accepted = event_.participants_accepted || [];
         event.participants_refused = event_.participants_refused || [];
-        event.timezone = event_.timezone || 'Europe/Rome'; // Intl.DateTimeFormat().resolvedOptions().timeZone;
+        event.timezone = event_.timezone || 'Europe/Rome';
         parseRRule(event.recurring_rule);
 
 
@@ -934,7 +931,6 @@ const saveEvent = () => {
 const parseRRule = (rrule) => {
     //Pulisce la stringa RRULE per prendere solo la parte dopo "RRULE:"
     if (!rrule.startsWith("RRULE:")) {
-        //console.error("Invalid RRULE format.");
         return;
     }
     
