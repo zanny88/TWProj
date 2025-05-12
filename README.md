@@ -1,18 +1,26 @@
 **Autori**
+
 Andrea Zanella andrea.zanella7@studio.unibo.it
+
 Fabio Poli fabio.poli4@studio.unibo.it
+
 Lorenzo Giarrusso lorenzo.giarrusso@studio.unibo.it
 
 --------------------------
 
 **Contributo individuale**
+
 *Andrea Zanella*: note (creazione, visualizzazione, modifica, ecc...), la pagina utente, autenticazione, messaggi tra utenti (amicizie, condivisione e generici)
+
 *Fabio Poli*: visualizzazione e gestione del calendario, creazione e gestione eventi (anche condivisi e/o ricorrenti), creazione e gestione attività (anche condivise), gestione delle notifiche che provengono dal calendario, creazione e gestione di eventi "non disponibile", integrazione con lo standard iCalendar, interazione di eventi e attività con la time machine
+
 *Lorenzo Giarrusso*: schermata Home, implementazione del Pomodoro, integrazione del Pomodoro con eventi e calendario, condivisione e gestione di eventi Pomodoro, gestione ed integrazione delle sessioni Pomodoro, implementazione della Time Machine, interfaccia grafica di varie schermate del sito
+
 
 --------------------------
 
 **Scelte implementative**
+
 Il progetto è stato realizzato utilizzando Vue come framework di sviluppo. Le librerie selezionate per la gestione delle parti principali del progetto sono state: dotenv per parametri di configurazione globale; Axios per le richieste HTTP asincrone; Mongoose per l'interazione con MongoDB; Vue Router per il routing; Bootstrap per costruire l'interfaccia grafica; Passport e JWT per l'autenticazione; dayjs per la gestione di date e tempi; Pinia per la gestione degli stati; NodeMailer per l'implementazione delle e-mail di notifica; FullCalendar, ics e ical per la gestione del calendario; Marked per l'implementazione del Markdown nelle note.
 
 --------------------------
