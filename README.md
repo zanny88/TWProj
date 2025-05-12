@@ -27,7 +27,7 @@ Il progetto è stato realizzato utilizzando Vue come framework di sviluppo. Le l
 
 **Utilizzo dell'IA generativa**
 
-L'IA generativa è stata utilizzato come copilota in fase di rifinitura di alcune interfacce grafiche per la generazione di uno scheletro essenziale, poi modificato, integrato ed adattato a quanto già esistente. 
+L'IA generativa è stata utilizzata come copilota in fase di rifinitura di alcune interfacce grafiche per la generazione di uno scheletro essenziale, poi modificato, integrato ed adattato a quanto già esistente. 
 
 --------------------------
 --------------------------
