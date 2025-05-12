@@ -10,11 +10,11 @@ Lorenzo Giarrusso lorenzo.giarrusso@studio.unibo.it
 
 **Contributo individuale**
 
-*Andrea Zanella*: note (creazione, visualizzazione, modifica, ecc...), la pagina utente, autenticazione, messaggi tra utenti (amicizie, condivisione e generici)
+*Andrea Zanella*: note (creazione, visualizzazione, modifica, ecc.), pagina utente, autenticazione, messaggi, amicizie, condivisione tra utenti, deploy
 
 *Fabio Poli*: visualizzazione e gestione del calendario, creazione e gestione eventi (anche condivisi e/o ricorrenti), creazione e gestione attività (anche condivise), gestione delle notifiche che provengono dal calendario, creazione e gestione di eventi "non disponibile", integrazione con lo standard iCalendar, interazione di eventi e attività con la time machine
 
-*Lorenzo Giarrusso*: schermata Home, implementazione del Pomodoro, integrazione del Pomodoro con eventi e calendario, condivisione e gestione di eventi Pomodoro, gestione ed integrazione delle sessioni Pomodoro, implementazione della Time Machine, interfaccia grafica di varie schermate del sito
+*Lorenzo Giarrusso*: schermata Home (contenuti, personalizzazione delle preview ed ottenimento delle informazioni relative ad esse, grafica), implementazione del Pomodoro, integrazione del Pomodoro con eventi e calendario, condivisione e gestione di eventi Pomodoro, gestione ed integrazione delle sessioni Pomodoro, implementazione della Time Machine, interfaccia grafica di varie schermate del sito (home, form di creazione eventi, rifinitura della pagina utente, pagina di elenco delle note, pagina di dettaglio per note individuali, Pomodoro, ecc.)
 
 
 --------------------------
