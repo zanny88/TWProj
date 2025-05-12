@@ -24,6 +24,12 @@ Lorenzo Giarrusso lorenzo.giarrusso@studio.unibo.it
 Il progetto è stato realizzato utilizzando Vue come framework di sviluppo. Le librerie selezionate per la gestione delle parti principali del progetto sono state: dotenv per parametri di configurazione globale; Axios per le richieste HTTP asincrone; Mongoose per l'interazione con MongoDB; Vue Router per il routing; Bootstrap per costruire l'interfaccia grafica; Passport e JWT per l'autenticazione; dayjs per la gestione di date e tempi; Pinia per la gestione degli stati; NodeMailer per l'implementazione delle e-mail di notifica; FullCalendar, ics e ical per la gestione del calendario; Marked per l'implementazione del Markdown nelle note.
 
 --------------------------
+
+**Utilizzo dell'IA generativa**
+
+L'IA generativa è stata utilizzato come copilota in fase di rifinitura di alcune interfacce grafiche per la generazione di uno scheletro essenziale, poi modificato, integrato ed adattato a quanto già esistente. 
+
+--------------------------
 --------------------------
 
 **Installation**
